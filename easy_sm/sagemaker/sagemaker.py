@@ -68,6 +68,7 @@ class SageMakerClient(object):
             instance_type=train_instance_type,
             input_mode='File',
             output_path=output_path,
+            code_location=output_path,
             base_job_name=base_job_name,
             sagemaker_session=self.sagemaker_session,
         )
