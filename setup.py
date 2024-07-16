@@ -7,21 +7,17 @@ setup(
     packages=find_packages(where='.'),
     package_data={
         'easy_sm': [
-            'template/easy_sm_base/config.json',
             'template/easy_sm_base/*.sh',
             'template/easy_sm_base/Dockerfile',
             'template/easy_sm_base/__init__.py',
-            'template/easy_sm_base/training/__init__.py',
             'template/easy_sm_base/training/train',
             'template/easy_sm_base/training/*.py',
             'template/easy_sm_base/prediction/*.py',
-            # 'template/easy_sm_base/prediction/serve',
-            # 'template/easy_sm_base/prediction/nginx.conf',
-            # 'template/easy_sm_base/local_test/*.sh',
-            # 'template/easy_sm_base/local_test/test_dir/output/.gitkeep',
-            # 'template/easy_sm_base/local_test/test_dir/model/.gitkeep',
-            # 'template/easy_sm_base/local_test/test_dir/input/config/*.json',
-            # 'template/easy_sm_base/local_test/test_dir/input/data/training/'
+            'template/easy_sm_base/prediction/serve',
+            'template/easy_sm_base/local_test/*.sh',
+            'template/easy_sm_base/local_test/test_dir/output/.gitkeep',
+            'template/easy_sm_base/local_test/test_dir/model/.gitkeep',
+            'template/easy_sm_base/local_test/test_dir/input/data/training/.gitkeep'
         ]
     },
     install_requires=[
