@@ -10,10 +10,11 @@ tag=$5
 image=$6
 python_version=$7
 
-docker buildx build --platform=linux/amd64 \
+docker buildx build --platform linux/amd64 \
 -t "${image}:${tag}" \
 -f ${dockerfile_path} . \
 --build-arg module_path=${module_path} \
 --build-arg target_dir_name=${target_dir_name} \
 --build-arg requirements_file_path=${requirements_file_path} \
---build-arg python_version=${python_version}
+--build-arg python_version=${python_version} \
+--output type=docker
