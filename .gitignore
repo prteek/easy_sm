@@ -1,0 +1,7 @@
+*credentials
+*.ipynb_checkpoints/
+*.DS_Store
+.idea/
+.python-version
+*.csv
+src/
