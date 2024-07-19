@@ -94,15 +94,14 @@ class SageMakerClient(object):
         :return: [str], endpoint name
         """
         image = self._construct_image_location(image_name)
-        model_name = endpoint_name
         model = sage.Model(
             model_data=s3_model_location,
             image_uri=image,
             role=self.role,
             sagemaker_session=self.sagemaker_session,
-            name=model_name
         )
         model.create()
+        model_name = model.name
 
         if not self._check_endpoint_exists(endpoint_name):
 
@@ -212,10 +211,9 @@ class SageMakerClient(object):
             accept=content_type,
             strategy="MultiRecord",
             assemble_with="Line",
-            base_transform_job_name=job_name
         )
 
-        transformer.transform(data=s3_input_location, split_type='Line', content_type=content_type)
+        transformer.transform(data=s3_input_location, split_type='Line', content_type=content_type, job_name=job_name)
 
         if wait:
             try:
