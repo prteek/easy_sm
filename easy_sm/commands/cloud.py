@@ -68,7 +68,7 @@ def upload_data(input_dir, target_dir, iam_role_arn):
 @click.option(
     u"-n",
     u"--base-job-name",
-    required=False,
+    required=True,
     help="Optional prefix for the SageMaker training job."
     "If not specified, the estimator generates a default job name, based on the training image name and current timestamp."
 )
@@ -194,7 +194,7 @@ def deploy_serverless(
 @click.option(
     u"-n",
     u"--job-name",
-    required=True,
+    required=False,
     default=None,
     help="Name for the SageMaker batch transform job."
 )
