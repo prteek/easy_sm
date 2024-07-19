@@ -2,7 +2,10 @@ from setuptools import setup, find_packages
 
 setup(
     name="easy_sm",
-    version="0.1.0",
+    description='Making working with Sagemaker Easy',
+    author='Prateek',
+    author_email='prteek@icloud.com',
+    version="0.1.1",
     python_requires='>=3.11',
     packages=find_packages(where='.'),
     package_data={
