@@ -31,7 +31,7 @@ def cloud():
 @click.option(
     u"-r",
     u"--iam-role-arn",
-    required=False,
+    required=True,
     help="The AWS role to use for the upload command"
 )
 def upload_data(input_dir, s3_dir, iam_role_arn):
@@ -119,7 +119,7 @@ def train(
 @click.option(
     u"-r",
     u"--iam-role-arn",
-    required=False,
+    required=True,
     help="The AWS role to use for the deploy command"
 )
 @click.option(
@@ -180,7 +180,7 @@ def deploy_serverless(
 @click.option(
     u"-r",
     u"--iam-role-arn",
-    required=False,
+    required=True,
     help="The AWS role to use for batch transform command"
 )
 @click.option(
@@ -248,7 +248,7 @@ u"-n",
 @click.option(
     u"-r",
     u"--iam-role-arn",
-    required=False,
+    required=True,
     help="The AWS role to use for delete command"
 )
 @click.pass_obj
