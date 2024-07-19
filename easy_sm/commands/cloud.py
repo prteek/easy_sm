@@ -104,7 +104,7 @@ def train(
     return s3_model_location  # To pipe into other commands
 
 
-@click.command(name='deploy_serverless')
+@click.command(name='deploy-serverless')
 @click.option(
     u"-m", u"--s3-model-location",
     required=True,
@@ -238,7 +238,7 @@ def batch_transform(
         print("Started batch transform on SageMaker successfully")
 
 
-@click.command(name='delete_endpoint')
+@click.command(name='delete-endpoint')
 @click.option(
 u"-n",
     u"--endpoint-name",
