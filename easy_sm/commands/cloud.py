@@ -23,7 +23,7 @@ def cloud():
 @click.command(name='upload-data')
 @click.option(u"-i", u"--input-dir", required=True, help="Path to data input directory")
 @click.option(
-    u"-s", u"--s3-dir",
+    u"-t", u"--target-dir",
     required=True,
     help="s3 location to upload data",
     type=click.Path()
@@ -34,15 +34,15 @@ def cloud():
     required=True,
     help="The AWS role to use for the upload command"
 )
-def upload_data(input_dir, s3_dir, iam_role_arn):
+def upload_data(input_dir, target_dir, iam_role_arn):
     """
     Command to upload data to S3
     """
     print("Started uploading data to S3...\n")
     config = _config()
     sage_maker_client = sagemaker.SageMakerClient(config.aws_profile, config.aws_region, iam_role_arn)
-    s3_path = sage_maker_client.upload_data(input_dir, s3_dir)
-    print("Data uploaded to {} successfully".format(s3_path))
+    target_path = sage_maker_client.upload_data(input_dir, target_dir)
+    print("Data uploaded to {} successfully".format(target_path))
 
 
 @click.command(name='train')
@@ -175,8 +175,8 @@ def deploy_serverless(
     help="s3 location to save predictions",
     type=click.Path()
 )
-@click.option(u"-n", u"--num-instances", required=True, type=int, help="Number of ec2 instances")
-@click.option(u"-e", u"--ec2-type", required=True, help="ec2 instance type")
+@click.option(u"--num-instances", required=True, type=int, help="Number of ec2 instances")
+@click.option(u"--ec2-type", required=True, help="ec2 instance type")
 @click.option(
     u"-r",
     u"--iam-role-arn",
@@ -192,6 +192,7 @@ def deploy_serverless(
          "Default: don't wait"
 )
 @click.option(
+    u"-n",
     u"--job-name",
     required=True,
     default=None,
@@ -251,8 +252,7 @@ u"-n",
     required=True,
     help="The AWS role to use for delete command"
 )
-@click.pass_obj
-def delete_endpoint(obj, endpoint_name, iam_role_arn):
+def delete_endpoint(endpoint_name, iam_role_arn):
     config = _config()
     sage_maker_client = sagemaker.SageMakerClient(config.aws_profile, config.aws_region, iam_role_arn)
     sage_maker_client.shutdown_endpoint(endpoint_name)
