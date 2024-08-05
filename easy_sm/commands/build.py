@@ -34,8 +34,6 @@ def _build(source_dir, requirements_dir, image_name, docker_tag, python_version)
     os.chmod(executor_file_path, 0o777)
 
     target_dir_name = os.path.basename(os.path.normpath(source_dir))
-    print("------------ Using docker buildx to build from Mac for Sagemaker ------------")
-    print("------------ this behaviour is set in src/easy_sm_base/build.sh ------------")
     output = subprocess.check_output(
         [
             "{}".format(build_script_path),
