@@ -2,6 +2,8 @@
 
 if [ $1 = "train" ]; then
     python ./easy_sm_base/training/train
-else
+elif [ $1 = "deploy" ]; then
     python ./easy_sm_base/prediction/serve
+else
+    python ./easy_sm_base/processing/$1
 fi
