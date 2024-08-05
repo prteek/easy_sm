@@ -55,7 +55,7 @@ class SageMakerClient(object):
         :param image_name: [str], name of Docker image
         :param input_s3_data_location: [str], S3 location to input data
         :param train_instance_type: [str], ec2 instance type
-        :param output_path: [str], S3 location for saving the training
+        :param output_path: [str], S3 location for saving the training artefacts
         :param base_job_name: [str], Optional prefix for the SageMaker training job
         :return: [str], the model location in S3
         """
@@ -261,3 +261,34 @@ class SageMakerClient(object):
             region=region,
             image=image_name
         )
+
+    def process(
+            self,
+            image_name,
+            processing_instance_type,
+            file,
+            base_job_name,
+    ):
+        """
+        Process python file on SageMaker
+        :param image_name: [str], name of Docker image
+        :param train_instance_type: [str], ec2 instance type
+        :param file: [str], python filename
+        :param base_job_name: [str], Optional prefix for the SageMaker training job
+        :return: None
+        """
+        image = self._construct_image_location(image_name)
+
+        proc = sage.processing.Processor(
+            image_uri=image,
+            role=self.role,
+            instance_count=1,
+            instance_type=processing_instance_type,
+            base_job_name=base_job_name,
+            sagemaker_session=self.sagemaker_session,
+            entrypoint=["python", f"easy_sm_base/processing/{file}"]
+        )
+
+        proc.run(wait=True)
+
+        return None

@@ -76,8 +76,7 @@ def upload_data(input_dir, target_dir, iam_role_arn, app_name):
     u"-n",
     u"--base-job-name",
     required=True,
-    help="Optional prefix for the SageMaker training job."
-    "If not specified, the estimator generates a default job name, based on the training image name and current timestamp."
+    help="Prefix for the SageMaker training job."
 )
 @click.option(
     u"-a",
@@ -293,8 +292,65 @@ def delete_endpoint(endpoint_name, iam_role_arn, app_name):
     print(f"Endpoint {endpoint_name} has been deleted")
 
 
+@click.command(name='process')
+@click.option(u"-e", u"--ec2-type", required=True, help="ec2 instance type")
+@click.option(
+    u"-r",
+    u"--iam-role-arn",
+    required=True,
+    help="The AWS role to use"
+)
+@click.option(
+    u"-n",
+    u"--base-job-name",
+    required=True,
+    help="Prefix for the SageMaker processing job."
+    "If not specified, default job name is generated, based on the docker image name and current timestamp."
+)
+@click.option(
+    u"-f",
+    u"--file",
+    required=True,
+    help="The name (not path) of python file to run as processing job"
+)
+@click.option(
+    u"-a",
+    u"--app-name",
+    required=True,
+    help="The app name whose json file will be referenced for setting up command"
+)
+@click.pass_obj
+def process(
+        obj,
+        ec2_type,
+        iam_role_arn,
+        base_job_name,
+        file,
+        app_name
+):
+    """
+    Command to run python file as processing job on Sagemaker
+    """
+
+    print("Started processing job on SageMaker...\n")
+    config = _config(app_name)
+    sage_maker_client = sagemaker.SageMakerClient(config.aws_profile, config.aws_region, iam_role_arn)
+
+    image_name = config.image_name+':'+obj['docker_tag']
+
+    s3_model_location = sage_maker_client.process(
+        image_name=image_name,
+        processing_instance_type=ec2_type,
+        file=file,
+        base_job_name=base_job_name
+    )
+
+    print("Processing job on SageMaker succeeded")
+
+
 cloud.add_command(upload_data)
 cloud.add_command(train)
 cloud.add_command(deploy_serverless)
 cloud.add_command(batch_transform)
 cloud.add_command(delete_endpoint)
+cloud.add_command(process)
