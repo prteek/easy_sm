@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="easy_sm",
-    description='Making working with Sagemaker Easy',
+    description='Easy Sagemaker Ops',
     author='Prateek',
     author_email='prteek@icloud.com',
     version="0.1.3",
