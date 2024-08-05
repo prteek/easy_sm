@@ -3,6 +3,11 @@ from setuptools import setup, find_packages
 setup(
     name="easy_sm",
     description='Easy Sagemaker Ops',
+    long_description="""This package makes it easier to work with Sagemaker by enabling rapid prototyping with local training, processing and deployment.
+And correspondingly training, processing and deployment on cloud.
+This is very much an experimental package and API is likely to evolve and may break.
+Recommended to validate before updating.
+    """,
     author='Prateek',
     author_email='prteek@icloud.com',
     version="0.1.3",
