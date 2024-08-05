@@ -4,6 +4,13 @@ import os
 import subprocess
 from easy_sm.config.config import ConfigManager
 
+def _config(app_name):
+    config_file_path = os.path.join(f'{app_name}.json')
+    if not os.path.isfile(config_file_path):
+        raise ValueError("This is not a easy_sm directory: {}".format(os.getcwd()))
+    else:
+        return ConfigManager(config_file_path).get_config()
+
 
 def _build(source_dir, requirements_dir, image_name, docker_tag, python_version):
     """
@@ -50,18 +57,20 @@ def _build(source_dir, requirements_dir, image_name, docker_tag, python_version)
 
 
 @click.command()
+@click.option(
+    u"-a",
+    u"--app-name",
+    required=True,
+    help="The app name whose json file will be referenced for setting up command"
+)
 @click.pass_obj
-def build(obj):
+def build(obj, app_name):
     """
     Command to build SageMaker app
     """
     print("Started building SageMaker Docker image. It will take some minutes...\n")
 
-    config_file_path = os.path.join('.easy_sm.json')
-    if not os.path.isfile(config_file_path):
-        raise ValueError("This is not a easy_sm directory: {}".format(os.getcwd()))
-
-    config = ConfigManager(config_file_path).get_config()
+    config = _config(app_name)
     _build(
         source_dir=config.easy_sm_module_dir,
         requirements_dir=config.requirements_dir,

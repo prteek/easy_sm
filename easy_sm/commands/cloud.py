@@ -5,11 +5,12 @@ from easy_sm.config.config import ConfigManager
 from easy_sm.sagemaker import sagemaker
 
 
-def _config():
-    if not os.path.isfile('.easy_sm.json'):
+def _config(app_name):
+    config_file_path = os.path.join(f'{app_name}.json')
+    if not os.path.isfile(config_file_path):
         raise ValueError("This is not a easy_sm directory: {}".format(os.getcwd()))
     else:
-        return ConfigManager('.easy_sm.json').get_config()
+        return ConfigManager(config_file_path).get_config()
 
 
 @click.group()
@@ -34,12 +35,18 @@ def cloud():
     required=True,
     help="The AWS role to use for the upload command"
 )
-def upload_data(input_dir, target_dir, iam_role_arn):
+@click.option(
+    u"-a",
+    u"--app-name",
+    required=True,
+    help="The app name whose json file will be referenced for setting up command"
+)
+def upload_data(input_dir, target_dir, iam_role_arn, app_name):
     """
     Command to upload data to S3
     """
     print("Started uploading data to S3...\n")
-    config = _config()
+    config = _config(app_name)
     sage_maker_client = sagemaker.SageMakerClient(config.aws_profile, config.aws_region, iam_role_arn)
     target_path = sage_maker_client.upload_data(input_dir, target_dir)
     print("Data uploaded to {} successfully".format(target_path))
@@ -72,6 +79,12 @@ def upload_data(input_dir, target_dir, iam_role_arn):
     help="Optional prefix for the SageMaker training job."
     "If not specified, the estimator generates a default job name, based on the training image name and current timestamp."
 )
+@click.option(
+    u"-a",
+    u"--app-name",
+    required=True,
+    help="The app name whose json file will be referenced for setting up command"
+)
 @click.pass_obj
 def train(
         obj,
@@ -79,14 +92,15 @@ def train(
         output_s3_dir,
         ec2_type,
         iam_role_arn,
-        base_job_name
+        base_job_name,
+        app_name
 ):
     """
     Command to train ML model(s) on SageMaker
     """
 
     print("Started training on SageMaker...\n")
-    config = _config()
+    config = _config(app_name)
     sage_maker_client = sagemaker.SageMakerClient(config.aws_profile, config.aws_region, iam_role_arn)
 
     image_name = config.image_name+':'+obj['docker_tag']
@@ -129,20 +143,27 @@ u"-n",
     default=None,
     help="Name for the SageMaker endpoint"
 )
+@click.option(
+    u"-a",
+    u"--app-name",
+    required=True,
+    help="The app name whose json file will be referenced for setting up command"
+)
 @click.pass_obj
 def deploy_serverless(
         obj,
         s3_model_location,
         memory_size_in_mb,
         iam_role_arn,
-        endpoint_name
+        endpoint_name,
+        app_name
 ):
     """
     Command to deploy ML model(s) on SageMaker
     """
 
     print("Started deployment on SageMaker ...\n")
-    config = _config()
+    config = _config(app_name)
     image_name = config.image_name+':'+obj['docker_tag']
 
     sage_maker_client = sagemaker.SageMakerClient(config.aws_profile, config.aws_region, iam_role_arn)
@@ -198,6 +219,12 @@ def deploy_serverless(
     default=None,
     help="Name for the SageMaker batch transform job."
 )
+@click.option(
+    u"-a",
+    u"--app-name",
+    required=True,
+    help="The app name whose json file will be referenced for setting up command"
+)
 @click.pass_obj
 def batch_transform(
         obj,
@@ -208,14 +235,15 @@ def batch_transform(
         ec2_type,
         iam_role_arn,
         wait,
-        job_name
+        job_name,
+        app_name
 ):
     """
     Command to execute a batch transform job given a trained ML model on SageMaker
     """
     print("Started configuration of batch transform on SageMaker ...\n")
 
-    config = _config()
+    config = _config(app_name)
     image_name = config.image_name+':'+obj['docker_tag']
 
     sage_maker_client = sagemaker.SageMakerClient(config.aws_profile, config.aws_region, iam_role_arn)
@@ -252,8 +280,14 @@ u"-n",
     required=True,
     help="The AWS role to use for delete command"
 )
-def delete_endpoint(endpoint_name, iam_role_arn):
-    config = _config()
+@click.option(
+    u"-a",
+    u"--app-name",
+    required=True,
+    help="The app name whose json file will be referenced for setting up command"
+)
+def delete_endpoint(endpoint_name, iam_role_arn, app_name):
+    config = _config(app_name)
     sage_maker_client = sagemaker.SageMakerClient(config.aws_profile, config.aws_region, iam_role_arn)
     sage_maker_client.shutdown_endpoint(endpoint_name)
     print(f"Endpoint {endpoint_name} has been deleted")

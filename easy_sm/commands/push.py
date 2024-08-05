@@ -4,6 +4,13 @@ import subprocess
 import os
 from easy_sm.config.config import ConfigManager
 
+def _config(app_name):
+    config_file_path = os.path.join(f'{app_name}.json')
+    if not os.path.isfile(config_file_path):
+        raise ValueError("This is not a easy_sm directory: {}".format(os.getcwd()))
+    else:
+        return ConfigManager(config_file_path).get_config()
+
 
 def _push(dir, docker_tag, aws_region, iam_role_arn, aws_profile, external_id, image_name):
     """
@@ -39,8 +46,14 @@ def _push(dir, docker_tag, aws_region, iam_role_arn, aws_profile, external_id, i
 @click.option(u"-i", u"--iam-role-arn", required=False, help="The AWS role to use for the push command")
 @click.option(u"-p", u"--aws-profile", required=False, help="The AWS profile to use for the push command")
 @click.option(u"-e", u"--external-id", required=False, help="Optional external id used when using an IAM role")
+@click.option(
+    u"-a",
+    u"--app-name",
+    required=True,
+    help="The app name whose json file will be referenced for setting up command"
+)
 @click.pass_obj
-def push(obj, aws_region, iam_role_arn, aws_profile, external_id):
+def push(obj, aws_region, iam_role_arn, aws_profile, external_id, app_name):
     """
     Command to push Docker image to AWS ECR
     """
@@ -52,11 +65,7 @@ def push(obj, aws_region, iam_role_arn, aws_profile, external_id):
     if iam_role_arn is not None:
         aws_profile = ''
 
-    config_file_path = os.path.join('.easy_sm.json')
-    if not os.path.isfile(config_file_path):
-        raise ValueError("This is not a easy_sm directory: {}".format(os.getcwd()))
-
-    config = ConfigManager(config_file_path).get_config()
+    config = _config(app_name)
     image_name = config.image_name
     aws_region = config.aws_region if aws_region is None else aws_region
     aws_profile = config.aws_profile if (aws_profile is None and iam_role_arn is None) else aws_profile
@@ -75,5 +84,3 @@ def push(obj, aws_region, iam_role_arn, aws_profile, external_id):
         image_name=image_name)
 
     print("Docker image pushed to ECR successfully!")
-
-

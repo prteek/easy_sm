@@ -29,7 +29,7 @@ def _template_creation(app_name, aws_profile, aws_region, python_version, output
     copy_tree(os.path.join(_FILE_DIR_PATH, '../template'), output_dir)
 
     # Set configuration file up
-    config_manager = ConfigManager(os.path.join('.easy_sm.json'))
+    config_manager = ConfigManager(os.path.join(f"{app_name}.json"))
     config = config_manager.get_config()
 
     config.image_name = app_name
@@ -162,7 +162,7 @@ def init():
         aws_profile=aws_profile,
         aws_region=aws_region,
         python_version=python_version,
-        output_dir=root_dir if root_dir else 'src',
+        output_dir=root_dir if root_dir else easy_sm_app_name,
         requirements_dir=requirements_dir
     )
 

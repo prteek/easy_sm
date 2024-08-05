@@ -5,6 +5,13 @@ import subprocess
 
 from easy_sm.config.config import ConfigManager
 
+def _config(app_name):
+    config_file_path = os.path.join(f'{app_name}.json')
+    if not os.path.isfile(config_file_path):
+        raise ValueError("This is not a easy_sm directory: {}".format(os.getcwd()))
+    else:
+        return ConfigManager(config_file_path).get_config()
+
 
 @click.group()
 def local():
@@ -15,13 +22,19 @@ def local():
 
 
 @click.command()
+@click.option(
+    u"-a",
+    u"--app-name",
+    required=True,
+    help="The app name whose json file will be referenced for setting up command"
+)
 @click.pass_obj
-def train(obj):
+def train(obj, app_name):
     """
     Command to train ML model(s) locally
     """
     print("Started local training...\n")
-    config = ConfigManager(os.path.join('.easy_sm.json')).get_config()
+    config = _config(app_name)
     dir = config.easy_sm_module_dir
     docker_tag = obj['docker_tag']
     image_name = config.image_name
@@ -52,13 +65,19 @@ def train(obj):
     required=True,
     help="The name (not path) of python file to run as processing job"
 )
+@click.option(
+    u"-a",
+    u"--app-name",
+    required=True,
+    help="The app name whose json file will be referenced for setting up command"
+)
 @click.pass_obj
-def process(obj, file):
+def process(obj, file, app_name):
     """
     Command to run python files locally as processing job
     """
     print("Started local processing job...\n")
-    config = ConfigManager(os.path.join('.easy_sm.json')).get_config()
+    config = _config(app_name)
     dir = config.easy_sm_module_dir
     docker_tag = obj['docker_tag']
     image_name = config.image_name
@@ -87,13 +106,19 @@ def process(obj, file):
 
 
 @click.command()
+@click.option(
+    u"-a",
+    u"--app-name",
+    required=True,
+    help="The app name whose json file will be referenced for setting up command"
+)
 @click.pass_obj
-def deploy(obj):
+def deploy(obj, app_name):
     """
     Command to deploy ML model(s) locally
     """
 
-    config = ConfigManager(os.path.join('.easy_sm.json')).get_config()
+    config = _config(app_name)
     dir = config.easy_sm_module_dir
     docker_tag = obj['docker_tag']
     image_name = config.image_name
