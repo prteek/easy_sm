@@ -5,3 +5,8 @@
 .python-version
 *.csv
 src/
+build/
+easy_sm.egg-info/
+misc/
+*.whl
+*.tar.gz
