@@ -5,7 +5,7 @@ setup(
     description='Making working with Sagemaker Easy',
     author='Prateek',
     author_email='prteek@icloud.com',
-    version="0.1.1",
+    version="0.1.3",
     python_requires='>=3.11',
     packages=find_packages(where='.'),
     package_data={
@@ -15,6 +15,7 @@ setup(
             'template/easy_sm_base/__init__.py',
             'template/easy_sm_base/training/train',
             'template/easy_sm_base/training/*.py',
+            'template/easy_sm_base/processing/*.py',
             'template/easy_sm_base/prediction/*.py',
             'template/easy_sm_base/prediction/serve',
             'template/easy_sm_base/local_test/*.sh',
