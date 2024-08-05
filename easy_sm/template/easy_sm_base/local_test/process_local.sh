@@ -5,4 +5,4 @@ tag=$2
 image=$3
 file=$4
 
-docker run -v ${test_path}:/opt/ml --rm "${image}:${tag}" ${file}
+docker run -v ${test_path}:/opt/ml --rm "${image}:${tag}" process ${file}
