@@ -81,6 +81,8 @@ def process(obj, file, app_name):
     dir = config.easy_sm_module_dir
     docker_tag = obj['docker_tag']
     image_name = config.image_name
+    aws_profile = config.aws_profile
+    aws_region = config.aws_region
     easy_sm_module_path = os.path.join(dir, 'easy_sm_base')
     local_process_script_path = os.path.join(easy_sm_module_path, 'local_test', 'process_local.sh')
     test_path = os.path.join(easy_sm_module_path, 'local_test', 'test_dir')
@@ -98,7 +100,9 @@ def process(obj, file, app_name):
             "{}".format(os.path.abspath(test_path)),
             docker_tag,
             image_name,
-            file
+            file,
+            aws_profile,
+            aws_region
         ]
     )
     print(output)
