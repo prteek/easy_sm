@@ -4,7 +4,7 @@
 .idea/
 .python-version
 *.csv
-src/
+app/
 build/
 easy_sm.egg-info/
 misc/
