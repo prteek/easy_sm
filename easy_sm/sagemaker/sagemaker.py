@@ -286,9 +286,8 @@ class SageMakerClient(object):
             instance_type=processing_instance_type,
             base_job_name=base_job_name,
             sagemaker_session=self.sagemaker_session,
-            entrypoint=["python", f"easy_sm_base/processing/{file}"]
         )
 
-        proc.run(wait=True)
+        proc.run(wait=True, arguments=['process', f'{file}'])
 
         return None
