@@ -338,7 +338,7 @@ def process(
 
     image_name = config.image_name+':'+obj['docker_tag']
 
-    s3_model_location = sage_maker_client.process(
+    _ = sage_maker_client.process(
         image_name=image_name,
         processing_instance_type=ec2_type,
         file=file,
@@ -348,9 +348,67 @@ def process(
     print("Processing job on SageMaker succeeded")
 
 
+
+@click.command(name='make')
+@click.option(u"-e", u"--ec2-type", required=True, help="ec2 instance type")
+@click.option(
+    u"-r",
+    u"--iam-role-arn",
+    required=True,
+    help="The AWS role to use"
+)
+@click.option(
+    u"-n",
+    u"--base-job-name",
+    required=True,
+    help="Prefix for the SageMaker processing job."
+    "If not specified, default job name is generated, based on the docker image name and current timestamp."
+)
+@click.option(
+    u"-t",
+    u"--target",
+    required=True,
+    help="The name of the target to be built"
+)
+@click.option(
+    u"-a",
+    u"--app-name",
+    required=True,
+    help="The app name whose json file will be referenced for setting up command"
+)
+@click.pass_obj
+def make(
+        obj,
+        ec2_type,
+        iam_role_arn,
+        base_job_name,
+        target,
+        app_name
+):
+    """
+    Command to build make targets defined in a Makefile in easy_sm_base/processing on Sagemaker
+    """
+
+    print(f"Building {target} on SageMaker...\n")
+    config = _config(app_name)
+    sage_maker_client = sagemaker.SageMakerClient(config.aws_profile, config.aws_region, iam_role_arn)
+
+    image_name = config.image_name+':'+obj['docker_tag']
+
+    _ = sage_maker_client.make(
+        image_name=image_name,
+        processing_instance_type=ec2_type,
+        target=target,
+        base_job_name=base_job_name
+    )
+
+    print(f"{target} built on Sagemaker successfully!")
+
+
 cloud.add_command(upload_data)
 cloud.add_command(train)
 cloud.add_command(deploy_serverless)
 cloud.add_command(batch_transform)
 cloud.add_command(delete_endpoint)
 cloud.add_command(process)
+cloud.add_command(make)
