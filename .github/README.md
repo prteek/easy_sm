@@ -85,7 +85,7 @@ def train(input_data_path, model_save_path, hyperparams_path=None):
     :param model_save_path: [str], directory path to save your model(s)
     """
     # TODO: Write your modeling logic
-    mpg = pd.read_csv(os.path.join(input_data_path, 'mpg.csv'))
+    mpg = pd.read_csv(os.path.join(input_data_path, 'auto-mpg.csv'))
     y, X = dmatrices('mpg ~ weight + horsepower', mpg, return_type="dataframe")
     ols = sm.OLS(y.values.ravel(), X.values).fit()
     print(ols.summary())
@@ -96,6 +96,8 @@ def train(input_data_path, model_save_path, hyperparams_path=None):
 
 ##### Data
 With the code and dependencies out of the way, a small sample of test data needs to be places at **app_name/easy_sm_base/local_test/test_dir/input/data/training**
+
+For this example the dataset used is at https://raw.githubusercontent.com/plotly/datasets/master/auto-mpg.csv
 
 ##### Prepare container
 Last step before training is preparing the container to include all dependencies, code and data
@@ -156,7 +158,7 @@ easy_sm push -a app_name
 ##### Data in S3
 The dataset to train on needs to be present in s3. There is a command for copying local files to s3 *easily*
 ```shell
-easy_sm cloud upload-data -i training_data.csv -s s3://bucket/folder/input -r $SAGEMAKER_EXECUTION_ROLE
+easy_sm cloud upload-data -i training_data.csv -s s3://bucket/folder/input -r $SAGEMAKER_EXECUTION_ROLE -a app_name
 ```
 
 ##### Train
@@ -174,3 +176,92 @@ Model S3 location: s3://bucket/folder/train/artefacts/training-job-2024-08-07-10
 ```
 
 This points to the location where model is saved and this text string can be used to extract model location and deploy the model.
+
+It is often useful to also save this output in a text file.
+```shell
+easy_sm cloud train -n training-job -r $SAGEMAKER_EXECUTION_ROLE -e ml.m5.large -i s3://bucket/folder/input -o s3://bucket/folder/train/artefacts -a app_name >| train_output.txt
+```
+
+### Model deployment
+
+#### Getting started with local deployment
+
+##### Code
+To run inference using trained model
+1. Model must be loaded in the container
+2. Any input data must be handled and pre processed
+3. Predictions made and output data processed if necessary
+
+The code to accomplish all this needs to be defined in **app_name/easy_sm_base/prediction/serve**. By default *text/csv* inputs are supported and results returned as *text/csv* but other formats can be introduced in the *serve* file. If the default settings are usable then the only changes to the code need to be in *model_fn* and *input_fn* along with any dependencies at the top. A sample code looks like following
+
+```python
+# Your imports here
+import joblib
+import statsmodels.api as sm
+
+def model_fn(model_dir):
+    """Required model loading for Sagemaker framework"""
+    # TODO Load a specific model
+    model = joblib.load(os.path.join(model_dir, 'model.mdl'))
+    return model
+
+
+def predict_fn(input_data, model):
+    """Predict on the input data"""
+    # TODO Add any preprocessing or prediction related logic here
+    input_data = sm.add_constant(input_data, has_constant='add')
+    predictions = model.predict(input_data)
+    return predictions
+```
+
+##### Deploy
+Having setup the code, it is required to rebuild the container with updated serving code and run a local training job
+```shell
+easy_sm build -a app_name
+easy_sm train -a app_name
+```
+
+This will create a model and place it in an appropriate directory where serving code can locate it.
+Local serving is *easy*
+```shell
+easy_sm local deploy -a app_name
+```
+
+And it can be tested by passing the payload
+```shell
+curl -X POST \
+http://localhost:8080/invocations \
+-H 'Cache-Control: no-cache' \
+-H 'Content-Type: text/csv' \
+-d '4732.0,193.0
+3302.0,88.0'
+
+
+curl -X POST \
+http://localhost:8080/invocations \
+-H 'Cache-Control: no-cache' \
+-H 'Content-Type: text/csv' \
+-T payload.csv
+```
+
+
+#### Getting started with cloud deployment
+After the container is updated with serving code it needs to be pushed to ECR and a cloud training step needs to be run to generate a model object
+
+```shell
+easy_sm push -a app_name
+easy_sm cloud train -n training-job -r $SAGEMAKER_EXECUTION_ROLE -e ml.m5.large -i s3://bucket/folder/input -o s3://bucket/folder/train/artefacts -a app_name >| train_output.txt
+
+```
+
+To begin with the model location is required for deployment. It can either be manually provided or if you saved the entire output of training job to the *train_output.txt* file, the model location can be extracted and passed to depolyment commands.
+
+```shell
+easy_sm cloud deploy-serverless -s 2048 -n endpoint-name -r $SAGEMAKER_EXECUTION_ROLE -m s3://bucket/folder/train/artefacts/training-job-2024-08-07-10-41-23-345/output/model.tar.gz -a app_name
+```
+
+Serverless is the only option supported currently.
+
+Extracting model location from training output file can be done by `$(grep -o -E "s3://[^ ]+" train_output.txt)`.
+
+This is particularly useful when running these commands on a remote runner like Github actions. Training and deployment steps can be successively run without manual intervention.
