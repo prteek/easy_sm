@@ -274,7 +274,7 @@ class SageMakerClient(object):
         :param image_name: [str], name of Docker image
         :param train_instance_type: [str], ec2 instance type
         :param file: [str], python filename
-        :param base_job_name: [str], Optional prefix for the SageMaker training job
+        :param base_job_name: [str], Optional prefix for the SageMaker processing job
         :return: None
         """
         image = self._construct_image_location(image_name)
@@ -289,5 +289,36 @@ class SageMakerClient(object):
         )
 
         proc.run(wait=True, arguments=['process', f'{file}'])
+
+        return None
+
+
+    def make(
+            self,
+            image_name,
+            processing_instance_type,
+            target,
+            base_job_name,
+    ):
+        """
+        build make targets defined in a Makefile in easy_sm_base/processing on Sagemaker
+        :param image_name: [str], name of Docker image
+        :param train_instance_type: [str], ec2 instance type
+        :param target: [str], target to build
+        :param base_job_name: [str], Optional prefix for the SageMaker processing job
+        :return: None
+        """
+        image = self._construct_image_location(image_name)
+
+        proc = sage.processing.Processor(
+            image_uri=image,
+            role=self.role,
+            instance_count=1,
+            instance_type=processing_instance_type,
+            base_job_name=base_job_name,
+            sagemaker_session=self.sagemaker_session,
+        )
+
+        proc.run(wait=True, arguments=['make', f'{target}'])
 
         return None
