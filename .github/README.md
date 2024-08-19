@@ -118,7 +118,7 @@ There are primarily 2 things required from AWS side
 1. AWS Profile with credentials that can enable permissions to work with ECR, Sagemaker and S3.
 This is specified in *~/.aws/config* file like following, along with accompanying set of credentials in *~/.aws/credentials* file
 
-```bash
+```text
 [profile dev]
 aws_account_id = 10987654321
 region = eu-west-1
@@ -168,7 +168,7 @@ easy_sm cloud train -n training-job -r $SAGEMAKER_EXECUTION_ROLE -e ml.m5.large 
 
 ##### Outputs
 The training job writes text output in the console that can be useful for further steps in the pipeline
-```shell
+```text
 Training on SageMaker succeeded
 Model S3 location: s3://bucket/folder/train/artefacts/training-job-2024-08-07-10-41-23-345/output/model.tar.gz
 ```
