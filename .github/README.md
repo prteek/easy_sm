@@ -5,13 +5,15 @@ Easing Sagemaker Ops
 
 ---
 Offers following commands to help work with Sagemaker
+
+```shell
 Commands:
   build  Command to build SageMaker app
   cloud  Commands for AWS operations: upload data, train and deploy
   init   Command to initialize SageMaker template
   local  Commands for local operations: train and deploy
   push   Command to push Docker image to AWS ECR
-
+```
 
 ## Installation
 ```shell
