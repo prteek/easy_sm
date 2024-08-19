@@ -179,7 +179,7 @@ This points to the location where model is saved and this text string can be use
 
 It is often useful to also save this output in a text file.
 ```shell
-easy_sm cloud train -n training-job -r $SAGEMAKER_EXECUTION_ROLE -e ml.m5.large -i s3://bucket/folder/input -o s3://bucket/folder/train/artefacts -a app_name >| train_output.txt
+easy_sm cloud train -n training-job -r $SAGEMAKER_EXECUTION_ROLE -e ml.m5.large -i s3://bucket/folder/input -o s3://bucket/folder/train/artefacts -a app_name | tee train_output.txt
 ```
 
 ### Model deployment
