@@ -6,6 +6,9 @@ if [ $1 = "train" ]; then
     python ./easy_sm_base/training/train
 elif [ $1 = "process" ]; then
     python ./easy_sm_base/processing/$2
+elif [ $1 = "make" ]; then
+    cd ./easy_sm_base/processing
+    make $2
 else # This case is reserved for serving for compatibility with Sagemaker
     python ./easy_sm_base/prediction/serve
 fi
