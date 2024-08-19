@@ -10,3 +10,5 @@ easy_sm.egg-info/
 misc/
 *.whl
 *.tar.gz
+app.json
+base-requirements.txt
