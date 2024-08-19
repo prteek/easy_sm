@@ -146,6 +146,58 @@ def deploy(obj, app_name):
     print(output)
 
 
+
+@click.command()
+@click.option(
+    u"-t",
+    u"--target",
+    required=True,
+    help="The name of target that needs to be built"
+)
+@click.option(
+    u"-a",
+    u"--app-name",
+    required=True,
+    help="The app name whose json file will be referenced for setting up command"
+)
+@click.pass_obj
+def make(obj, target, app_name):
+    """
+    Command to build make targets defined in a Makefile in easy_sm_base/processing
+    """
+    config = _config(app_name)
+    dir = config.easy_sm_module_dir
+    docker_tag = obj['docker_tag']
+    image_name = config.image_name
+    aws_profile = config.aws_profile
+    aws_region = config.aws_region
+    easy_sm_module_path = os.path.join(dir, 'easy_sm_base')
+    local_make_script_path = os.path.join(easy_sm_module_path, 'local_test', 'make_local.sh')
+    test_path = os.path.join(easy_sm_module_path, 'local_test', 'test_dir')
+    makefile_path = os.path.join(easy_sm_module_path, 'processing', 'Makefile')
+
+    if not os.path.isdir(test_path):
+        raise ValueError("This is not a easy_sm directory: {}".format(dir))
+
+    if not os.path.isfile(makefile_path):
+        raise ValueError("Makefile does not exist: {}".format(makefile_path))
+
+    output = subprocess.check_output(
+        [
+            "{}".format(local_make_script_path),
+            "{}".format(os.path.abspath(test_path)),
+            docker_tag,
+            image_name,
+            target,
+            aws_profile,
+            aws_region
+        ]
+    )
+    print(output)
+    print(f"{target} built successfully!")
+
+
 local.add_command(train)
 local.add_command(deploy)
 local.add_command(process)
+local.add_command(make)
