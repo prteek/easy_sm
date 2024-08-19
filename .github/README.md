@@ -6,7 +6,7 @@ Easing Sagemaker Ops
 ---
 Offers following commands to help work with Sagemaker
 
-```shell
+```text
 Commands:
   build  Command to build SageMaker app
   cloud  Commands for AWS operations: upload data, train and deploy
