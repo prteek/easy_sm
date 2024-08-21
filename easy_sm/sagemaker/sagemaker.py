@@ -1,6 +1,7 @@
 import os
 import sagemaker as sage
 from sagemaker import image_uris, payloads, model_uris
+from sagemaker.processing import ProcessingInput, ProcessingOutput
 from urllib.parse import urlparse
 from datetime import datetime
 import boto3
@@ -267,13 +268,18 @@ class SageMakerClient(object):
             image_name,
             processing_instance_type,
             file,
+            s3_input_location,
+            s3_output_location,
             base_job_name,
+
     ):
         """
         Process python file on SageMaker
         :param image_name: [str], name of Docker image
         :param train_instance_type: [str], ec2 instance type
         :param file: [str], python filename
+        :param s3_input_location: [str], S3 input data location
+        :param s3_output_location: [str], S3 output data location
         :param base_job_name: [str], Optional prefix for the SageMaker processing job
         :return: None
         """
@@ -288,7 +294,27 @@ class SageMakerClient(object):
             sagemaker_session=self.sagemaker_session,
         )
 
-        proc.run(wait=True, arguments=['process', f'{file}'])
+        if s3_output_location:
+            proc_out = [
+            ProcessingOutput(
+                output_name="proc_out",
+                source="/opt/ml/processing/output/",
+                destination=s3_output_location,
+            )]
+        else:
+            proc_out = None
+
+        if s3_input_location:
+            proc_in = [
+            ProcessingInput(
+                input_name="proc_in",
+                source=s3_input_location,
+                destination="/opt/ml/processing/input/",
+            )]
+        else:
+            proc_in = None
+
+        proc.run(wait=True, arguments=['process', f'{file}'], inputs=proc_in, outputs=proc_out)
 
         return None
 
@@ -298,6 +324,8 @@ class SageMakerClient(object):
             image_name,
             processing_instance_type,
             target,
+            s3_input_location,
+            s3_output_location,
             base_job_name,
     ):
         """
@@ -305,6 +333,8 @@ class SageMakerClient(object):
         :param image_name: [str], name of Docker image
         :param train_instance_type: [str], ec2 instance type
         :param target: [str], target to build
+        :param s3_input_location: [str], S3 input data location
+        :param s3_output_location: [str], S3 output data location
         :param base_job_name: [str], Optional prefix for the SageMaker processing job
         :return: None
         """
@@ -319,6 +349,26 @@ class SageMakerClient(object):
             sagemaker_session=self.sagemaker_session,
         )
 
-        proc.run(wait=True, arguments=['make', f'{target}'])
+        if s3_output_location:
+            proc_out = [
+            ProcessingOutput(
+                output_name="proc_out",
+                source="/opt/ml/processing/output/",
+                destination=s3_output_location,
+            )]
+        else:
+            proc_out = None
+
+        if s3_input_location:
+            proc_in = [
+            ProcessingInput(
+                input_name="proc_in",
+                source=s3_input_location,
+                destination="/opt/ml/processing/input/",
+            )]
+        else:
+            proc_in = None
+
+        proc.run(wait=True, arguments=['make', f'{target}'], inputs=proc_in, outputs=proc_out)
 
         return None

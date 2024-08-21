@@ -314,6 +314,20 @@ def delete_endpoint(endpoint_name, iam_role_arn, app_name):
     help="The name (not path) of python file to run as processing job"
 )
 @click.option(
+    u"-i", u"--s3-input-location",
+    required=False,
+    default=None,
+    help="s3 input data location",
+    type=click.Path()
+)
+@click.option(
+    u"-o", u"--s3-output-location",
+    required=False,
+    default=None,
+    help="s3 location to save output",
+    type=click.Path()
+)
+@click.option(
     u"-a",
     u"--app-name",
     required=True,
@@ -326,6 +340,8 @@ def process(
         iam_role_arn,
         base_job_name,
         file,
+        s3_input_location,
+        s3_output_location,
         app_name
 ):
     """
@@ -342,6 +358,8 @@ def process(
         image_name=image_name,
         processing_instance_type=ec2_type,
         file=file,
+        s3_input_location=s3_input_location,
+        s3_output_location=s3_output_location,
         base_job_name=base_job_name
     )
 
@@ -371,6 +389,20 @@ def process(
     help="The name of the target to be built"
 )
 @click.option(
+    u"-i", u"--s3-input-location",
+    required=False,
+    default=None,
+    help="s3 input data location",
+    type=click.Path()
+)
+@click.option(
+    u"-o", u"--s3-output-location",
+    required=False,
+    default=None,
+    help="s3 location to save output",
+    type=click.Path()
+)
+@click.option(
     u"-a",
     u"--app-name",
     required=True,
@@ -383,6 +415,8 @@ def make(
         iam_role_arn,
         base_job_name,
         target,
+        s3_input_location,
+        s3_output_location,
         app_name
 ):
     """
@@ -399,6 +433,8 @@ def make(
         image_name=image_name,
         processing_instance_type=ec2_type,
         target=target,
+        s3_input_location=s3_input_location,
+        s3_output_location=s3_output_location,
         base_job_name=base_job_name
     )
 
