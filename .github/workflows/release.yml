@@ -2,7 +2,7 @@ name: Release
 on:
   push:
     branches: ['main']
-    paths: ['.github/workflows/release.yml']
+    paths: [setup.py, .github/workflows/release.yml]
 
 jobs:
   build-n-publish:
