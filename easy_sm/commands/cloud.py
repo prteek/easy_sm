@@ -294,6 +294,7 @@ def delete_endpoint(endpoint_name, iam_role_arn, app_name):
 
 @click.command(name='process')
 @click.option(u"-e", u"--ec2-type", required=True, help="ec2 instance type")
+@click.option(u"-n", u"--instance-count", required=False, default=1, help="ec2 instance count")
 @click.option(
     u"-r",
     u"--iam-role-arn",
@@ -337,6 +338,7 @@ def delete_endpoint(endpoint_name, iam_role_arn, app_name):
 def process(
         obj,
         ec2_type,
+        instance_count,
         iam_role_arn,
         base_job_name,
         file,
@@ -357,6 +359,7 @@ def process(
     _ = sage_maker_client.process(
         image_name=image_name,
         processing_instance_type=ec2_type,
+        instance_count=instance_count,
         file=file,
         s3_input_location=s3_input_location,
         s3_output_location=s3_output_location,
@@ -369,6 +372,13 @@ def process(
 
 @click.command(name='make')
 @click.option(u"-e", u"--ec2-type", required=True, help="ec2 instance type")
+@click.option(u"-n", u"--instance-count", required=False, default=1, help="ec2 instance count")
+@click.option(
+    u"-r",
+    u"--iam-role-arn",
+    required=True,
+    help="The AWS role to use"
+)
 @click.option(
     u"-r",
     u"--iam-role-arn",
@@ -412,6 +422,7 @@ def process(
 def make(
         obj,
         ec2_type,
+        instance_count,
         iam_role_arn,
         base_job_name,
         target,
@@ -432,6 +443,7 @@ def make(
     _ = sage_maker_client.make(
         image_name=image_name,
         processing_instance_type=ec2_type,
+        instance_count=instance_count,
         target=target,
         s3_input_location=s3_input_location,
         s3_output_location=s3_output_location,

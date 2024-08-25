@@ -267,6 +267,7 @@ class SageMakerClient(object):
             self,
             image_name,
             processing_instance_type,
+            instance_count,
             file,
             s3_input_location,
             s3_output_location,
@@ -288,7 +289,7 @@ class SageMakerClient(object):
         proc = sage.processing.Processor(
             image_uri=image,
             role=self.role,
-            instance_count=1,
+            instance_count=instance_count,
             instance_type=processing_instance_type,
             base_job_name=base_job_name,
             sagemaker_session=self.sagemaker_session,
@@ -323,6 +324,7 @@ class SageMakerClient(object):
             self,
             image_name,
             processing_instance_type,
+            instance_count,
             target,
             s3_input_location,
             s3_output_location,
@@ -343,7 +345,7 @@ class SageMakerClient(object):
         proc = sage.processing.Processor(
             image_uri=image,
             role=self.role,
-            instance_count=1,
+            instance_count=instance_count,
             instance_type=processing_instance_type,
             base_job_name=base_job_name,
             sagemaker_session=self.sagemaker_session,
