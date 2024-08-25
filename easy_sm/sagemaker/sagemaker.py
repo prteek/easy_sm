@@ -48,6 +48,7 @@ class SageMakerClient(object):
             image_name,
             input_s3_data_location,
             train_instance_type,
+            instance_count,
             output_path,
             base_job_name,
     ):
@@ -65,7 +66,7 @@ class SageMakerClient(object):
         estimator = sage.estimator.Estimator(
             image_uri=image,
             role=self.role,
-            instance_count=1,
+            instance_count=instance_count,
             instance_type=train_instance_type,
             input_mode='File',
             output_path=output_path,

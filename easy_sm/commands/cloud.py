@@ -66,6 +66,7 @@ def upload_data(input_dir, target_dir, iam_role_arn, app_name):
     type=click.Path()
 )
 @click.option(u"-e", u"--ec2-type", required=True, help="ec2 instance type")
+@click.option(u"-c", u"--instance-count", required=False, default=1, help="ec2 instance count")
 @click.option(
     u"-r",
     u"--iam-role-arn",
@@ -90,6 +91,7 @@ def train(
         input_s3_dir,
         output_s3_dir,
         ec2_type,
+        instance_count,
         iam_role_arn,
         base_job_name,
         app_name
@@ -108,6 +110,7 @@ def train(
         image_name=image_name,
         input_s3_data_location=input_s3_dir,
         train_instance_type=ec2_type,
+        instance_count=instance_count,
         output_path=output_s3_dir,
         base_job_name=base_job_name
     )
