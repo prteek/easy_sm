@@ -10,7 +10,7 @@ Recommended to validate before updating.
     """,
     author='Prateek',
     author_email='prteek@icloud.com',
-    version="0.1.5",
+    version="0.1.6",
     python_requires='>=3.11',
     packages=find_packages(where='.'),
     package_data={
