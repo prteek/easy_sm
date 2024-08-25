@@ -294,7 +294,7 @@ def delete_endpoint(endpoint_name, iam_role_arn, app_name):
 
 @click.command(name='process')
 @click.option(u"-e", u"--ec2-type", required=True, help="ec2 instance type")
-@click.option(u"-n", u"--instance-count", required=False, default=1, help="ec2 instance count")
+@click.option(u"-c", u"--instance-count", required=False, default=1, help="ec2 instance count")
 @click.option(
     u"-r",
     u"--iam-role-arn",
@@ -372,13 +372,7 @@ def process(
 
 @click.command(name='make')
 @click.option(u"-e", u"--ec2-type", required=True, help="ec2 instance type")
-@click.option(u"-n", u"--instance-count", required=False, default=1, help="ec2 instance count")
-@click.option(
-    u"-r",
-    u"--iam-role-arn",
-    required=True,
-    help="The AWS role to use"
-)
+@click.option(u"-c", u"--instance-count", required=False, default=1, help="ec2 instance count")
 @click.option(
     u"-r",
     u"--iam-role-arn",
