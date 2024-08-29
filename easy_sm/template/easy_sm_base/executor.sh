@@ -5,7 +5,8 @@
 if [ $1 = "train" ]; then
     python ./easy_sm_base/training/train
 elif [ $1 = "process" ]; then
-    python ./easy_sm_base/processing/$2
+    cd ./easy_sm_base/processing
+    python $2
 elif [ $1 = "make" ]; then
     cd ./easy_sm_base/processing
     make $2
