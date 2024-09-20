@@ -271,6 +271,7 @@ class SageMakerClient(object):
             instance_count,
             file,
             s3_input_location,
+            input_sharded,
             s3_output_location,
             base_job_name,
 
@@ -296,6 +297,7 @@ class SageMakerClient(object):
             sagemaker_session=self.sagemaker_session,
         )
 
+        dist_map = {True: 'ShardedByS3Key', False: 'FullyReplicated'}
         if s3_output_location:
             proc_out = [
             ProcessingOutput(
@@ -312,6 +314,7 @@ class SageMakerClient(object):
                 input_name="proc_in",
                 source=s3_input_location,
                 destination="/opt/ml/processing/input/",
+                s3_data_distribution_type=dist_map[input_sharded],
             )]
         else:
             proc_in = None
@@ -328,6 +331,7 @@ class SageMakerClient(object):
             instance_count,
             target,
             s3_input_location,
+            input_sharded,
             s3_output_location,
             base_job_name,
     ):
@@ -352,6 +356,8 @@ class SageMakerClient(object):
             sagemaker_session=self.sagemaker_session,
         )
 
+        dist_map = {True: 'ShardedByS3Key', False: 'FullyReplicated'}
+
         if s3_output_location:
             proc_out = [
             ProcessingOutput(
@@ -368,6 +374,7 @@ class SageMakerClient(object):
                 input_name="proc_in",
                 source=s3_input_location,
                 destination="/opt/ml/processing/input/",
+                s3_data_distribution_type=dist_map[input_sharded],
             )]
         else:
             proc_in = None
