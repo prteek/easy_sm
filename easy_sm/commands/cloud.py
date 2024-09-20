@@ -332,6 +332,12 @@ def delete_endpoint(endpoint_name, iam_role_arn, app_name):
     type=click.Path()
 )
 @click.option(
+    u"-is", u"--input-sharded",
+    is_flag=True,
+    default=False,
+    help="Flag to indicate if input data should be sharded (distributed on machines)",
+)
+@click.option(
     u"-a",
     u"--app-name",
     required=True,
@@ -347,6 +353,7 @@ def process(
         file,
         s3_input_location,
         s3_output_location,
+        input_sharded,
         app_name
 ):
     """
@@ -365,6 +372,7 @@ def process(
         instance_count=instance_count,
         file=file,
         s3_input_location=s3_input_location,
+        input_sharded=input_sharded,
         s3_output_location=s3_output_location,
         base_job_name=base_job_name
     )
@@ -410,6 +418,12 @@ def process(
     type=click.Path()
 )
 @click.option(
+    u"-is", u"--input-sharded",
+    is_flag=True,
+    default=False,
+    help="Flag to indicate if input data should be sharded (distributed on machines)",
+)
+@click.option(
     u"-a",
     u"--app-name",
     required=True,
@@ -424,6 +438,7 @@ def make(
         base_job_name,
         target,
         s3_input_location,
+        input_sharded,
         s3_output_location,
         app_name
 ):
@@ -443,6 +458,7 @@ def make(
         instance_count=instance_count,
         target=target,
         s3_input_location=s3_input_location,
+        input_sharded=input_sharded,
         s3_output_location=s3_output_location,
         base_job_name=base_job_name
     )
