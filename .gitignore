@@ -12,3 +12,4 @@ misc/
 *.tar.gz
 app.json
 base-requirements.txt
+*__pycache__/
