@@ -24,4 +24,5 @@ RUN pip install -r ../easy_sm-requirements.txt && rm -rf /root/.cache
 
 COPY ${module_path} /opt/program/${target_dir_name}
 
+# The entrypoint is written specifically in this way because it needs to accept arguments at runtime
 ENTRYPOINT ["easy_sm_base/executor.sh"]
