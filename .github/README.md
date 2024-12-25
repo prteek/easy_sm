@@ -109,7 +109,7 @@ easy_sm build -a app_name
 With all this out of the way training can be started *easily*
 
 ```shell
-easy_sm train -a app_name
+easy_sm local train -a app_name
 ```
 
 This runs the training code inside the container so rest assured if everything worked here, it should work on Sagemaker
@@ -218,7 +218,7 @@ def predict_fn(input_data, model):
 Having setup the code, it is required to rebuild the container with updated serving code and run a local training job
 ```shell
 easy_sm build -a app_name
-easy_sm train -a app_name
+easy_sm local train -a app_name
 ```
 
 This will create a model and place it in an appropriate directory where serving code can locate it.
