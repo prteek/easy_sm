@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 from easy_sm.config.config import ConfigManager
 from distutils.dir_util import copy_tree
+import re
 
 _FILE_DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 
@@ -46,10 +47,17 @@ def _get_local_aws_profiles():
 
 
 def ask_for_app_name():
-    return click.prompt(
+    app_name = click.prompt(
         text="Type in a name for your SageMaker app (Only alphanumeric characters and - are allowed))",
         type=str
     )
+
+    if not bool(re.fullmatch(r"[a-zA-Z0-9\-]+", app_name)):
+        raise BadParameter(
+                    message=f"invalid app name: {app_name}. App name must only have alphanumeric characters or dashes '-' "
+                    )
+
+    return app_name
 
 
 def ask_if_existing_project_exists():
