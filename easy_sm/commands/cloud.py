@@ -151,6 +151,13 @@ u"-n",
     required=True,
     help="The app name whose json file will be referenced for setting up command"
 )
+@click.option(
+    u"-mc",
+    u"--max-concurrency",
+    help="Max concurrency for the endpoint (default=5)",
+    default=5,
+    type=int
+)
 @click.pass_obj
 def deploy_serverless(
         obj,
@@ -158,7 +165,8 @@ def deploy_serverless(
         memory_size_in_mb,
         iam_role_arn,
         endpoint_name,
-        app_name
+        app_name,
+        max_concurrency
 ):
     """
     Command to deploy ML model(s) on SageMaker
@@ -173,7 +181,8 @@ def deploy_serverless(
         image_name=image_name,
         s3_model_location=s3_model_location,
         memory_size_in_mb=memory_size_in_mb,
-        endpoint_name=endpoint_name
+        endpoint_name=endpoint_name,
+        max_concurrency=max_concurrency
     )
 
     print("Endpoint name: {}".format(endpoint_name))
