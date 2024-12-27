@@ -40,21 +40,21 @@ easy_sm init
 
 3. Build and Push Docker image with all the code and dependency (this is where `easy_sm` shines)
 ```shell
-easy_sm build -a app_name
-easy_sm push -a app_name
+easy_sm build -a app-name
+easy_sm push -a app-name
 ```
-The Dockerfile that is used here is located at `app_name/easy_sm_base/Dockerfile`.
+The Dockerfile that is used here is located at `app-name/easy_sm_base/Dockerfile`.
 So any additional dependencies can be introduced in this file.
 
 4. Test locally
 ```shell
-easy_sm local process -f file.py -a app_name
+easy_sm local process -f file.py -a app-name
 ```
 Similarly there are commands for training a model or running a pipeline defined in a Makefile
 
 5. Deploy/Run on Sagemaker
 ```shell
-easy_sm cloud process -f file.py -a app_name -r $SAGEMAKER_EXCUTION_ROLE -e ml.t3.medium
+easy_sm cloud process -f file.py -a app-name -r $SAGEMAKER_EXCUTION_ROLE -e ml.t3.medium
 ```
 
 ## Features
@@ -65,10 +65,10 @@ easy_sm cloud process -f file.py -a app_name -r $SAGEMAKER_EXCUTION_ROLE -e ml.t
 #### Getting started local training
 ##### Dependencies
 First of all a *requirements.txt* that captures all dependencies for training code is required. This needs to be specified when using `easy_sm init` as it is subsequently used for building Docker container.
-Additionally a *Dockerfile* in *app_name/easy_sm_base/Dockerfile* can be modified for flexibility in how the container is built.
+Additionally a *Dockerfile* in *app-name/easy_sm_base/Dockerfile* can be modified for flexibility in how the container is built.
 
 ##### Code
-The code for training needs to be copied in **app_name/easy_sm_base/training/training.py** under the function *train* with any import statements at the top of the file
+The code for training needs to be copied in **app-name/easy_sm_base/training/training.py** under the function *train* with any import statements at the top of the file
 e.g.
 ```python
 import statsmodels.api as sm
@@ -95,21 +95,21 @@ def train(input_data_path, model_save_path, hyperparams_path=None):
 ```
 
 ##### Data
-With the code and dependencies out of the way, a small sample of test data needs to be places at **app_name/easy_sm_base/local_test/test_dir/input/data/training**
+With the code and dependencies out of the way, a small sample of test data needs to be places at **app-name/easy_sm_base/local_test/test_dir/input/data/training**
 
 For this example the dataset used is at https://raw.githubusercontent.com/plotly/datasets/master/auto-mpg.csv
 
 ##### Prepare container
 Last step before training is preparing the container to include all dependencies, code and data
 ```shell
-easy_sm build -a app_name
+easy_sm build -a app-name
 ```
 
 ##### Train
 With all this out of the way training can be started *easily*
 
 ```shell
-easy_sm local train -a app_name
+easy_sm local train -a app-name
 ```
 
 This runs the training code inside the container so rest assured if everything worked here, it should work on Sagemaker
@@ -152,19 +152,19 @@ This is done by adding the following json blob to Trust entities under Trust rel
 ##### Push to ECR
 If the container was built properly during local training it can be pushed to ECR *easily*
 ```shell
-easy_sm push -a app_name
+easy_sm push -a app-name
 ```
 
 ##### Data in S3
 The dataset to train on needs to be present in s3. There is a command for copying local files to s3 *easily*
 ```shell
-easy_sm cloud upload-data -i training_data.csv -s s3://bucket/folder/input -r $SAGEMAKER_EXECUTION_ROLE -a app_name
+easy_sm cloud upload-data -i training_data.csv -s s3://bucket/folder/input -r $SAGEMAKER_EXECUTION_ROLE -a app-name
 ```
 
 ##### Train
 Once the data and ECR image are in place invoking training is *easy*
 ```shell
-easy_sm cloud train -n training-job -r $SAGEMAKER_EXECUTION_ROLE -e ml.m5.large -i s3://bucket/folder/input -o s3://bucket/folder/train/artefacts -a app_name
+easy_sm cloud train -n training-job -r $SAGEMAKER_EXECUTION_ROLE -e ml.m5.large -i s3://bucket/folder/input -o s3://bucket/folder/train/artefacts -a app-name
 ```
 **Note**: that using *folder* as a parent leads us to nicely organise training data for the project. The folder can be anything, brownie points if it is name of the app.
 
@@ -179,7 +179,7 @@ This points to the location where model is saved and this text string can be use
 
 It is often useful to also save this output in a text file.
 ```shell
-easy_sm cloud train -n training-job -r $SAGEMAKER_EXECUTION_ROLE -e ml.m5.large -i s3://bucket/folder/input -o s3://bucket/folder/train/artefacts -a app_name | tee train_output.txt
+easy_sm cloud train -n training-job -r $SAGEMAKER_EXECUTION_ROLE -e ml.m5.large -i s3://bucket/folder/input -o s3://bucket/folder/train/artefacts -a app-name | tee train_output.txt
 ```
 
 ### Model deployment
@@ -192,7 +192,7 @@ To run inference using trained model
 2. Any input data must be handled and pre processed
 3. Predictions made and output data processed if necessary
 
-The code to accomplish all this needs to be defined in **app_name/easy_sm_base/prediction/serve**. By default *text/csv* inputs are supported and results returned as *text/csv* but other formats can be introduced in the *serve* file. If the default settings are usable then the only changes to the code need to be in *model_fn* and *input_fn* along with any dependencies at the top. A sample code looks like following
+The code to accomplish all this needs to be defined in **app-name/easy_sm_base/prediction/serve**. By default *text/csv* inputs are supported and results returned as *text/csv* but other formats can be introduced in the *serve* file. If the default settings are usable then the only changes to the code need to be in *model_fn* and *input_fn* along with any dependencies at the top. A sample code looks like following
 
 ```python
 # Your imports here
@@ -217,14 +217,14 @@ def predict_fn(input_data, model):
 ##### Deploy
 Having setup the code, it is required to rebuild the container with updated serving code and run a local training job
 ```shell
-easy_sm build -a app_name
-easy_sm local train -a app_name
+easy_sm build -a app-name
+easy_sm local train -a app-name
 ```
 
 This will create a model and place it in an appropriate directory where serving code can locate it.
 Local serving is *easy*
 ```shell
-easy_sm local deploy -a app_name
+easy_sm local deploy -a app-name
 ```
 
 And it can be tested by passing the payload
@@ -249,15 +249,15 @@ http://localhost:8080/invocations \
 After the container is updated with serving code it needs to be pushed to ECR and a cloud training step needs to be run to generate a model object
 
 ```shell
-easy_sm push -a app_name
-easy_sm cloud train -n training-job -r $SAGEMAKER_EXECUTION_ROLE -e ml.m5.large -i s3://bucket/folder/input -o s3://bucket/folder/train/artefacts -a app_name >| train_output.txt
+easy_sm push -a app-name
+easy_sm cloud train -n training-job -r $SAGEMAKER_EXECUTION_ROLE -e ml.m5.large -i s3://bucket/folder/input -o s3://bucket/folder/train/artefacts -a app-name >| train_output.txt
 
 ```
 
 To begin with the model location is required for deployment. It can either be manually provided or if you saved the entire output of training job to the *train_output.txt* file, the model location can be extracted and passed to depolyment commands.
 
 ```shell
-easy_sm cloud deploy-serverless -s 2048 -n endpoint-name -r $SAGEMAKER_EXECUTION_ROLE -m s3://bucket/folder/train/artefacts/training-job-2024-08-07-10-41-23-345/output/model.tar.gz -a app_name
+easy_sm cloud deploy-serverless -s 2048 -n endpoint-name -r $SAGEMAKER_EXECUTION_ROLE -m s3://bucket/folder/train/artefacts/training-job-2024-08-07-10-41-23-345/output/model.tar.gz -a app-name
 ```
 
 Serverless is the only option supported currently.
