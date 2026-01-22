@@ -69,7 +69,7 @@ class SageMakerClient(object):
         :param image_name: [str], name of Docker image
         :param input_s3_data_location: [str], S3 location to input data
         :param train_instance_type: [str], ec2 instance type
-        :param output_path: [str], S3 location for saving the training artefacts
+        :param output_path: [str], S3 location for saving the training artifacts
         :param base_job_name: [str], Optional prefix for the SageMaker training job
         :return: [str], the model location in S3
         """
@@ -450,7 +450,7 @@ class SageMakerClient(object):
         base_job_name: str,
     ) -> None:
         """
-        Build make targets defined in a Makefile in easy_sm_base/processing on Sagemaker
+        Build make targets defined in a Makefile in easy_sm_base/processing on SageMaker
         :param image_name: [str], name of Docker image
         :param processing_instance_type: [str], ec2 instance type
         :param instance_count: [int], number of instances

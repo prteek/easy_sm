@@ -1,10 +1,10 @@
 # easy_sm
-Easing Sagemaker Ops
+Easing SageMaker Ops
 
-**Credits**: This Project borrows heavily from [Sagify](https://github.com/Kenza-AI/sagify). It's a great project do check it out specially if you want to work with LLMs on Sagemaker.
+**Credits**: This Project borrows heavily from [Sagify](https://github.com/Kenza-AI/sagify). It's a great project - check it out especially if you want to work with LLMs on SageMaker.
 
 ---
-Offers following commands to help work with Sagemaker
+Offers following commands to help work with SageMaker
 
 ```text
 Commands:
@@ -28,10 +28,10 @@ easy_sm --help
 And similarly for any sub commands `easy_sm cloud --help`
 
 ## Usage
-`Note: It is assumed that AWS cli is setup and an AWS profile defined for the app to use. This profile would be required when initialising easy_sm` [See](https://github.com/prteek/easy_sm/tree/main?tab=readme-ov-file#aws-setup)
+> **Note**: It is assumed that AWS CLI is set up and an AWS profile is defined for the app to use. This profile would be required when initializing easy_sm. [See AWS Setup](#aws-setup)
 
-There are 5 broad steps to initialise build and test any project
-1. Initialise easy_sm in the repository where code lives. Follow the prompts after running the `init` command
+There are 5 broad steps to initialize build and test any project
+1. Initialize easy_sm in the repository where code lives. Follow the prompts after running the `init` command
 ```shell
 easy_sm init
 ```
@@ -52,7 +52,7 @@ easy_sm local process -f file.py -a app-name
 ```
 Similarly there are commands for training a model or running a pipeline defined in a Makefile
 
-5. Deploy/Run on Sagemaker
+5. Deploy/Run on SageMaker
 ```shell
 easy_sm cloud process -f file.py -a app-name -r $SAGEMAKER_EXCUTION_ROLE -e ml.t3.medium
 ```
@@ -60,7 +60,7 @@ easy_sm cloud process -f file.py -a app-name -r $SAGEMAKER_EXCUTION_ROLE -e ml.t
 ## Features
 
 ### Model training
-**easy_sm** enables seamless transition from local environment to training models on Sagemaker. Additionally such trained models could be deployed to a serverless endpoint or a regular (provisioned) endpoint. A serverless endpoint can be very useful from a cost and scale perspective. A regular endpoint provides consistent performance with dedicated instances.
+**easy_sm** enables seamless transition from local environment to training models on SageMaker. Additionally, such trained models could be deployed to a serverless endpoint or a regular (provisioned) endpoint. A serverless endpoint can be very useful from a cost and scale perspective. A regular endpoint provides consistent performance with dedicated instances.
 
 #### Getting started local training
 ##### Dependencies
@@ -95,7 +95,7 @@ def train(input_data_path, model_save_path, hyperparams_path=None):
 ```
 
 ##### Data
-With the code and dependencies out of the way, a small sample of test data needs to be places at **app-name/easy_sm_base/local_test/test_dir/input/data/training**
+With the code and dependencies out of the way, a small sample of test data needs to be placed at **app-name/easy_sm_base/local_test/test_dir/input/data/training**
 
 For this example the dataset used is at https://raw.githubusercontent.com/plotly/datasets/master/auto-mpg.csv
 
@@ -106,18 +106,18 @@ easy_sm build -a app-name
 ```
 
 ##### Train
-With all this out of the way training can be started *easily*
+With all this out of the way training can be started easily
 
 ```shell
 easy_sm local train -a app-name
 ```
 
-This runs the training code inside the container so rest assured if everything worked here, it should work on Sagemaker
+This runs the training code inside the container so rest assured if everything worked here, it should work on SageMaker
 
 #### Getting started cloud training
-##### AWS Setup
-There are primarily 2 things required from AWS side
-1. AWS Profile with credentials that can enable permissions to work with ECR, Sagemaker and S3.
+#### AWS Setup
+There are primarily 2 things required from AWS side:
+1. AWS Profile with credentials that can enable permissions to work with ECR, SageMaker and S3.
 This is specified in *~/.aws/config* file like following, along with accompanying set of credentials in *~/.aws/credentials* file
 
 ```text
@@ -127,9 +127,9 @@ region = eu-west-1
 output = json
 ```
 
-2. Sagemaker execution role to run training and processing jobs. This is generally of the form *arn:aws:iam::10987654321:role/AVMSagemakerExecutionRole* and it will be referred to as the variable *$SAGEMAKER_EXECUTION_ROLE* in the doumentation.
+2. SageMaker execution role to run training and processing jobs. This is generally of the form *arn:aws:iam::10987654321:role/AVMSagemakerExecutionRole* and it will be referred to as the variable *$SAGEMAKER_EXECUTION_ROLE* in the documentation.
 
-Additionally, specify a trust relationship for the user (relevant for profile) to assume the Sagemaker execution role.
+Additionally, specify a trust relationship for the user (relevant for profile) to assume the SageMaker execution role.
 
 This is done by adding the following json blob to Trust entities under Trust relationship tab of the role in IAM console. Any number of users can be added within the Statement field.
 
@@ -150,36 +150,37 @@ This is done by adding the following json blob to Trust entities under Trust rel
 ```
 
 ##### Push to ECR
-If the container was built properly during local training it can be pushed to ECR *easily*
+If the container was built properly during local training it can be pushed to ECR easily
 ```shell
 easy_sm push -a app-name
 ```
 
 ##### Data in S3
-The dataset to train on needs to be present in s3. There is a command for copying local files to s3 *easily*
+The dataset to train on needs to be present in S3. There is a command for copying local files to S3 easily
 ```shell
 easy_sm cloud upload-data -i training_data.csv -s s3://bucket/folder/input -r $SAGEMAKER_EXECUTION_ROLE -a app-name
 ```
 
 ##### Train
-Once the data and ECR image are in place invoking training is *easy*
+Once the data and ECR image are in place invoking training is easy
 ```shell
-easy_sm cloud train -n training-job -r $SAGEMAKER_EXECUTION_ROLE -e ml.m5.large -i s3://bucket/folder/input -o s3://bucket/folder/train/artefacts -a app-name
+easy_sm cloud train -n training-job -r $SAGEMAKER_EXECUTION_ROLE -e ml.m5.large -i s3://bucket/folder/input -o s3://bucket/folder/train/artifacts -a app-name
 ```
-**Note**: that using *folder* as a parent leads us to nicely organise training data for the project. The folder can be anything, brownie points if it is name of the app.
+
+**Note**: Using *folder* as a parent leads to nicely organized training data for the project. The folder can be anything - brownie points if it is the name of the app.
 
 ##### Outputs
 The training job writes text output in the console that can be useful for further steps in the pipeline
 ```text
 Training on SageMaker succeeded
-Model S3 location: s3://bucket/folder/train/artefacts/training-job-2024-08-07-10-41-23-345/output/model.tar.gz
+Model S3 location: s3://bucket/folder/train/artifacts/training-job-2024-08-07-10-41-23-345/output/model.tar.gz
 ```
 
 This points to the location where model is saved and this text string can be used to extract model location and deploy the model.
 
 It is often useful to also save this output in a text file.
 ```shell
-easy_sm cloud train -n training-job -r $SAGEMAKER_EXECUTION_ROLE -e ml.m5.large -i s3://bucket/folder/input -o s3://bucket/folder/train/artefacts -a app-name | tee train_output.txt
+easy_sm cloud train -n training-job -r $SAGEMAKER_EXECUTION_ROLE -e ml.m5.large -i s3://bucket/folder/input -o s3://bucket/folder/train/artifacts -a app-name | tee train_output.txt
 ```
 
 ### Model deployment
@@ -250,7 +251,7 @@ After the container is updated with serving code it needs to be pushed to ECR an
 
 ```shell
 easy_sm push -a app-name
-easy_sm cloud train -n training-job -r $SAGEMAKER_EXECUTION_ROLE -e ml.m5.large -i s3://bucket/folder/input -o s3://bucket/folder/train/artefacts -a app-name >| train_output.txt
+easy_sm cloud train -n training-job -r $SAGEMAKER_EXECUTION_ROLE -e ml.m5.large -i s3://bucket/folder/input -o s3://bucket/folder/train/artifacts -a app-name >| train_output.txt
 
 ```
 
@@ -274,14 +275,13 @@ To begin with the model location is required for deployment. It can either be ma
 
 **Deploy to a regular (provisioned) endpoint:**
 ```shell
-easy_sm cloud deploy -e ml.m5.large -c 1 -n endpoint-name -r $SAGEMAKER_EXECUTION_ROLE -m s3://bucket/folder/train/artefacts/training-job-2024-08-07-10-41-23-345/output/model.tar.gz -a app-name
+easy_sm cloud deploy -e ml.m5.large -c 1 -n endpoint-name -r $SAGEMAKER_EXECUTION_ROLE -m s3://bucket/folder/train/artifacts/training-job-2024-08-07-10-41-23-345/output/model.tar.gz -a app-name
 ```
 
 **Deploy to a serverless endpoint:**
 ```shell
-easy_sm cloud deploy-serverless -s 2048 -n endpoint-name -r $SAGEMAKER_EXECUTION_ROLE -m s3://bucket/folder/train/artefacts/training-job-2024-08-07-10-41-23-345/output/model.tar.gz -a app-name
+easy_sm cloud deploy-serverless -s 2048 -n endpoint-name -r $SAGEMAKER_EXECUTION_ROLE -m s3://bucket/folder/train/artifacts/training-job-2024-08-07-10-41-23-345/output/model.tar.gz -a app-name
 ```
 
 Choose `deploy` for provisioned instances (pay per hour, always running) or `deploy-serverless` for serverless (pay per invocation, scales to zero). Extracting model location from training output file can be done by `$(grep -o -E "s3://[^ ]+" train_output.txt)`.
-
-This is particularly useful when running these commands on a remote runner like Github actions. Training and deployment steps can be successively run without manual intervention.
+This is particularly useful when running these commands on a remote runner like GitHub Actions. Training and deployment steps can be successively run without manual intervention.

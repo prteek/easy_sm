@@ -473,7 +473,7 @@ def process(
     app_name: str,
 ) -> None:
     """
-    Command to run python file as processing job on Sagemaker
+    Command to run python file as processing job on SageMaker
     """
     print("Started processing job on SageMaker...\n")
     config = _config(app_name)
@@ -561,7 +561,7 @@ def make(
     app_name: str,
 ) -> None:
     """
-    Command to build make targets defined in a Makefile in easy_sm_base/processing on Sagemaker
+    Command to build make targets defined in a Makefile in easy_sm_base/processing on SageMaker
     """
     print(f"Building {target} on SageMaker...\n")
     config = _config(app_name)
@@ -582,7 +582,7 @@ def make(
         base_job_name=base_job_name,
     )
 
-    print(f"{target} built on Sagemaker successfully!")
+    print(f"{target} built on SageMaker successfully!")
 
 
 cloud.add_command(upload_data)
