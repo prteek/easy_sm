@@ -1,6 +1,5 @@
 import os
 import sagemaker as sage
-from sagemaker import image_uris, payloads, model_uris
 from sagemaker.processing import ProcessingInput, ProcessingOutput
 from urllib.parse import urlparse
 from datetime import datetime
