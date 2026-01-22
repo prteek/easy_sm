@@ -1,20 +1,23 @@
 import os
 import sys
+from pathlib import Path
+from typing import Any, Dict, Optional
+
 import click
-from easy_sm.config.config import ConfigManager
+
+from easy_sm.config.config import Config, ConfigManager
 from easy_sm.sagemaker import sagemaker
 
 
-def _config(app_name):
+def _config(app_name: str) -> Config:
     config_file_path = os.path.join(f"{app_name}.json")
     if not os.path.isfile(config_file_path):
         raise ValueError("This is not a easy_sm directory: {}".format(os.getcwd()))
-    else:
-        return ConfigManager(config_file_path).get_config()
+    return ConfigManager(config_file_path).get_config()
 
 
 @click.group()
-def cloud():
+def cloud() -> None:
     """
     Commands for AWS operations: upload data, train and deploy
     """
@@ -22,13 +25,19 @@ def cloud():
 
 
 @click.command(name="upload-data")
-@click.option("-i", "--input-dir", required=True, help="Path to data input directory")
+@click.option(
+    "-i",
+    "--input-dir",
+    required=True,
+    help="Path to data input directory",
+    type=click.Path(exists=True, file_okay=False, dir_okay=True),
+)
 @click.option(
     "-t",
     "--target-dir",
     required=True,
     help="s3 location to upload data",
-    type=click.Path(),
+    type=str,
 )
 @click.option(
     "-r",
@@ -42,7 +51,9 @@ def cloud():
     required=True,
     help="The app name whose json file will be referenced for setting up command",
 )
-def upload_data(input_dir, target_dir, iam_role_arn, app_name):
+def upload_data(
+    input_dir: str, target_dir: str, iam_role_arn: str, app_name: str
+) -> None:
     """
     Command to upload data to S3
     """
@@ -61,18 +72,23 @@ def upload_data(input_dir, target_dir, iam_role_arn, app_name):
     "--input-s3-dir",
     required=True,
     help="s3 location to input data",
-    type=click.Path(),
+    type=str,
 )
 @click.option(
     "-o",
     "--output-s3-dir",
     required=True,
     help="s3 location to save output (models, etc)",
-    type=click.Path(),
+    type=str,
 )
 @click.option("-e", "--ec2-type", required=True, help="ec2 instance type")
 @click.option(
-    "-c", "--instance-count", required=False, default=1, help="ec2 instance count"
+    "-c",
+    "--instance-count",
+    required=False,
+    default=1,
+    help="ec2 instance count",
+    type=int,
 )
 @click.option(
     "-r",
@@ -94,19 +110,18 @@ def upload_data(input_dir, target_dir, iam_role_arn, app_name):
 )
 @click.pass_obj
 def train(
-    obj,
-    input_s3_dir,
-    output_s3_dir,
-    ec2_type,
-    instance_count,
-    iam_role_arn,
-    base_job_name,
-    app_name,
-):
+    obj: Dict[str, Any],
+    input_s3_dir: str,
+    output_s3_dir: str,
+    ec2_type: str,
+    instance_count: int,
+    iam_role_arn: str,
+    base_job_name: str,
+    app_name: str,
+) -> Optional[str]:
     """
     Command to train ML model(s) on SageMaker
     """
-
     print("Started training on SageMaker...\n")
     config = _config(app_name)
     sage_maker_client = sagemaker.SageMakerClient(
@@ -126,7 +141,7 @@ def train(
 
     print("Training on SageMaker succeeded")
     print("Model S3 location: {}".format(s3_model_location))
-    return s3_model_location  # To pipe into other commands
+    return s3_model_location
 
 
 @click.command(name="deploy")
@@ -135,7 +150,7 @@ def train(
     "--s3-model-location",
     required=True,
     help="s3 location to model tar.gz",
-    type=click.Path(),
+    type=str,
 )
 @click.option(
     "-e", "--instance-type", required=True, help="ec2 instance type for the endpoint"
@@ -169,18 +184,17 @@ def train(
 )
 @click.pass_obj
 def deploy(
-    obj,
-    s3_model_location,
-    instance_type,
-    instance_count,
-    iam_role_arn,
-    endpoint_name,
-    app_name,
-):
+    obj: Dict[str, Any],
+    s3_model_location: str,
+    instance_type: str,
+    instance_count: int,
+    iam_role_arn: str,
+    endpoint_name: str,
+    app_name: str,
+) -> None:
     """
     Command to deploy ML model(s) on SageMaker as a regular endpoint
     """
-
     print("Started deployment on SageMaker ...\n")
     config = _config(app_name)
     image_name = config.image_name + ":" + obj["docker_tag"]
@@ -205,7 +219,7 @@ def deploy(
     "--s3-model-location",
     required=True,
     help="s3 location to model tar.gz",
-    type=click.Path(),
+    type=str,
 )
 @click.option(
     "-s",
@@ -242,18 +256,17 @@ def deploy(
 )
 @click.pass_obj
 def deploy_serverless(
-    obj,
-    s3_model_location,
-    memory_size_in_mb,
-    iam_role_arn,
-    endpoint_name,
-    app_name,
-    max_concurrency,
-):
+    obj: Dict[str, Any],
+    s3_model_location: str,
+    memory_size_in_mb: int,
+    iam_role_arn: str,
+    endpoint_name: str,
+    app_name: str,
+    max_concurrency: int,
+) -> None:
     """
     Command to deploy ML model(s) on SageMaker
     """
-
     print("Started deployment on SageMaker ...\n")
     config = _config(app_name)
     image_name = config.image_name + ":" + obj["docker_tag"]
@@ -278,21 +291,21 @@ def deploy_serverless(
     "--s3-model-location",
     required=True,
     help="s3 location to model tar.gz",
-    type=click.Path(),
+    type=str,
 )
 @click.option(
     "-i",
     "--s3-input-location",
     required=True,
     help="s3 input data location",
-    type=click.Path(),
+    type=str,
 )
 @click.option(
     "-o",
     "--s3-output-location",
     required=True,
     help="s3 location to save predictions",
-    type=click.Path(),
+    type=str,
 )
 @click.option(
     "--num-instances", required=True, type=int, help="Number of ec2 instances"
@@ -326,17 +339,17 @@ def deploy_serverless(
 )
 @click.pass_obj
 def batch_transform(
-    obj,
-    s3_model_location,
-    s3_input_location,
-    s3_output_location,
-    num_instances,
-    ec2_type,
-    iam_role_arn,
-    wait,
-    job_name,
-    app_name,
-):
+    obj: Dict[str, Any],
+    s3_model_location: str,
+    s3_input_location: str,
+    s3_output_location: str,
+    num_instances: int,
+    ec2_type: str,
+    iam_role_arn: str,
+    wait: bool,
+    job_name: Optional[str],
+    app_name: str,
+) -> None:
     """
     Command to execute a batch transform job given a trained ML model on SageMaker
     """
@@ -384,7 +397,7 @@ def batch_transform(
     required=True,
     help="The app name whose json file will be referenced for setting up command",
 )
-def delete_endpoint(endpoint_name, iam_role_arn, app_name):
+def delete_endpoint(endpoint_name: str, iam_role_arn: str, app_name: str) -> None:
     config = _config(app_name)
     sage_maker_client = sagemaker.SageMakerClient(
         config.aws_profile, config.aws_region, iam_role_arn
@@ -396,7 +409,12 @@ def delete_endpoint(endpoint_name, iam_role_arn, app_name):
 @click.command(name="process")
 @click.option("-e", "--ec2-type", required=True, help="ec2 instance type")
 @click.option(
-    "-c", "--instance-count", required=False, default=1, help="ec2 instance count"
+    "-c",
+    "--instance-count",
+    required=False,
+    default=1,
+    help="ec2 instance count",
+    type=int,
 )
 @click.option("-r", "--iam-role-arn", required=True, help="The AWS role to use")
 @click.option(
@@ -418,7 +436,7 @@ def delete_endpoint(endpoint_name, iam_role_arn, app_name):
     required=False,
     default=None,
     help="s3 input data location",
-    type=click.Path(),
+    type=str,
 )
 @click.option(
     "-o",
@@ -426,7 +444,7 @@ def delete_endpoint(endpoint_name, iam_role_arn, app_name):
     required=False,
     default=None,
     help="s3 location to save output",
-    type=click.Path(),
+    type=str,
 )
 @click.option(
     "-is",
@@ -443,21 +461,20 @@ def delete_endpoint(endpoint_name, iam_role_arn, app_name):
 )
 @click.pass_obj
 def process(
-    obj,
-    ec2_type,
-    instance_count,
-    iam_role_arn,
-    base_job_name,
-    file,
-    s3_input_location,
-    s3_output_location,
-    input_sharded,
-    app_name,
-):
+    obj: Dict[str, Any],
+    ec2_type: str,
+    instance_count: int,
+    iam_role_arn: str,
+    base_job_name: str,
+    file: str,
+    s3_input_location: Optional[str],
+    s3_output_location: Optional[str],
+    input_sharded: bool,
+    app_name: str,
+) -> None:
     """
     Command to run python file as processing job on Sagemaker
     """
-
     print("Started processing job on SageMaker...\n")
     config = _config(app_name)
     sage_maker_client = sagemaker.SageMakerClient(
@@ -483,7 +500,12 @@ def process(
 @click.command(name="make")
 @click.option("-e", "--ec2-type", required=True, help="ec2 instance type")
 @click.option(
-    "-c", "--instance-count", required=False, default=1, help="ec2 instance count"
+    "-c",
+    "--instance-count",
+    required=False,
+    default=1,
+    help="ec2 instance count",
+    type=int,
 )
 @click.option("-r", "--iam-role-arn", required=True, help="The AWS role to use")
 @click.option(
@@ -502,7 +524,7 @@ def process(
     required=False,
     default=None,
     help="s3 input data location",
-    type=click.Path(),
+    type=str,
 )
 @click.option(
     "-o",
@@ -510,7 +532,7 @@ def process(
     required=False,
     default=None,
     help="s3 location to save output",
-    type=click.Path(),
+    type=str,
 )
 @click.option(
     "-is",
@@ -527,21 +549,20 @@ def process(
 )
 @click.pass_obj
 def make(
-    obj,
-    ec2_type,
-    instance_count,
-    iam_role_arn,
-    base_job_name,
-    target,
-    s3_input_location,
-    input_sharded,
-    s3_output_location,
-    app_name,
-):
+    obj: Dict[str, Any],
+    ec2_type: str,
+    instance_count: int,
+    iam_role_arn: str,
+    base_job_name: str,
+    target: str,
+    s3_input_location: Optional[str],
+    input_sharded: bool,
+    s3_output_location: Optional[str],
+    app_name: str,
+) -> None:
     """
     Command to build make targets defined in a Makefile in easy_sm_base/processing on Sagemaker
     """
-
     print(f"Building {target} on SageMaker...\n")
     config = _config(app_name)
     sage_maker_client = sagemaker.SageMakerClient(

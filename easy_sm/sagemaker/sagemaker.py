@@ -1,13 +1,22 @@
 import os
+import boto3
 import sagemaker as sage
+from datetime import datetime
 from sagemaker.processing import ProcessingInput, ProcessingOutput
 from urllib.parse import urlparse
-from datetime import datetime
-import boto3
 
 
 class SageMakerClient(object):
-    def __init__(self, aws_profile, aws_region, aws_role=None):
+    boto_session: boto3.Session
+    sagemaker_session: sage.Session
+    aws_region: str
+    aws_profile: str
+    role: str
+    sagemaker_client: boto3.client
+
+    def __init__(
+        self, aws_profile: str, aws_region: str, aws_role: str | None = None
+    ) -> None:
         print("Using profile {}.".format(aws_profile))
         if aws_role:
             sts_client = boto3.client("sts")
@@ -31,7 +40,7 @@ class SageMakerClient(object):
             "sagemaker", region_name=aws_region
         )
 
-    def upload_data(self, input_dir, s3_dir):
+    def upload_data(self, input_dir: str, s3_dir: str) -> str:
         """
         Uploads data to S3
         :param input_dir: [str], local input directory where files are located
@@ -48,13 +57,13 @@ class SageMakerClient(object):
 
     def train(
         self,
-        image_name,
-        input_s3_data_location,
-        train_instance_type,
-        instance_count,
-        output_path,
-        base_job_name,
-    ):
+        image_name: str,
+        input_s3_data_location: str,
+        train_instance_type: str,
+        instance_count: int,
+        output_path: str,
+        base_job_name: str,
+    ) -> str:
         """
         Train model on SageMaker
         :param image_name: [str], name of Docker image
@@ -84,17 +93,17 @@ class SageMakerClient(object):
 
     def deploy_serverless(
         self,
-        image_name,
-        s3_model_location,
-        memory_size_in_mb,
-        endpoint_name=None,
-        max_concurrency=5,
-    ):
+        image_name: str,
+        s3_model_location: str,
+        memory_size_in_mb: int,
+        endpoint_name: str | None = None,
+        max_concurrency: int = 5,
+    ) -> str:
         """
         Deploy model to SageMaker
         :param image_name: [str], name of Docker image
         :param s3_model_location: [str], model location in S3
-        :param memory_size_in_mb: [str],
+        :param memory_size_in_mb: [int], memory size in MB
         :param endpoint_name: [optional[str]], Optional name for the SageMaker endpoint
         :param max_concurrency: [optional[int]], Optional maximum concurrency for SageMaker endpoint
 
@@ -109,6 +118,9 @@ class SageMakerClient(object):
         )
         model.create()
         model_name = model.name
+
+        if endpoint_name is None:
+            raise ValueError("endpoint_name is required for deploy_serverless")
 
         if not self._check_endpoint_exists(endpoint_name):
             endpoint_config_name = (
@@ -126,7 +138,6 @@ class SageMakerClient(object):
             return endpoint_name
 
         else:
-            # ValueError raised if there is an endpoint already
             print(f"Serverless endpoint: {endpoint_name} already exists, updating...")
             endpoint_config_name = (
                 f"{endpoint_name}-{datetime.now().strftime('%Y-%m-%dT%H-%M-%S')}"
@@ -145,12 +156,12 @@ class SageMakerClient(object):
 
     def deploy(
         self,
-        image_name,
-        s3_model_location,
-        instance_type,
-        endpoint_name=None,
-        instance_count=1,
-    ):
+        image_name: str,
+        s3_model_location: str,
+        instance_type: str,
+        endpoint_name: str | None = None,
+        instance_count: int = 1,
+    ) -> str:
         """
         Deploy model to SageMaker as a regular endpoint with provisioned instances
         :param image_name: [str], name of Docker image
@@ -170,6 +181,9 @@ class SageMakerClient(object):
         )
         model.create()
         model_name = model.name
+
+        if endpoint_name is None:
+            raise ValueError("endpoint_name is required for deploy")
 
         if not self._check_endpoint_exists(endpoint_name):
             endpoint_config_name = (
@@ -262,22 +276,22 @@ class SageMakerClient(object):
 
     def batch_transform(
         self,
-        image_name,
-        s3_model_location,
-        s3_input_location,
-        s3_output_location,
-        transform_instance_count,
-        transform_instance_type,
-        wait=False,
-        job_name=None,
-    ):
+        image_name: str,
+        s3_model_location: str,
+        s3_input_location: str,
+        s3_output_location: str,
+        transform_instance_count: int,
+        transform_instance_type: str,
+        wait: bool = False,
+        job_name: str | None = None,
+    ) -> str | None:
         """
         Execute batch transform on a trained model to SageMaker
         :param image_name: [str], name of Docker image
         :param s3_model_location: [str], model location in S3
         :param s3_input_location: [str], S3 input data location
         :param s3_output_location: [str], S3 output data location
-        :param transform_instance_count: [str],  number of ec2 instances
+        :param transform_instance_count: [int], number of ec2 instances
         :param transform_instance_type: [str], ec2 instance type
         :param wait: [bool, default=False], wait or not for the batch transform to finish
         :param job_name: [str, default=None], name for the SageMaker batch transform job
@@ -316,7 +330,6 @@ class SageMakerClient(object):
             try:
                 transformer.wait()
             except Exception:
-                # If there is an error, wait() throws an exception, and we're not able to return a Failed status
                 pass
             finally:
                 job_name = transformer.latest_transform_job.job_name
@@ -325,8 +338,9 @@ class SageMakerClient(object):
                 )
 
             return job_description["TransformJobStatus"]
+        return None
 
-    def shutdown_endpoint(self, endpoint_name):
+    def shutdown_endpoint(self, endpoint_name: str) -> None:
         """
         Shuts down a SageMaker endpoint.
         :param endpoint_name: [str], name of the endpoint to be shut down
@@ -334,7 +348,7 @@ class SageMakerClient(object):
         self.sagemaker_client.delete_endpoint(EndpointName=endpoint_name)
 
     @staticmethod
-    def _get_s3_bucket(s3_dir):
+    def _get_s3_bucket(s3_dir: str) -> str:
         """
         Extract bucket from S3 dir
         :param s3_dir: [str], input S3 directory
@@ -343,7 +357,7 @@ class SageMakerClient(object):
         return urlparse(s3_dir).netloc
 
     @staticmethod
-    def _get_s3_key_prefix(s3_dir):
+    def _get_s3_key_prefix(s3_dir: str) -> str:
         """
         Extract key prefix from S3 dir
         :param s3_dir: [str], input S3 directory
@@ -351,7 +365,7 @@ class SageMakerClient(object):
         """
         return urlparse(s3_dir).path.lstrip("/").rstrip("/")
 
-    def _construct_image_location(self, image_name):
+    def _construct_image_location(self, image_name: str) -> str:
         account = self.boto_session.client("sts").get_caller_identity()["Account"]
         region = self.boto_session.region_name
 
@@ -361,21 +375,23 @@ class SageMakerClient(object):
 
     def process(
         self,
-        image_name,
-        processing_instance_type,
-        instance_count,
-        file,
-        s3_input_location,
-        input_sharded,
-        s3_output_location,
-        base_job_name,
-    ):
+        image_name: str,
+        processing_instance_type: str,
+        instance_count: int,
+        file: str,
+        s3_input_location: str | None,
+        input_sharded: bool,
+        s3_output_location: str | None,
+        base_job_name: str,
+    ) -> None:
         """
         Process python file on SageMaker
         :param image_name: [str], name of Docker image
-        :param train_instance_type: [str], ec2 instance type
+        :param processing_instance_type: [str], ec2 instance type
+        :param instance_count: [int], number of instances
         :param file: [str], python filename
         :param s3_input_location: [str], S3 input data location
+        :param input_sharded: [bool], whether to shard input data
         :param s3_output_location: [str], S3 output data location
         :param base_job_name: [str], Optional prefix for the SageMaker processing job
         :return: None
@@ -422,25 +438,25 @@ class SageMakerClient(object):
             outputs=proc_out,
         )
 
-        return None
-
     def make(
         self,
-        image_name,
-        processing_instance_type,
-        instance_count,
-        target,
-        s3_input_location,
-        input_sharded,
-        s3_output_location,
-        base_job_name,
-    ):
+        image_name: str,
+        processing_instance_type: str,
+        instance_count: int,
+        target: str,
+        s3_input_location: str | None,
+        input_sharded: bool,
+        s3_output_location: str | None,
+        base_job_name: str,
+    ) -> None:
         """
-        build make targets defined in a Makefile in easy_sm_base/processing on Sagemaker
+        Build make targets defined in a Makefile in easy_sm_base/processing on Sagemaker
         :param image_name: [str], name of Docker image
-        :param train_instance_type: [str], ec2 instance type
+        :param processing_instance_type: [str], ec2 instance type
+        :param instance_count: [int], number of instances
         :param target: [str], target to build
         :param s3_input_location: [str], S3 input data location
+        :param input_sharded: [bool], whether to shard input data
         :param s3_output_location: [str], S3 output data location
         :param base_job_name: [str], Optional prefix for the SageMaker processing job
         :return: None
@@ -484,5 +500,3 @@ class SageMakerClient(object):
         proc.run(
             wait=True, arguments=["make", f"{target}"], inputs=proc_in, outputs=proc_out
         )
-
-        return None
