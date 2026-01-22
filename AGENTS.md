@@ -202,17 +202,6 @@ pip install -e .  # Reinstall after changes
 easy_sm --help  # Verify CLI works
 ```
 
-### Testing with Sample App
-The `app/` folder contains a sample application that uses this library for testing. It is not committed to git.
-
-```bash
-# Install changes locally
-pip install -e .
-
-# Navigate to app directory and run commands
-cd app
-easy_sm --help
-```
 
 ## Project Structure
 
