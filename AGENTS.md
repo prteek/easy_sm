@@ -201,3 +201,31 @@ easy_sm cloud train --app-name myapp
 pip install -e .  # Reinstall after changes
 easy_sm --help  # Verify CLI works
 ```
+
+### Testing with Sample App
+The `app/` folder contains a sample application that uses this library for testing. It is not committed to git.
+
+```bash
+# Install changes locally
+pip install -e .
+
+# Navigate to app directory and run commands
+cd app
+easy_sm --help
+```
+
+## Project Structure
+
+```
+easy_sm/
+├── app/                    # Sample app for testing (not git-committed)
+├── easy_sm/                # Main package
+│   ├── __main__.py         # CLI entry point
+│   ├── commands/           # CLI command implementations
+│   ├── sagemaker/          # SageMaker integration
+│   ├── config/             # Configuration management
+│   └── template/           # Templates
+├── requirements.txt        # Dependencies
+├── setup.py               # Package setup
+└── AGENTS.md             # This file
+```
