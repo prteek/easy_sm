@@ -60,7 +60,7 @@ easy_sm cloud process -f file.py -a app-name -r $SAGEMAKER_EXCUTION_ROLE -e ml.t
 ## Features
 
 ### Model training
-**easy_sm** enables seamless transition from local environment to training models on Sagemaker. Additionally such trained models could be deployed to a serverless endpoint!. A serverless endpoint can be very useful to have from cost and scale perspective. This avoids having to deploy a lambda function etc. for inference.
+**easy_sm** enables seamless transition from local environment to training models on Sagemaker. Additionally such trained models could be deployed to a serverless endpoint or a regular (provisioned) endpoint. A serverless endpoint can be very useful from a cost and scale perspective. A regular endpoint provides consistent performance with dedicated instances.
 
 #### Getting started local training
 ##### Dependencies
@@ -254,14 +254,34 @@ easy_sm cloud train -n training-job -r $SAGEMAKER_EXECUTION_ROLE -e ml.m5.large 
 
 ```
 
-To begin with the model location is required for deployment. It can either be manually provided or if you saved the entire output of training job to the *train_output.txt* file, the model location can be extracted and passed to depolyment commands.
 
+#### Cloud deployment options
+easy_sm supports two types of endpoints for deploying models to SageMaker:
+
+**1. Regular (Provisioned) Endpoint**
+- Uses dedicated EC2 instances that are always running
+- Pay per hour for instance usage
+- Consistent latency and performance
+- Best for production workloads with predictable traffic
+
+**2. Serverless Endpoint**
+- Automatically scales to zero when not in use
+- Pay per invocation and compute time
+- Cost-effective for sporadic or unpredictable traffic
+- No capacity planning required
+
+To begin with the model location is required for deployment. It can either be manually provided or if you saved the entire output of training job to the *train_output.txt* file, the model location can be extracted and passed to deployment commands.
+
+**Deploy to a regular (provisioned) endpoint:**
+```shell
+easy_sm cloud deploy -e ml.m5.large -c 1 -n endpoint-name -r $SAGEMAKER_EXECUTION_ROLE -m s3://bucket/folder/train/artefacts/training-job-2024-08-07-10-41-23-345/output/model.tar.gz -a app-name
+```
+
+**Deploy to a serverless endpoint:**
 ```shell
 easy_sm cloud deploy-serverless -s 2048 -n endpoint-name -r $SAGEMAKER_EXECUTION_ROLE -m s3://bucket/folder/train/artefacts/training-job-2024-08-07-10-41-23-345/output/model.tar.gz -a app-name
 ```
 
-Serverless is the only option supported currently.
-
-Extracting model location from training output file can be done by `$(grep -o -E "s3://[^ ]+" train_output.txt)`.
+Choose `deploy` for provisioned instances (pay per hour, always running) or `deploy-serverless` for serverless (pay per invocation, scales to zero). Extracting model location from training output file can be done by `$(grep -o -E "s3://[^ ]+" train_output.txt)`.
 
 This is particularly useful when running these commands on a remote runner like Github actions. Training and deployment steps can be successively run without manual intervention.
