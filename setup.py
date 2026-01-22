@@ -1,4 +1,38 @@
+import os
+import site
+import json
 from setuptools import setup, find_packages
+
+
+def fix_sagemaker_jumpstart():
+    sagemaker_jumpstart_path = os.path.join(
+        site.getsitepackages()[0], "sagemaker", "jumpstart"
+    )
+    region_config_path = os.path.join(sagemaker_jumpstart_path, "region_config.json")
+
+    if not os.path.exists(region_config_path):
+        region_config = {
+            "us-east-1": {"content_bucket": "sagemaker-us-east-1"},
+            "us-east-2": {"content_bucket": "sagemaker-us-east-2"},
+            "us-west-1": {"content_bucket": "sagemaker-us-west-1"},
+            "us-west-2": {"content_bucket": "sagemaker-us-west-2"},
+            "eu-west-1": {"content_bucket": "sagemaker-eu-west-1"},
+            "eu-west-2": {"content_bucket": "sagemaker-eu-west-2"},
+            "eu-central-1": {"content_bucket": "sagemaker-eu-central-1"},
+            "ap-southeast-1": {"content_bucket": "sagemaker-ap-southeast-1"},
+            "ap-southeast-2": {"content_bucket": "sagemaker-ap-southeast-2"},
+            "ap-northeast-1": {"content_bucket": "sagemaker-ap-northeast-1"},
+            "ap-northeast-2": {"content_bucket": "sagemaker-ap-northeast-2"},
+            "ap-south-1": {"content_bucket": "sagemaker-ap-south-1"},
+            "ca-central-1": {"content_bucket": "sagemaker-ca-central-1"},
+        }
+
+        os.makedirs(sagemaker_jumpstart_path, exist_ok=True)
+        with open(region_config_path, "w") as f:
+            json.dump(region_config, f)
+
+
+fix_sagemaker_jumpstart()
 
 setup(
     name="easy_sm",
