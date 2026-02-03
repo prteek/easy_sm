@@ -24,7 +24,7 @@ easy_sm --help
 
 ## Testing and Code Quality
 
-Testing is configured with pytest. Comprehensive test suites exist for core commands. All test dependencies are in `base-requirements.txt`.
+Testing is configured with pytest. Comprehensive test suites exist for all commands and core modules. All test dependencies are in `base-requirements.txt`.
 
 ```bash
 # Run all tests
@@ -32,8 +32,12 @@ pytest
 
 # Run specific test file
 pytest tests/test_build_command.py
+pytest tests/test_cloud_commands.py
 pytest tests/test_init_command.py
 pytest tests/test_local_commands.py
+pytest tests/test_push_command.py
+pytest tests/test_config.py
+pytest tests/test_helpers.py
 
 # Run specific test function
 pytest tests/test_filename.py::test_function_name
@@ -48,6 +52,23 @@ mypy easy_sm/
 ruff check easy_sm/
 ruff format easy_sm/
 ```
+
+### Test Suite Overview
+
+**Total: 98 tests** covering all commands and core modules.
+
+#### Command Tests
+- **test_init_command.py** (7 tests): Project initialization with various configurations
+- **test_build_command.py** (13 tests): Docker image building with parameter variations and error scenarios
+- **test_local_commands.py** (16 tests): Local training and deployment with Docker simulation
+- **test_cloud_commands.py** (20 tests): SageMaker operations (train, deploy, batch-transform, process, etc.)
+- **test_push_command.py** (9 tests): ECR image push with IAM/profile authentication
+
+#### Module Tests
+- **test_config.py** (16 tests): Configuration loading, saving, serialization, and error handling
+- **test_helpers.py** (17 tests): Subprocess execution, output handling, and error propagation
+
+All tests use mocked external dependencies (subprocess, boto3, SageMaker SDK) for fast, reliable execution without requiring AWS credentials or Docker.
 
 ## Architecture
 
@@ -229,11 +250,18 @@ Configured to allow specific bash commands for development:
 
 ## Dependencies
 
-Key dependencies (from setup.py):
+### Runtime Dependencies (from setup.py)
 - **click** (>=8.1.7): CLI framework
 - **docker** (>=7.1.0): Docker SDK for building/pushing images
 - **sagemaker** (>=2.243.0): AWS SageMaker SDK
 - **boto3**: AWS SDK (transitive via sagemaker)
+
+### Development Dependencies (from base-requirements.txt)
+- **pytest**: Test framework
+- **requests**: HTTP library (for integration tests)
+- **mypy**: Type checker
+- **ruff**: Linter and code formatter
+- **statsmodels, joblib, pandas**: Sample app dependencies
 
 ## Project Structure Reference
 
@@ -259,10 +287,14 @@ easy_sm/
 │   │   └── sagemaker.py      # SageMakerClient wrapper
 │   └── template/
 │       └── easy_sm_base/     # Docker template and entry points
-├── tests/                    # Test suite (uses pytest)
-│   ├── test_build_command.py         # Tests for build command
-│   ├── test_init_command.py          # Tests for init command
-│   ├── test_local_commands.py        # Tests for local training/deployment/processing
+├── tests/                    # Test suite (uses pytest) - 98 tests total
+│   ├── test_build_command.py         # Tests for build command (13 tests)
+│   ├── test_init_command.py          # Tests for init command (7 tests)
+│   ├── test_local_commands.py        # Tests for local training/deployment/processing (16 tests)
+│   ├── test_cloud_commands.py        # Tests for cloud SageMaker operations (20 tests)
+│   ├── test_push_command.py          # Tests for ECR push command (9 tests)
+│   ├── test_config.py                # Tests for Config/ConfigManager (16 tests)
+│   ├── test_helpers.py               # Tests for subprocess utilities (17 tests)
 │   └── LOCAL_COMMANDS_TESTS_README.md # Documentation for local command tests
 ├── .github/
 │   ├── README.md              # Usage guide and command examples
