@@ -41,7 +41,7 @@ class TestBuildCommand:
             image_name=app_name,
             aws_profile="test-profile",
             aws_region="us-east-1",
-            python_version="3.11",
+            python_version="3.12",
             easy_sm_module_dir=easy_sm_module_dir,
             requirements_dir="requirements.txt",
         )
@@ -242,7 +242,7 @@ class TestBuildCommand:
         """Test that build subprocess is called with correct arguments"""
         app_name = "args-test-app"
         docker_tag = "test-tag"
-        python_version = "3.11"
+        python_version = "3.12"
 
         self._create_config(app_name)
         self._create_easy_sm_structure(app_name)
@@ -317,7 +317,7 @@ class TestBuildCommand:
             image_name=app_name,
             aws_profile="test-profile",
             aws_region="us-east-1",
-            python_version="3.10",
+            python_version="3.12",
             easy_sm_module_dir=app_name,
             requirements_dir=requirements_path,
         )

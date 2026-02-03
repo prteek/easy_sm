@@ -84,7 +84,7 @@ def ask_for_root_dir() -> str:
 
 def ask_for_python_version() -> str:
     print("Select Python interpreter:")
-    print("{}".format("\n".join(["1 - Python39", "2 - Python310", "3 - Python311"])))
+    print("{}".format("\n".join(["1 - Python310", "2 - Python311", "3 - Python312"])))
 
     def _validate_python_option(input_value: Any) -> int:
         if int(input_value) not in {1, 2, 3}:
@@ -98,11 +98,11 @@ def ask_for_python_version() -> str:
 
     chosen_python_index = click.prompt(
         text="Choose from 1, 2, 3",
-        default=1,
+        default=3,
         value_proc=lambda x: _validate_python_option(x),
     )
 
-    _index_to_version = {1: "3.9", 2: "3.10", 3: "3.11"}
+    _index_to_version = {1: "3.10", 2: "3.11", 3: "3.12"}
 
     return _index_to_version[chosen_python_index]
 

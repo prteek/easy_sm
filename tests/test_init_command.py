@@ -34,7 +34,7 @@ class TestInitCommand:
         """Test init command for a new project"""
         app_name = "test-app"
         root_dir = app_name
-        python_version = "3"  # Select Python 3.11
+        python_version = "3"  # Select Python 3.12
         aws_profile = "1"  # First available profile
         aws_region = "us-east-1"
         requirements_dir = "requirements.txt"
@@ -58,7 +58,7 @@ class TestInitCommand:
 
         assert config.image_name == app_name
         assert config.aws_region == aws_region
-        assert config.python_version == "3.11"
+        assert config.python_version == "3.12"
         assert config.requirements_dir == requirements_dir
         assert config.easy_sm_module_dir == root_dir
 
@@ -70,7 +70,7 @@ class TestInitCommand:
         """Test init command for an existing project"""
         app_name = "existing-app"
         root_dir = "src"
-        python_version = "2"  # Select Python 3.10
+        python_version = "1"  # Select Python 3.10
         aws_profile = "1"
         aws_region = "eu-west-1"
         requirements_dir = "config/requirements.txt"
@@ -107,7 +107,7 @@ class TestInitCommand:
     def test_init_config_json_structure(self, runner: CliRunner, temp_dir: str) -> None:
         """Test that the generated config.json has correct structure"""
         app_name = "json-test-app"
-        python_version = "1"  # Select Python 3.9
+        python_version = "3"  # Select Python 3.12
         aws_profile = "1"
         aws_region = "ap-south-1"
         requirements_dir = "requirements.txt"
@@ -136,7 +136,7 @@ class TestInitCommand:
 
         # Verify values
         assert config_json["image_name"] == app_name
-        assert config_json["python_version"] == "3.9"
+        assert config_json["python_version"] == "3.12"
         assert config_json["requirements_dir"] == requirements_dir
 
     def test_init_invalid_app_name(self, runner: CliRunner, temp_dir: str) -> None:

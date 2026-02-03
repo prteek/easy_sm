@@ -73,7 +73,7 @@ mypy easy_sm/
 ## Code Style Guidelines
 
 ### Python Version
-- Minimum: Python 3.11
+- Minimum: Python 3.12
 - Check: `.python-version` file
 
 ### Imports

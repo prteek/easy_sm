@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**easy_sm** is a Python CLI tool (Python >=3.11) that simplifies AWS SageMaker workflows by enabling rapid local prototyping with Docker before deploying to the cloud. It's built on Click and provides commands for building Docker images, training/processing locally and in the cloud, and managing deployments.
+**easy_sm** is a Python CLI tool (Python >=3.12) that simplifies AWS SageMaker workflows by enabling rapid local prototyping with Docker before deploying to the cloud. It's built on Click and provides commands for building Docker images, training/processing locally and in the cloud, and managing deployments.
 
 ## Build and Development Commands
 
