@@ -13,7 +13,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 pip install -e .
 
 # Full installation with development dependencies
-pip install -e . -r requirements.txt
+pip install -e . -r base-requirements.txt
 
 # Build the package
 python setup.py build
@@ -24,15 +24,16 @@ easy_sm --help
 
 ## Testing and Code Quality
 
-Testing is configured with pytest. Comprehensive test suites exist for core commands.
+Testing is configured with pytest. Comprehensive test suites exist for core commands. All test dependencies are in `base-requirements.txt`.
 
 ```bash
 # Run all tests
 pytest
 
 # Run specific test file
-pytest tests/test_build.py
-pytest tests/test_init.py
+pytest tests/test_build_command.py
+pytest tests/test_init_command.py
+pytest tests/test_local_commands.py
 
 # Run specific test function
 pytest tests/test_filename.py::test_function_name
@@ -169,6 +170,7 @@ Automatically audits and updates project documentation to reflect current state.
 - Adding new agents, skills, or integrations
 - Making significant changes to project structure
 - Updating development practices or conventions
+- Tracking changes to test files or validation processes
 
 The refresh skill performs:
 1. Audits active agents, skills, and integrations
@@ -177,6 +179,53 @@ The refresh skill performs:
 4. Creates a git commit with documentation changes
 
 Invoke with: `/refresh`
+
+## External Integrations
+
+### OpenCode Integration
+**Location**: `.opencode/`
+
+Provides external validation and code review capabilities:
+
+#### Code Reviewer Agent
+**Location**: `.opencode/agents/code-reviewer.md`
+
+- **Purpose**: Reviews code for quality and best practices
+- **Model**: OpenCode Qwen3-Coder
+- **Capabilities**:
+  - Code quality analysis
+  - Best practices validation
+  - Potential bugs and edge case detection
+  - Performance implications assessment
+  - Security considerations review
+- **Mode**: Read-only (no direct code modifications)
+
+#### Validate Command
+**Location**: `.opencode/commands/validate.md`
+
+- **Purpose**: Validates easy_sm CLI changes using the sample app
+- **Sample App**: Located in `app/` directory (not committed to git)
+- **Testing Flow**:
+  1. Uses existing sample app with `mpg.csv` dataset
+  2. Sample training/serving files already configured
+  3. Install changes locally: `pip install -e .`
+  4. Run easy_sm commands to validate functionality
+  5. Supports testing of: local train, local deploy, cloud train, cloud deploy
+- **AWS Resources** (for cloud testing):
+  - Training data: `s3://easy-sm/train/data`
+  - Sample model: `s3://easy-sm/train/job-artefacts/mpg-2024-07-16-21-23-11-417/output/model.tar.gz`
+  - Model outputs: `s3://easy-sm/train/job-artefacts`
+- **Environment Variables**: `SAGEMAKER_EXECUTION_ROLE`
+
+## Claude Code Permissions
+
+**Location**: `.claude/settings.local.json`
+
+Configured to allow specific bash commands for development:
+- `pytest:*` - Run test suite
+- `pip install:*` - Install dependencies
+- `pyenv versions:*` - Check Python versions
+- `PYENV_VERSION=3.12.11 python -m pip install:*` - Install with specific Python version
 
 ## Dependencies
 
@@ -210,15 +259,24 @@ easy_sm/
 │   │   └── sagemaker.py      # SageMakerClient wrapper
 │   └── template/
 │       └── easy_sm_base/     # Docker template and entry points
-├── tests/                    # Test suite
-│   ├── test_build.py         # Tests for build command
-│   ├── test_init.py          # Tests for init command
-│   └── ...                   # Additional tests
-├── setup.py                  # Package metadata and dependencies
-├── base-requirements.txt     # Base Python dependencies
-├── requirements.txt          # Development dependencies (includes pytest, mypy, ruff)
-├── CLAUDE.md                 # Claude Code guidance (this file)
-└── AGENTS.md                 # Development guidelines (detailed style guide)
+├── tests/                    # Test suite (uses pytest)
+│   ├── test_build_command.py         # Tests for build command
+│   ├── test_init_command.py          # Tests for init command
+│   ├── test_local_commands.py        # Tests for local training/deployment/processing
+│   └── LOCAL_COMMANDS_TESTS_README.md # Documentation for local command tests
+├── .github/
+│   ├── README.md              # Usage guide and command examples
+│   └── workflows/             # CI/CD workflows
+├── .opencode/                 # OpenCode integration (external validators)
+│   ├── agents/
+│   │   └── code-reviewer.md   # Code review agent configuration
+│   └── commands/
+│       └── validate.md        # Validation command using sample app
+├── setup.py                   # Package metadata and dependencies
+├── base-requirements.txt      # Development dependencies (pytest, mypy, ruff, etc)
+├── CLAUDE.md                  # Claude Code guidance (this file)
+├── AGENTS.md                  # Development guidelines (detailed style guide)
+└── README.md                  # Project overview
 ```
 
 ## Adding New Commands
@@ -235,3 +293,15 @@ easy_sm/
 - SageMaker operations require valid AWS credentials via configured profile
 - Local training/processing uses Docker to simulate SageMaker container environment
 - Configuration is persisted as JSON to maintain state across command invocations
+
+## Git Configuration
+
+**Commit Style**:
+- Do NOT include *Co-Authored-By* trailers in commit messages
+- Use clear, concise commit messages describing the change purpose
+- Organize commits by type: `feat:`, `fix:`, `chore:`, `docs:`, `test:`, `refactor:` as appropriate
+- Reference issue numbers when applicable
+
+**Tracked vs Ignored Files**:
+- ✅ **Tracked**: `setup.py`, `base-requirements.txt`, all source code, tests, documentation
+- ❌ **Ignored**: Credentials (`.local_credentials`, `*credentials`), build artifacts (`build/`, `*.egg-info/`), cache files (`__pycache__/`), sample app (`app/`), test data (`*.csv`)
