@@ -3,6 +3,7 @@ import os
 import shutil
 import tempfile
 from pathlib import Path
+from typing import Generator
 
 import pytest
 from click.testing import CliRunner
@@ -15,12 +16,12 @@ class TestInitCommand:
     """Test suite for the init command"""
 
     @pytest.fixture
-    def runner(self):
+    def runner(self) -> CliRunner:
         """Fixture to provide CliRunner instance"""
         return CliRunner()
 
     @pytest.fixture
-    def temp_dir(self):
+    def temp_dir(self) -> Generator[str, None, None]:
         """Fixture to provide a temporary directory for testing"""
         temp_dir = tempfile.mkdtemp()
         original_cwd = os.getcwd()
@@ -29,7 +30,7 @@ class TestInitCommand:
         os.chdir(original_cwd)
         shutil.rmtree(temp_dir)
 
-    def test_init_new_project(self, runner, temp_dir):
+    def test_init_new_project(self, runner: CliRunner, temp_dir: str) -> None:
         """Test init command for a new project"""
         app_name = "test-app"
         root_dir = app_name
@@ -65,7 +66,7 @@ class TestInitCommand:
         assert os.path.isdir(os.path.join(root_dir, "easy_sm_base"))
         assert os.path.isfile(os.path.join(root_dir, "__init__.py"))
 
-    def test_init_existing_project(self, runner, temp_dir):
+    def test_init_existing_project(self, runner: CliRunner, temp_dir: str) -> None:
         """Test init command for an existing project"""
         app_name = "existing-app"
         root_dir = "src"
@@ -103,7 +104,7 @@ class TestInitCommand:
         # Verify template was created in the specified directory
         assert os.path.isdir(os.path.join(root_dir, "easy_sm_base"))
 
-    def test_init_config_json_structure(self, runner, temp_dir):
+    def test_init_config_json_structure(self, runner: CliRunner, temp_dir: str) -> None:
         """Test that the generated config.json has correct structure"""
         app_name = "json-test-app"
         python_version = "1"  # Select Python 3.9
@@ -138,7 +139,7 @@ class TestInitCommand:
         assert config_json["python_version"] == "3.9"
         assert config_json["requirements_dir"] == requirements_dir
 
-    def test_init_invalid_app_name(self, runner, temp_dir):
+    def test_init_invalid_app_name(self, runner: CliRunner, temp_dir: str) -> None:
         """Test init command with invalid app name"""
         invalid_app_name = "test@app!"  # Invalid characters
         user_input = f"{invalid_app_name}\n"
@@ -149,7 +150,7 @@ class TestInitCommand:
         assert result.exit_code != 0
         assert "invalid app name" in result.output
 
-    def test_init_template_files_created(self, runner, temp_dir):
+    def test_init_template_files_created(self, runner: CliRunner, temp_dir: str) -> None:
         """Test that all template files are created during init"""
         app_name = "template-test"
         python_version = "3"
@@ -176,7 +177,7 @@ class TestInitCommand:
         assert os.path.isfile(os.path.join(base_path, "training", "train"))
         assert os.path.isfile(os.path.join(base_path, "prediction", "serve"))
 
-    def test_init_app_name_with_dashes(self, runner, temp_dir):
+    def test_init_app_name_with_dashes(self, runner: CliRunner, temp_dir: str) -> None:
         """Test init with app name containing dashes"""
         app_name = "my-test-app-123"
         python_version = "3"
@@ -196,7 +197,7 @@ class TestInitCommand:
         config = config_manager.get_config()
         assert config.image_name == app_name
 
-    def test_init_easy_sm_directory_conflict(self, runner, temp_dir):
+    def test_init_easy_sm_directory_conflict(self, runner: CliRunner, temp_dir: str) -> None:
         """Test init fails when easy_sm directory already exists"""
         app_name = "conflict-app"
 

@@ -4,6 +4,7 @@ import shutil
 import stat
 import tempfile
 from pathlib import Path
+from typing import Generator
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -17,12 +18,12 @@ class TestBuildCommand:
     """Test suite for the build command"""
 
     @pytest.fixture
-    def runner(self):
+    def runner(self) -> CliRunner:
         """Fixture to provide CliRunner instance"""
         return CliRunner()
 
     @pytest.fixture
-    def temp_dir(self):
+    def temp_dir(self) -> Generator[str, None, None]:
         """Fixture to provide a temporary directory for testing"""
         temp_dir = tempfile.mkdtemp()
         original_cwd = os.getcwd()
@@ -31,7 +32,7 @@ class TestBuildCommand:
         os.chdir(original_cwd)
         shutil.rmtree(temp_dir)
 
-    def _create_config(self, app_name: str, easy_sm_module_dir: str = None):
+    def _create_config(self, app_name: str, easy_sm_module_dir: str | None = None) -> None:
         """Helper to create a config file"""
         if easy_sm_module_dir is None:
             easy_sm_module_dir = app_name
@@ -47,7 +48,7 @@ class TestBuildCommand:
         config_manager = ConfigManager(f"{app_name}.json")
         config_manager.set_config(config)
 
-    def _create_easy_sm_structure(self, base_path: str):
+    def _create_easy_sm_structure(self, base_path: str) -> None:
         """Helper to create the easy_sm_base directory structure"""
         easy_sm_base = os.path.join(base_path, "easy_sm_base")
         os.makedirs(os.path.join(easy_sm_base, "training"), exist_ok=True)
@@ -61,7 +62,7 @@ class TestBuildCommand:
         Path(os.path.join(easy_sm_base, "executor.sh")).touch()
 
     @patch("easy_sm.commands.helpers.subprocess.Popen")
-    def test_build_successful(self, mock_popen, runner, temp_dir):
+    def test_build_successful(self, mock_popen: MagicMock, runner: CliRunner, temp_dir: str) -> None:
         """Test successful build command execution"""
         app_name = "test-app"
         self._create_config(app_name)
@@ -80,7 +81,7 @@ class TestBuildCommand:
         assert "Docker image built successfully" in result.output
 
     @patch("easy_sm.commands.helpers.subprocess.Popen")
-    def test_build_with_custom_docker_tag(self, mock_popen, runner, temp_dir):
+    def test_build_with_custom_docker_tag(self, mock_popen: MagicMock, runner: CliRunner, temp_dir: str) -> None:
         """Test build with custom docker tag via CLI option"""
         app_name = "my-app"
         docker_tag = "v1.2.3"
@@ -104,7 +105,7 @@ class TestBuildCommand:
         assert docker_tag in call_args
 
     @patch("easy_sm.commands.helpers.subprocess.Popen")
-    def test_build_with_default_docker_tag(self, mock_popen, runner, temp_dir):
+    def test_build_with_default_docker_tag(self, mock_popen: MagicMock, runner: CliRunner, temp_dir: str) -> None:
         """Test build with default docker tag (latest)"""
         app_name = "default-tag-app"
 
@@ -123,7 +124,7 @@ class TestBuildCommand:
 
         assert result.exit_code == 0
 
-    def test_build_missing_config_file(self, runner, temp_dir):
+    def test_build_missing_config_file(self, runner: CliRunner, temp_dir: str) -> None:
         """Test build fails when config file is missing"""
         app_name = "nonexistent-app"
 
@@ -133,7 +134,7 @@ class TestBuildCommand:
         assert isinstance(result.exception, ValueError) or "This is not a easy_sm directory" in result.output
 
     @patch("easy_sm.commands.helpers.subprocess.Popen")
-    def test_build_missing_easy_sm_base_directory(self, mock_popen, runner, temp_dir):
+    def test_build_missing_easy_sm_base_directory(self, mock_popen: MagicMock, runner: CliRunner, temp_dir: str) -> None:
         """Test build fails when easy_sm_base directory is missing"""
         app_name = "no-easy-sm-app"
         self._create_config(app_name)
@@ -145,7 +146,7 @@ class TestBuildCommand:
         assert isinstance(result.exception, ValueError) or "This is not a easy_sm directory" in result.output
 
     @patch("easy_sm.commands.helpers.subprocess.Popen")
-    def test_build_missing_build_script(self, mock_popen, runner, temp_dir):
+    def test_build_missing_build_script(self, mock_popen: MagicMock, runner: CliRunner, temp_dir: str) -> None:
         """Test build fails when build.sh is missing"""
         app_name = "no-build-script-app"
         self._create_config(app_name)
@@ -166,7 +167,7 @@ class TestBuildCommand:
         assert isinstance(result.exception, ValueError) or "This is not a easy_sm directory" in result.output
 
     @patch("easy_sm.commands.helpers.subprocess.Popen")
-    def test_build_missing_train_file(self, mock_popen, runner, temp_dir):
+    def test_build_missing_train_file(self, mock_popen: MagicMock, runner: CliRunner, temp_dir: str) -> None:
         """Test build fails when training/train file is missing"""
         app_name = "no-train-file-app"
         self._create_config(app_name)
@@ -187,7 +188,7 @@ class TestBuildCommand:
         assert isinstance(result.exception, ValueError) or "This is not a easy_sm directory" in result.output
 
     @patch("easy_sm.commands.helpers.subprocess.Popen")
-    def test_build_missing_serve_file(self, mock_popen, runner, temp_dir):
+    def test_build_missing_serve_file(self, mock_popen: MagicMock, runner: CliRunner, temp_dir: str) -> None:
         """Test build fails when prediction/serve file is missing"""
         app_name = "no-serve-file-app"
         self._create_config(app_name)
@@ -208,7 +209,7 @@ class TestBuildCommand:
         assert isinstance(result.exception, ValueError) or "This is not a easy_sm directory" in result.output
 
     @patch("easy_sm.commands.helpers.subprocess.Popen")
-    def test_build_sets_file_permissions(self, mock_popen, runner, temp_dir):
+    def test_build_sets_file_permissions(self, mock_popen: MagicMock, runner: CliRunner, temp_dir: str) -> None:
         """Test that build sets executable permissions on required files"""
         app_name = "permissions-app"
         self._create_config(app_name)
@@ -237,7 +238,7 @@ class TestBuildCommand:
         assert stat.S_IMODE(os.stat(executor_path).st_mode) == 0o777
 
     @patch("easy_sm.commands.helpers.subprocess.Popen")
-    def test_build_subprocess_called_with_correct_args(self, mock_popen, runner, temp_dir):
+    def test_build_subprocess_called_with_correct_args(self, mock_popen: MagicMock, runner: CliRunner, temp_dir: str) -> None:
         """Test that build subprocess is called with correct arguments"""
         app_name = "args-test-app"
         docker_tag = "test-tag"
@@ -269,7 +270,7 @@ class TestBuildCommand:
         assert any("Dockerfile" in arg for arg in call_args)
 
     @patch("easy_sm.commands.helpers.subprocess.Popen")
-    def test_build_subprocess_failure(self, mock_popen, runner, temp_dir):
+    def test_build_subprocess_failure(self, mock_popen: MagicMock, runner: CliRunner, temp_dir: str) -> None:
         """Test build command when subprocess fails"""
         app_name = "failing-build-app"
         self._create_config(app_name)
@@ -287,7 +288,7 @@ class TestBuildCommand:
         assert "Error occurred while running the command" in result.output or result.exit_code == 0
 
     @patch("easy_sm.commands.helpers.subprocess.Popen")
-    def test_build_with_different_source_dirs(self, mock_popen, runner, temp_dir):
+    def test_build_with_different_source_dirs(self, mock_popen: MagicMock, runner: CliRunner, temp_dir: str) -> None:
         """Test build with different source directory paths"""
         app_name = "source-dir-app"
         source_dir = "src"
@@ -307,7 +308,7 @@ class TestBuildCommand:
         assert source_dir in call_args or "src" in " ".join(call_args)
 
     @patch("easy_sm.commands.helpers.subprocess.Popen")
-    def test_build_with_custom_requirements_path(self, mock_popen, runner, temp_dir):
+    def test_build_with_custom_requirements_path(self, mock_popen: MagicMock, runner: CliRunner, temp_dir: str) -> None:
         """Test build with custom requirements file path"""
         app_name = "custom-req-app"
         requirements_path = "config/requirements.txt"

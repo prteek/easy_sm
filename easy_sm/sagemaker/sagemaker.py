@@ -1,9 +1,11 @@
 import os
+from typing import Any
+from datetime import datetime
+from urllib.parse import urlparse
+
 import boto3
 import sagemaker as sage
-from datetime import datetime
 from sagemaker.processing import ProcessingInput, ProcessingOutput
-from urllib.parse import urlparse
 
 
 class SageMakerClient(object):
@@ -223,7 +225,7 @@ class SageMakerClient(object):
         model_name: str,
         instance_type: str,
         instance_count: int,
-    ):
+    ) -> dict[str, Any]:
         """Create a new endpoint config for regular inference,
         that uses current model with provisioned instances"""
 
@@ -253,7 +255,7 @@ class SageMakerClient(object):
         model_name: str,
         memory_size_in_mb: int,
         max_concurrency: int,
-    ):
+    ) -> dict[str, Any]:
         """Create a new End point config for serverless inference,
          that uses current model. This config is created for each deployment update as
         lineage tracking for endpoints"""
