@@ -1,5 +1,6 @@
 import os
 import re
+import shutil
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -8,7 +9,6 @@ import click
 from click import BadParameter
 
 from easy_sm.config.config import ConfigManager
-from distutils.dir_util import copy_tree
 
 _FILE_DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 
@@ -33,7 +33,14 @@ def _template_creation(
     Path(output_dir).mkdir(exist_ok=True)
     Path(os.path.join(output_dir, "__init__.py")).touch()
 
-    copy_tree(os.path.join(_FILE_DIR_PATH, "../template"), output_dir)
+    template_path = os.path.join(_FILE_DIR_PATH, "../template")
+    for item in os.listdir(template_path):
+        src = os.path.join(template_path, item)
+        dst = os.path.join(output_dir, item)
+        if os.path.isdir(src):
+            shutil.copytree(src, dst, dirs_exist_ok=True)
+        else:
+            shutil.copy2(src, dst)
 
     config_manager = ConfigManager(os.path.join(f"{app_name}.json"))
     config = config_manager.get_config()
