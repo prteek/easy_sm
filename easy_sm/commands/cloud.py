@@ -16,6 +16,8 @@ def _config(app_name: str) -> Config:
     return ConfigManager(config_file_path).get_config()
 
 
+
+
 @click.group()
 def cloud() -> None:
     """

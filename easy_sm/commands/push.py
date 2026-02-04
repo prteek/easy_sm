@@ -31,7 +31,7 @@ def _push(
     :param docker_tag: [str], the Docker tag for the image
     :param aws_region: [str], the AWS region to push the image to
     :param iam_role_arn: [str], the AWS role used to push the image to ECR
-    :param aws_profile: [str], the AWS profile used to push the image to ECR
+    :param aws_profile: [str], the AWS profile used to push the image to ECR (if empty, uses AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY env vars)
     :param external_id: [str], Optional external id used when using an IAM role
     :param image_name: [str], The name of the Docker image
     """

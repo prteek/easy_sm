@@ -111,8 +111,17 @@ def ask_for_aws_details() -> Tuple[str, str]:
     available_profiles = _get_local_aws_profiles()
 
     if len(available_profiles) == 0:
-        print("aws cli is not configured!")
-        return ("", "")
+        print("\nNo AWS profiles found in ~/.aws/credentials")
+        print("You can use AWS credentials in two ways:")
+        print("  1. Set environment variables: AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY")
+        print("  2. Configure AWS CLI profiles: https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-quickstart.html")
+        print("For now, leaving aws_profile empty will use the environment variables or default credential chain.\n")
+        region = click.prompt(
+            text="Type in your preferred AWS region name",
+            default="us-east-1",
+            type=str,
+        )
+        return "", region
 
     valid_positions = list(range(1, len(available_profiles) + 1))
     print("Select AWS profile:")
@@ -177,9 +186,7 @@ def init() -> None:
 
     python_version = ask_for_python_version()
 
-    aws_details = ask_for_aws_details()
-    aws_profile = aws_details[0]
-    aws_region = aws_details[1]
+    aws_profile, aws_region = ask_for_aws_details()
 
     requirements_dir = ask_for_requirements_dir()
     _template_creation(

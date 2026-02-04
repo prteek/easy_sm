@@ -19,16 +19,27 @@ class SageMakerClient(object):
     def __init__(
         self, aws_profile: str, aws_region: str, aws_role: str | None = None
     ) -> None:
-        print("Using profile {}.".format(aws_profile))
+        # If profile is empty, boto3 will use its credential chain:
+        # 1. AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY env vars
+        # 2. ~/.aws/credentials default profile
+        # 3. IAM role (if running on EC2/Lambda)
+        profile_name: str | None = aws_profile if aws_profile else None
+
+        if profile_name:
+            print("Using profile {}.".format(profile_name))
+        else:
+            print("Using AWS credentials from environment or default chain.")
+
+        self.boto_session = boto3.Session(
+            profile_name=profile_name, region_name=aws_region
+        )
+
         if aws_role:
-            sts_client = boto3.client("sts")
+            sts_client = self.boto_session.client("sts")
             _ = sts_client.assume_role(
                 RoleArn=aws_role, RoleSessionName="EasySMSession"
             )
 
-        self.boto_session = boto3.Session(
-            profile_name=aws_profile, region_name=aws_region
-        )
         self.sagemaker_session = sage.Session(boto_session=self.boto_session)
 
         self.aws_region = aws_region
