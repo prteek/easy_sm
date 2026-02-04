@@ -3,15 +3,11 @@ from typing import Any, Dict
 
 import click
 
-from easy_sm.commands.helpers import safe_run_subprocess
-from easy_sm.config.config import Config, ConfigManager
-
-
-def _config(app_name: str) -> Config:
-    config_file_path = os.path.join(f"{app_name}.json")
-    if not os.path.isfile(config_file_path):
-        raise ValueError("This is not a easy_sm directory: {}".format(os.getcwd()))
-    return ConfigManager(config_file_path).get_config()
+from easy_sm.commands.helpers import (
+    app_name_option,
+    load_config,
+    safe_run_subprocess,
+)
 
 
 def _build(
@@ -68,12 +64,7 @@ def _build(
 
 
 @click.command()
-@click.option(
-    "-a",
-    "--app-name",
-    required=True,
-    help="The app name whose json file will be referenced for setting up command",
-)
+@app_name_option
 @click.pass_obj
 def build(obj: Dict[str, Any], app_name: str) -> None:
     """
@@ -81,7 +72,7 @@ def build(obj: Dict[str, Any], app_name: str) -> None:
     """
     print("Started building SageMaker Docker image. It will take some minutes...\n")
 
-    config = _config(app_name)
+    config = load_config(app_name)
     _build(
         source_dir=config.easy_sm_module_dir,
         requirements_dir=config.requirements_dir,

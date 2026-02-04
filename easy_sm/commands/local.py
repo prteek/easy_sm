@@ -3,15 +3,7 @@ from typing import Any, Dict
 
 import click
 
-from easy_sm.commands.helpers import safe_run_subprocess
-from easy_sm.config.config import Config, ConfigManager
-
-
-def _config(app_name: str) -> Config:
-    config_file_path = os.path.join(f"{app_name}.json")
-    if not os.path.isfile(config_file_path):
-        raise ValueError("This is not a easy_sm directory: {}".format(os.getcwd()))
-    return ConfigManager(config_file_path).get_config()
+from easy_sm.commands.helpers import app_name_option, load_config, safe_run_subprocess
 
 
 @click.group()
@@ -23,19 +15,14 @@ def local() -> None:
 
 
 @click.command()
-@click.option(
-    "-a",
-    "--app-name",
-    required=True,
-    help="The app name whose json file will be referenced for setting up command",
-)
+@app_name_option
 @click.pass_obj
 def train(obj: Dict[str, Any], app_name: str) -> None:
     """
     Command to train ML model(s) locally
     """
     print("Started local training...\n")
-    config = _config(app_name)
+    config = load_config(app_name)
     dir = config.easy_sm_module_dir
     docker_tag = obj["docker_tag"]
     image_name = config.image_name
@@ -67,19 +54,14 @@ def train(obj: Dict[str, Any], app_name: str) -> None:
     required=True,
     help="The name (not path) of python file to run as processing job",
 )
-@click.option(
-    "-a",
-    "--app-name",
-    required=True,
-    help="The app name whose json file will be referenced for setting up command",
-)
+@app_name_option
 @click.pass_obj
 def process(obj: Dict[str, Any], file: str, app_name: str) -> None:
     """
     Command to run python files locally as processing job
     """
     print("Started local processing job...\n")
-    config = _config(app_name)
+    config = load_config(app_name)
     dir = config.easy_sm_module_dir
     docker_tag = obj["docker_tag"]
     image_name = config.image_name
@@ -114,18 +96,13 @@ def process(obj: Dict[str, Any], file: str, app_name: str) -> None:
 
 
 @click.command()
-@click.option(
-    "-a",
-    "--app-name",
-    required=True,
-    help="The app name whose json file will be referenced for setting up command",
-)
+@app_name_option
 @click.pass_obj
 def deploy(obj: Dict[str, Any], app_name: str) -> None:
     """
     Command to deploy ML model(s) locally
     """
-    config = _config(app_name)
+    config = load_config(app_name)
     dir = config.easy_sm_module_dir
     docker_tag = obj["docker_tag"]
     image_name = config.image_name
@@ -157,18 +134,13 @@ def deploy(obj: Dict[str, Any], app_name: str) -> None:
     required=True,
     help="The name of target that needs to be built",
 )
-@click.option(
-    "-a",
-    "--app-name",
-    required=True,
-    help="The app name whose json file will be referenced for setting up command",
-)
+@app_name_option
 @click.pass_obj
 def make(obj: Dict[str, Any], target: str, app_name: str) -> None:
     """
     Command to build make targets defined in a Makefile in easy_sm_base/processing
     """
-    config = _config(app_name)
+    config = load_config(app_name)
     dir = config.easy_sm_module_dir
     docker_tag = obj["docker_tag"]
     image_name = config.image_name

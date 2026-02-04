@@ -1,19 +1,18 @@
-import os
 import sys
-from pathlib import Path
 from typing import Any, Dict, Optional
 
 import click
 
-from easy_sm.config.config import Config, ConfigManager
-from easy_sm.sagemaker import sagemaker
-
-
-def _config(app_name: str) -> Config:
-    config_file_path = os.path.join(f"{app_name}.json")
-    if not os.path.isfile(config_file_path):
-        raise ValueError("This is not a easy_sm directory: {}".format(os.getcwd()))
-    return ConfigManager(config_file_path).get_config()
+from easy_sm.commands.helpers import (
+    app_name_option,
+    base_job_name_option,
+    build_image_name,
+    create_sagemaker_client,
+    ec2_type_option,
+    iam_role_option,
+    instance_count_option,
+    load_config,
+)
 
 
 
@@ -41,18 +40,8 @@ def cloud() -> None:
     help="s3 location to upload data",
     type=str,
 )
-@click.option(
-    "-r",
-    "--iam-role-arn",
-    required=True,
-    help="The AWS role to use for the upload command",
-)
-@click.option(
-    "-a",
-    "--app-name",
-    required=True,
-    help="The app name whose json file will be referenced for setting up command",
-)
+@iam_role_option
+@app_name_option
 def upload_data(
     input_dir: str, target_dir: str, iam_role_arn: str, app_name: str
 ) -> None:
@@ -60,8 +49,8 @@ def upload_data(
     Command to upload data to S3
     """
     print("Started uploading data to S3...\n")
-    config = _config(app_name)
-    sage_maker_client = sagemaker.SageMakerClient(
+    config = load_config(app_name)
+    sage_maker_client = create_sagemaker_client(
         config.aws_profile, config.aws_region, iam_role_arn
     )
     target_path = sage_maker_client.upload_data(input_dir, target_dir)
@@ -83,33 +72,11 @@ def upload_data(
     help="s3 location to save output (models, etc)",
     type=str,
 )
-@click.option("-e", "--ec2-type", required=True, help="ec2 instance type")
-@click.option(
-    "-c",
-    "--instance-count",
-    required=False,
-    default=1,
-    help="ec2 instance count",
-    type=int,
-)
-@click.option(
-    "-r",
-    "--iam-role-arn",
-    required=True,
-    help="The AWS role to use for the train command",
-)
-@click.option(
-    "-n",
-    "--base-job-name",
-    required=True,
-    help="Prefix for the SageMaker training job.",
-)
-@click.option(
-    "-a",
-    "--app-name",
-    required=True,
-    help="The app name whose json file will be referenced for setting up command",
-)
+@ec2_type_option
+@instance_count_option
+@iam_role_option
+@base_job_name_option
+@app_name_option
 @click.pass_obj
 def train(
     obj: Dict[str, Any],
@@ -125,12 +92,12 @@ def train(
     Command to train ML model(s) on SageMaker
     """
     print("Started training on SageMaker...\n")
-    config = _config(app_name)
-    sage_maker_client = sagemaker.SageMakerClient(
+    config = load_config(app_name)
+    sage_maker_client = create_sagemaker_client(
         config.aws_profile, config.aws_region, iam_role_arn
     )
 
-    image_name = config.image_name + ":" + obj["docker_tag"]
+    image_name = build_image_name(config.image_name, obj["docker_tag"])
 
     s3_model_location = sage_maker_client.train(
         image_name=image_name,
@@ -157,14 +124,7 @@ def train(
 @click.option(
     "-e", "--instance-type", required=True, help="ec2 instance type for the endpoint"
 )
-@click.option(
-    "-c",
-    "--instance-count",
-    required=False,
-    default=1,
-    type=click.INT,
-    help="Number of instances for the endpoint (default: 1)",
-)
+@instance_count_option
 @click.option(
     "-n",
     "--endpoint-name",
@@ -172,18 +132,8 @@ def train(
     default=None,
     help="Name for the SageMaker endpoint",
 )
-@click.option(
-    "-r",
-    "--iam-role-arn",
-    required=True,
-    help="The AWS role to use for the deploy command",
-)
-@click.option(
-    "-a",
-    "--app-name",
-    required=True,
-    help="The app name whose json file will be referenced for setting up command",
-)
+@iam_role_option
+@app_name_option
 @click.pass_obj
 def deploy(
     obj: Dict[str, Any],
@@ -198,10 +148,10 @@ def deploy(
     Command to deploy ML model(s) on SageMaker as a regular endpoint
     """
     print("Started deployment on SageMaker ...\n")
-    config = _config(app_name)
-    image_name = config.image_name + ":" + obj["docker_tag"]
+    config = load_config(app_name)
+    image_name = build_image_name(config.image_name, obj["docker_tag"])
 
-    sage_maker_client = sagemaker.SageMakerClient(
+    sage_maker_client = create_sagemaker_client(
         config.aws_profile, config.aws_region, iam_role_arn
     )
     endpoint_name = sage_maker_client.deploy(
@@ -230,12 +180,7 @@ def deploy(
     type=click.INT,
     help="memory size in MB for serverless endpoint",
 )
-@click.option(
-    "-r",
-    "--iam-role-arn",
-    required=True,
-    help="The AWS role to use for the deploy command",
-)
+@iam_role_option
 @click.option(
     "-n",
     "--endpoint-name",
@@ -243,12 +188,7 @@ def deploy(
     default=None,
     help="Name for the SageMaker endpoint",
 )
-@click.option(
-    "-a",
-    "--app-name",
-    required=True,
-    help="The app name whose json file will be referenced for setting up command",
-)
+@app_name_option
 @click.option(
     "-mc",
     "--max-concurrency",
@@ -270,10 +210,10 @@ def deploy_serverless(
     Command to deploy ML model(s) on SageMaker
     """
     print("Started deployment on SageMaker ...\n")
-    config = _config(app_name)
-    image_name = config.image_name + ":" + obj["docker_tag"]
+    config = load_config(app_name)
+    image_name = build_image_name(config.image_name, obj["docker_tag"])
 
-    sage_maker_client = sagemaker.SageMakerClient(
+    sage_maker_client = create_sagemaker_client(
         config.aws_profile, config.aws_region, iam_role_arn
     )
     endpoint_name = sage_maker_client.deploy_serverless(
@@ -312,13 +252,8 @@ def deploy_serverless(
 @click.option(
     "--num-instances", required=True, type=int, help="Number of ec2 instances"
 )
-@click.option("--ec2-type", required=True, help="ec2 instance type")
-@click.option(
-    "-r",
-    "--iam-role-arn",
-    required=True,
-    help="The AWS role to use for batch transform command",
-)
+@ec2_type_option
+@iam_role_option
 @click.option(
     "-w",
     "--wait",
@@ -333,12 +268,7 @@ def deploy_serverless(
     default=None,
     help="Name for the SageMaker batch transform job.",
 )
-@click.option(
-    "-a",
-    "--app-name",
-    required=True,
-    help="The app name whose json file will be referenced for setting up command",
-)
+@app_name_option
 @click.pass_obj
 def batch_transform(
     obj: Dict[str, Any],
@@ -357,10 +287,10 @@ def batch_transform(
     """
     print("Started configuration of batch transform on SageMaker ...\n")
 
-    config = _config(app_name)
-    image_name = config.image_name + ":" + obj["docker_tag"]
+    config = load_config(app_name)
+    image_name = build_image_name(config.image_name, obj["docker_tag"])
 
-    sage_maker_client = sagemaker.SageMakerClient(
+    sage_maker_client = create_sagemaker_client(
         config.aws_profile, config.aws_region, iam_role_arn
     )
     status = sage_maker_client.batch_transform(
@@ -390,18 +320,11 @@ def batch_transform(
     default=None,
     help="Name of the SageMaker endpoint",
 )
-@click.option(
-    "-r", "--iam-role-arn", required=True, help="The AWS role to use for delete command"
-)
-@click.option(
-    "-a",
-    "--app-name",
-    required=True,
-    help="The app name whose json file will be referenced for setting up command",
-)
+@iam_role_option
+@app_name_option
 def delete_endpoint(endpoint_name: str, iam_role_arn: str, app_name: str) -> None:
-    config = _config(app_name)
-    sage_maker_client = sagemaker.SageMakerClient(
+    config = load_config(app_name)
+    sage_maker_client = create_sagemaker_client(
         config.aws_profile, config.aws_region, iam_role_arn
     )
     sage_maker_client.shutdown_endpoint(endpoint_name)
@@ -409,23 +332,10 @@ def delete_endpoint(endpoint_name: str, iam_role_arn: str, app_name: str) -> Non
 
 
 @click.command(name="process")
-@click.option("-e", "--ec2-type", required=True, help="ec2 instance type")
-@click.option(
-    "-c",
-    "--instance-count",
-    required=False,
-    default=1,
-    help="ec2 instance count",
-    type=int,
-)
-@click.option("-r", "--iam-role-arn", required=True, help="The AWS role to use")
-@click.option(
-    "-n",
-    "--base-job-name",
-    required=True,
-    help="Prefix for the SageMaker processing job."
-    "If not specified, default job name is generated, based on the docker image name and current timestamp.",
-)
+@ec2_type_option
+@instance_count_option
+@iam_role_option
+@base_job_name_option
 @click.option(
     "-f",
     "--file",
@@ -455,12 +365,7 @@ def delete_endpoint(endpoint_name: str, iam_role_arn: str, app_name: str) -> Non
     default=False,
     help="Flag to indicate if input data should be sharded (distributed on machines)",
 )
-@click.option(
-    "-a",
-    "--app-name",
-    required=True,
-    help="The app name whose json file will be referenced for setting up command",
-)
+@app_name_option
 @click.pass_obj
 def process(
     obj: Dict[str, Any],
@@ -478,12 +383,12 @@ def process(
     Command to run python file as processing job on SageMaker
     """
     print("Started processing job on SageMaker...\n")
-    config = _config(app_name)
-    sage_maker_client = sagemaker.SageMakerClient(
+    config = load_config(app_name)
+    sage_maker_client = create_sagemaker_client(
         config.aws_profile, config.aws_region, iam_role_arn
     )
 
-    image_name = config.image_name + ":" + obj["docker_tag"]
+    image_name = build_image_name(config.image_name, obj["docker_tag"])
 
     _ = sage_maker_client.process(
         image_name=image_name,
@@ -500,23 +405,10 @@ def process(
 
 
 @click.command(name="make")
-@click.option("-e", "--ec2-type", required=True, help="ec2 instance type")
-@click.option(
-    "-c",
-    "--instance-count",
-    required=False,
-    default=1,
-    help="ec2 instance count",
-    type=int,
-)
-@click.option("-r", "--iam-role-arn", required=True, help="The AWS role to use")
-@click.option(
-    "-n",
-    "--base-job-name",
-    required=True,
-    help="Prefix for the SageMaker processing job."
-    "If not specified, default job name is generated, based on the docker image name and current timestamp.",
-)
+@ec2_type_option
+@instance_count_option
+@iam_role_option
+@base_job_name_option
 @click.option(
     "-t", "--target", required=True, help="The name of the target to be built"
 )
@@ -543,12 +435,7 @@ def process(
     default=False,
     help="Flag to indicate if input data should be sharded (distributed on machines)",
 )
-@click.option(
-    "-a",
-    "--app-name",
-    required=True,
-    help="The app name whose json file will be referenced for setting up command",
-)
+@app_name_option
 @click.pass_obj
 def make(
     obj: Dict[str, Any],
@@ -566,12 +453,12 @@ def make(
     Command to build make targets defined in a Makefile in easy_sm_base/processing on SageMaker
     """
     print(f"Building {target} on SageMaker...\n")
-    config = _config(app_name)
-    sage_maker_client = sagemaker.SageMakerClient(
+    config = load_config(app_name)
+    sage_maker_client = create_sagemaker_client(
         config.aws_profile, config.aws_region, iam_role_arn
     )
 
-    image_name = config.image_name + ":" + obj["docker_tag"]
+    image_name = build_image_name(config.image_name, obj["docker_tag"])
 
     _ = sage_maker_client.make(
         image_name=image_name,

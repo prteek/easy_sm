@@ -1,18 +1,16 @@
 import os
-import subprocess
 import sys
 from typing import Any, Dict
 
 import click
 
-from easy_sm.config.config import Config, ConfigManager
-
-
-def _config(app_name: str) -> Config:
-    config_file_path = os.path.join(f"{app_name}.json")
-    if not os.path.isfile(config_file_path):
-        raise ValueError("This is not a easy_sm directory: {}".format(os.getcwd()))
-    return ConfigManager(config_file_path).get_config()
+from easy_sm.commands.helpers import (
+    app_name_option,
+    aws_region_option,
+    iam_role_optional_option,
+    load_config,
+    safe_run_subprocess,
+)
 
 
 def _push(
@@ -41,33 +39,21 @@ def _push(
     if not os.path.isfile(push_script_path):
         raise ValueError("This is not a easy_sm directory: {}".format(dir))
 
-    output = subprocess.check_output(
-        [
-            "{}".format(push_script_path),
-            docker_tag,
-            aws_region,
-            iam_role_arn,
-            aws_profile,
-            external_id,
-            image_name,
-        ]
-    )
-    print(output)
+    command = [
+        "{}".format(push_script_path),
+        docker_tag,
+        aws_region,
+        iam_role_arn,
+        aws_profile,
+        external_id,
+        image_name,
+    ]
+    safe_run_subprocess(command)
 
 
 @click.command()
-@click.option(
-    "-r",
-    "--aws-region",
-    required=False,
-    help="The AWS region to push the image to",
-)
-@click.option(
-    "-i",
-    "--iam-role-arn",
-    required=False,
-    help="The AWS role to use for the push command",
-)
+@aws_region_option
+@iam_role_optional_option
 @click.option(
     "-p",
     "--aws-profile",
@@ -80,12 +66,7 @@ def _push(
     required=False,
     help="Optional external id used when using an IAM role",
 )
-@click.option(
-    "-a",
-    "--app-name",
-    required=True,
-    help="The app name whose json file will be referenced for setting up command",
-)
+@app_name_option
 @click.pass_obj
 def push(
     obj: Dict[str, Any],
@@ -105,7 +86,7 @@ def push(
     if iam_role_arn is not None:
         aws_profile = ""
 
-    config = _config(app_name)
+    config = load_config(app_name)
     image_name = config.image_name
     aws_region = config.aws_region if aws_region is None else aws_region
     aws_profile = (

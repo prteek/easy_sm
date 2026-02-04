@@ -60,9 +60,9 @@ class TestPushCommand:
         Path(os.path.join(easy_sm_base, "push.sh")).touch()
         os.chmod(os.path.join(easy_sm_base, "push.sh"), 0o755)
 
-    @patch("subprocess.check_output")
+    @patch("easy_sm.commands.helpers.subprocess.Popen")
     def test_push_success(
-        self, mock_subprocess: MagicMock, runner: CliRunner, temp_dir: str
+        self, mock_popen: MagicMock, runner: CliRunner, temp_dir: str
     ) -> None:
         """Test successful push command."""
         app_name = "test-app"
@@ -70,7 +70,10 @@ class TestPushCommand:
         self._create_easy_sm_structure(app_name)
 
         # Mock subprocess to succeed
-        mock_subprocess.return_value = b"Image pushed successfully"
+        mock_process = MagicMock()
+        mock_process.stdout = []
+        mock_process.wait.return_value = 0
+        mock_popen.return_value = mock_process
 
         result = runner.invoke(
             cli,
@@ -90,18 +93,21 @@ class TestPushCommand:
         assert result.exit_code == 0
         assert "Started pushing Docker image to AWS ECR" in result.output
         assert "Docker image pushed to ECR successfully!" in result.output
-        mock_subprocess.assert_called_once()
+        mock_popen.assert_called_once()
 
-    @patch("subprocess.check_output")
+    @patch("easy_sm.commands.helpers.subprocess.Popen")
     def test_push_with_iam_role(
-        self, mock_subprocess: MagicMock, runner: CliRunner, temp_dir: str
+        self, mock_popen: MagicMock, runner: CliRunner, temp_dir: str
     ) -> None:
         """Test push command with IAM role."""
         app_name = "test-app"
         self._create_config(app_name)
         self._create_easy_sm_structure(app_name)
 
-        mock_subprocess.return_value = b"Image pushed successfully"
+        mock_process = MagicMock()
+        mock_process.stdout = []
+        mock_process.wait.return_value = 0
+        mock_popen.return_value = mock_process
 
         result = runner.invoke(
             cli,
@@ -120,20 +126,23 @@ class TestPushCommand:
         assert "Docker image pushed to ECR successfully!" in result.output
 
         # Verify the command was called with correct parameters
-        mock_subprocess.assert_called_once()
-        call_args = mock_subprocess.call_args[0][0]
+        mock_popen.assert_called_once()
+        call_args = mock_popen.call_args[0][0]
         assert "arn:aws:iam::123456789012:role/SageMakerRole" in call_args
 
-    @patch("subprocess.check_output")
+    @patch("easy_sm.commands.helpers.subprocess.Popen")
     def test_push_with_external_id(
-        self, mock_subprocess: MagicMock, runner: CliRunner, temp_dir: str
+        self, mock_popen: MagicMock, runner: CliRunner, temp_dir: str
     ) -> None:
         """Test push command with external ID."""
         app_name = "test-app"
         self._create_config(app_name)
         self._create_easy_sm_structure(app_name)
 
-        mock_subprocess.return_value = b"Image pushed successfully"
+        mock_process = MagicMock()
+        mock_process.stdout = []
+        mock_process.wait.return_value = 0
+        mock_popen.return_value = mock_process
 
         result = runner.invoke(
             cli,
@@ -151,12 +160,12 @@ class TestPushCommand:
         )
 
         assert result.exit_code == 0
-        call_args = mock_subprocess.call_args[0][0]
+        call_args = mock_popen.call_args[0][0]
         assert "external-id-123" in call_args
 
-    @patch("subprocess.check_output")
+    @patch("easy_sm.commands.helpers.subprocess.Popen")
     def test_push_with_custom_docker_tag(
-        self, mock_subprocess: MagicMock, runner: CliRunner, temp_dir: str
+        self, mock_popen: MagicMock, runner: CliRunner, temp_dir: str
     ) -> None:
         """Test push command with custom Docker tag."""
         app_name = "test-app"
@@ -164,7 +173,10 @@ class TestPushCommand:
         self._create_config(app_name)
         self._create_easy_sm_structure(app_name)
 
-        mock_subprocess.return_value = b"Image pushed successfully"
+        mock_process = MagicMock()
+        mock_process.stdout = []
+        mock_process.wait.return_value = 0
+        mock_popen.return_value = mock_process
 
         result = runner.invoke(
             cli,
@@ -182,7 +194,7 @@ class TestPushCommand:
         )
 
         assert result.exit_code == 0
-        call_args = mock_subprocess.call_args[0][0]
+        call_args = mock_popen.call_args[0][0]
         assert docker_tag in call_args
 
     @patch("subprocess.check_output")
@@ -266,9 +278,9 @@ class TestPushCommand:
         assert result.exit_code == 2
         assert "Only one of iam-role-arn and aws-profile can be used" in result.output
 
-    @patch("subprocess.check_output")
+    @patch("easy_sm.commands.helpers.subprocess.Popen")
     def test_push_uses_config_defaults(
-        self, mock_subprocess: MagicMock, runner: CliRunner, temp_dir: str
+        self, mock_popen: MagicMock, runner: CliRunner, temp_dir: str
     ) -> None:
         """Test push command uses config file defaults when options not provided."""
         app_name = "test-app"
@@ -287,7 +299,10 @@ class TestPushCommand:
         config_manager.set_config(config)
         self._create_easy_sm_structure(app_name)
 
-        mock_subprocess.return_value = b"Image pushed successfully"
+        mock_process = MagicMock()
+        mock_process.stdout = []
+        mock_process.wait.return_value = 0
+        mock_popen.return_value = mock_process
 
         result = runner.invoke(
             cli,
@@ -299,14 +314,14 @@ class TestPushCommand:
         )
 
         assert result.exit_code == 0
-        call_args = mock_subprocess.call_args[0][0]
+        call_args = mock_popen.call_args[0][0]
         # Verify that config defaults were used
         assert config_aws_profile in call_args
         assert config_aws_region in call_args
 
-    @patch("subprocess.check_output")
+    @patch("easy_sm.commands.helpers.subprocess.Popen")
     def test_push_subprocess_output_printed(
-        self, mock_subprocess: MagicMock, runner: CliRunner, temp_dir: str
+        self, mock_popen: MagicMock, runner: CliRunner, temp_dir: str
     ) -> None:
         """Test that push command prints subprocess output."""
         app_name = "test-app"
@@ -314,7 +329,10 @@ class TestPushCommand:
         self._create_easy_sm_structure(app_name)
 
         output_text = "Custom output from push.sh"
-        mock_subprocess.return_value = output_text.encode()
+        mock_process = MagicMock()
+        mock_process.stdout = [output_text]
+        mock_process.wait.return_value = 0
+        mock_popen.return_value = mock_process
 
         result = runner.invoke(
             cli,
