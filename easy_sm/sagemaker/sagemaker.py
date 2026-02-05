@@ -1,5 +1,4 @@
 import os
-from datetime import datetime
 from urllib.parse import urlparse
 
 import boto3
@@ -11,10 +10,6 @@ class SageMakerClient:
     def __init__(
         self, aws_profile: str, aws_region: str, aws_role: str | None = None
     ) -> None:
-        # If profile is empty, boto3 will use its credential chain:
-        # 1. AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY env vars
-        # 2. ~/.aws/credentials default profile
-        # 3. IAM role (if running on EC2/Lambda)
         profile_name: str | None = aws_profile if aws_profile else None
 
         if profile_name:
@@ -45,18 +40,12 @@ class SageMakerClient:
         )
 
     def upload_data(self, input_dir: str, s3_dir: str) -> str:
-        """
-        Uploads data to S3
-        :param input_dir: [str], local input directory where files are located
-        :param s3_dir: [str], S3 directory to upload files
-        :return: [str], S3 path where data are uploaded
-        """
+        """Uploads data to S3."""
         bucket = SageMakerClient._get_s3_bucket(s3_dir)
         prefix = SageMakerClient._get_s3_key_prefix(s3_dir) or "data"
         self.sagemaker_session.upload_data(
             path=input_dir, bucket=bucket, key_prefix=prefix
         )
-
         return os.path.join("s3://", bucket, prefix)
 
     def train(
@@ -68,26 +57,12 @@ class SageMakerClient:
         output_path: str,
         base_job_name: str,
     ) -> str:
-        """
-        Train model on SageMaker
-        :param image_name: [str], name of Docker image
-        :param input_s3_data_location: [str], S3 location to input data
-        :param train_instance_type: [str], ec2 instance type
-        :param output_path: [str], S3 location for saving the training artifacts
-        :param base_job_name: [str], Optional prefix for the SageMaker training job
-        :return: [str], the model location in S3
-        """
+        """Train model on SageMaker."""
         image = self._construct_image_location(image_name)
-
-        job_name = f"{base_job_name}-{datetime.now().strftime('%Y%m%d%H%M%S')}"
-
         self.sagemaker_client.create_training_job(
-            TrainingJobName=job_name,
+            TrainingJobName=base_job_name,
             RoleArn=self.role,
-            AlgorithmSpecification={
-                "TrainingImage": image,
-                "TrainingInputMode": "File",
-            },
+            AlgorithmSpecification={"TrainingImage": image, "TrainingInputMode": "File"},
             InputDataConfig=[
                 {
                     "ChannelName": "training",
@@ -95,31 +70,17 @@ class SageMakerClient:
                         "S3DataSource": {
                             "S3DataType": "S3Prefix",
                             "S3Uri": input_s3_data_location,
-                            "S3DataDistributionType": "FullyReplicated",
                         }
                     },
-                    "ContentType": "application/x-recordio-protobuf",
-                    "CompressionType": "None",
                 }
             ],
             OutputDataConfig={"S3OutputPath": output_path},
             ResourceConfig={
                 "InstanceType": train_instance_type,
                 "InstanceCount": instance_count,
-                "VolumeSizeInGB": 30,
             },
-            StoppingCondition={"MaxRuntimeInSeconds": 86400},
         )
-
-        # Poll for training job completion
-        waiter = self.sagemaker_client.get_waiter("training_job_complete_or_stopped")
-        waiter.wait(TrainingJobName=job_name)
-
-        # Get model artifacts S3 path from completed training job
-        job_description = self.sagemaker_client.describe_training_job(
-            TrainingJobName=job_name
-        )
-        return job_description["ModelArtifacts"]["S3ModelArtifacts"]
+        return f"{output_path}/{base_job_name}/output/model.tar.gz"
 
     def deploy_serverless(
         self,
@@ -134,7 +95,7 @@ class SageMakerClient:
             raise ValueError("endpoint_name is required for deploy_serverless")
 
         model_name = self._create_model(image_name, s3_model_location)
-        endpoint_config_name = self._make_endpoint_config_name(endpoint_name)
+        endpoint_config_name = f"{endpoint_name}-config"
         self._create_serverless_epc(
             endpoint_config_name, model_name, memory_size_in_mb, max_concurrency
         )
@@ -153,7 +114,7 @@ class SageMakerClient:
             raise ValueError("endpoint_name is required for deploy")
 
         model_name = self._create_model(image_name, s3_model_location)
-        endpoint_config_name = self._make_endpoint_config_name(endpoint_name)
+        endpoint_config_name = f"{endpoint_name}-config"
         self._create_endpoint_config(
             endpoint_config_name, model_name, instance_type, instance_count
         )
@@ -162,37 +123,28 @@ class SageMakerClient:
     def _create_model(self, image_name: str, s3_model_location: str) -> str:
         """Create SageMaker model and return model name."""
         image = self._construct_image_location(image_name)
-        model_name = f"model-{datetime.now().strftime('%Y%m%d%H%M%S')}"
-
+        model_name = f"model-{hash(s3_model_location)}"
         self.sagemaker_client.create_model(
             ModelName=model_name,
-            PrimaryContainer={
-                "Image": image,
-                "ModelDataUrl": s3_model_location,
-            },
+            PrimaryContainer={"Image": image, "ModelDataUrl": s3_model_location},
             ExecutionRoleArn=self.role,
         )
         return model_name
-
-    def _make_endpoint_config_name(self, endpoint_name: str) -> str:
-        """Generate unique endpoint config name with timestamp."""
-        return f"{endpoint_name}-{datetime.now().strftime('%Y-%m-%dT%H-%M-%S')}"
 
     def _create_or_update_endpoint(
         self, endpoint_name: str, endpoint_config_name: str, endpoint_type: str
     ) -> str:
         """Create new endpoint or update existing one."""
-        endpoint_type_label = "serverless" if endpoint_type == "serverless" else "provisioned"
         if self._check_endpoint_exists(endpoint_name):
             self.sagemaker_client.update_endpoint(
                 EndpointName=endpoint_name, EndpointConfigName=endpoint_config_name
             )
-            print(f"Update in progress for {endpoint_type_label} endpoint: {endpoint_name}")
+            print(f"Update in progress for endpoint: {endpoint_name}")
         else:
             self.sagemaker_client.create_endpoint(
                 EndpointName=endpoint_name, EndpointConfigName=endpoint_config_name
             )
-            print(f"Creation in progress for {endpoint_type_label} endpoint: {endpoint_name}")
+            print(f"Creation in progress for endpoint: {endpoint_name}")
         return endpoint_name
 
     def _create_endpoint_config(
@@ -216,10 +168,9 @@ class SageMakerClient:
         )
 
     def _check_endpoint_exists(self, endpoint_name: str) -> bool:
-        """Check if an endpoint already exists"""
-        response_blob = self.sagemaker_client.list_endpoints()
-        endpoint_names = [e["EndpointName"] for e in response_blob["Endpoints"]]
-        return endpoint_name in endpoint_names
+        """Check if an endpoint already exists."""
+        response = self.sagemaker_client.list_endpoints()
+        return endpoint_name in [e["EndpointName"] for e in response.get("Endpoints", [])]
 
     def _create_serverless_epc(
         self,
@@ -254,46 +205,21 @@ class SageMakerClient:
         wait: bool = False,
         job_name: str | None = None,
     ) -> str | None:
-        """
-        Execute batch transform on a trained model to SageMaker
-        :param image_name: [str], name of Docker image
-        :param s3_model_location: [str], model location in S3
-        :param s3_input_location: [str], S3 input data location
-        :param s3_output_location: [str], S3 output data location
-        :param transform_instance_count: [int], number of ec2 instances
-        :param transform_instance_type: [str], ec2 instance type
-        :param wait: [bool, default=False], wait or not for the batch transform to finish
-        :param job_name: [str, default=None], name for the SageMaker batch transform job
-
-        :return: [str], transform job status if wait=True.
-        Valid values: 'InProgress'|'Completed'|'Failed'|'Stopping'|'Stopped'
-        """
-        # Create model for batch transform
+        """Execute batch transform on a trained model to SageMaker."""
         model_name = self._create_model(image_name, s3_model_location)
-
-        # Generate job name if not provided
-        if job_name is None:
-            job_name = f"transform-{datetime.now().strftime('%Y%m%d%H%M%S')}"
-
-        content_type = "text/csv"
+        job_name = job_name or "transform-job"
 
         self.sagemaker_client.create_transform_job(
             TransformJobName=job_name,
             ModelName=model_name,
             TransformInput={
-                "DataSource": {
-                    "S3DataSource": {
-                        "S3DataType": "S3Prefix",
-                        "S3Uri": s3_input_location,
-                    }
-                },
-                "ContentType": content_type,
+                "DataSource": {"S3DataSource": {"S3Uri": s3_input_location}},
+                "ContentType": "text/csv",
                 "SplitType": "Line",
             },
             TransformOutput={
                 "S3OutputPath": s3_output_location,
-                "Accept": content_type,
-                "AssembleWith": "Line",
+                "Accept": "text/csv",
             },
             TransformResources={
                 "InstanceType": transform_instance_type,
@@ -302,8 +228,6 @@ class SageMakerClient:
         )
 
         if wait:
-            waiter = self.sagemaker_client.get_waiter("transform_job_complete_or_stopped")
-            waiter.wait(TransformJobName=job_name)
             job_description = self.sagemaker_client.describe_transform_job(
                 TransformJobName=job_name
             )
@@ -311,37 +235,24 @@ class SageMakerClient:
         return None
 
     def shutdown_endpoint(self, endpoint_name: str) -> None:
-        """
-        Shuts down a SageMaker endpoint.
-        :param endpoint_name: [str], name of the endpoint to be shut down
-        """
+        """Shuts down a SageMaker endpoint."""
         self.sagemaker_client.delete_endpoint(EndpointName=endpoint_name)
 
     @staticmethod
     def _get_s3_bucket(s3_dir: str) -> str:
-        """
-        Extract bucket from S3 dir
-        :param s3_dir: [str], input S3 directory
-        :return: [str], extracted bucket name
-        """
+        """Extract bucket from S3 dir."""
         return urlparse(s3_dir).netloc
 
     @staticmethod
     def _get_s3_key_prefix(s3_dir: str) -> str:
-        """
-        Extract key prefix from S3 dir
-        :param s3_dir: [str], input S3 directory
-        :return: [str], extracted key prefix name
-        """
+        """Extract key prefix from S3 dir."""
         return urlparse(s3_dir).path.lstrip("/").rstrip("/")
 
     def _construct_image_location(self, image_name: str) -> str:
+        """Construct full ECR image URI."""
         account = self.boto_session.client("sts").get_caller_identity()["Account"]
         region = self.boto_session.region_name
-
-        return "{account}.dkr.ecr.{region}.amazonaws.com/{image}".format(
-            account=account, region=region, image=image_name
-        )
+        return f"{account}.dkr.ecr.{region}.amazonaws.com/{image_name}"
 
     def process(
         self,
