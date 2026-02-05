@@ -1,11 +1,10 @@
 import os
-from typing import Any
 from datetime import datetime
 from urllib.parse import urlparse
 
 import boto3
-import sagemaker as sage
-from sagemaker.processing import ProcessingInput, ProcessingOutput
+from sagemaker.core.helper.session_helper import Session, get_execution_role
+from sagemaker.core.processing import Processor, ProcessingInput, ProcessingOutput
 
 
 class SageMakerClient:
@@ -33,11 +32,11 @@ class SageMakerClient:
                 RoleArn=aws_role, RoleSessionName="EasySMSession"
             )
 
-        self.sagemaker_session = sage.Session(boto_session=self.boto_session)
+        self.sagemaker_session = Session(boto_session=self.boto_session)
         self.aws_region = aws_region
         self.aws_profile = aws_profile
         self.role = (
-            sage.get_execution_role(self.sagemaker_session)
+            get_execution_role(self.sagemaker_session)
             if aws_role is None
             else aws_role
         )
@@ -80,21 +79,47 @@ class SageMakerClient:
         """
         image = self._construct_image_location(image_name)
 
-        estimator = sage.estimator.Estimator(
-            image_uri=image,
-            role=self.role,
-            instance_count=instance_count,
-            instance_type=train_instance_type,
-            input_mode="File",
-            output_path=output_path,
-            code_location=output_path,
-            base_job_name=base_job_name,
-            sagemaker_session=self.sagemaker_session,
+        job_name = f"{base_job_name}-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+
+        self.sagemaker_client.create_training_job(
+            TrainingJobName=job_name,
+            RoleArn=self.role,
+            AlgorithmSpecification={
+                "TrainingImage": image,
+                "TrainingInputMode": "File",
+            },
+            InputDataConfig=[
+                {
+                    "ChannelName": "training",
+                    "DataSource": {
+                        "S3DataSource": {
+                            "S3DataType": "S3Prefix",
+                            "S3Uri": input_s3_data_location,
+                            "S3DataDistributionType": "FullyReplicated",
+                        }
+                    },
+                    "ContentType": "application/x-recordio-protobuf",
+                    "CompressionType": "None",
+                }
+            ],
+            OutputDataConfig={"S3OutputPath": output_path},
+            ResourceConfig={
+                "InstanceType": train_instance_type,
+                "InstanceCount": instance_count,
+                "VolumeSizeInGB": 30,
+            },
+            StoppingCondition={"MaxRuntimeInSeconds": 86400},
         )
 
-        estimator.fit(input_s3_data_location)
+        # Poll for training job completion
+        waiter = self.sagemaker_client.get_waiter("training_job_complete_or_stopped")
+        waiter.wait(TrainingJobName=job_name)
 
-        return estimator.model_data
+        # Get model artifacts S3 path from completed training job
+        job_description = self.sagemaker_client.describe_training_job(
+            TrainingJobName=job_name
+        )
+        return job_description["ModelArtifacts"]["S3ModelArtifacts"]
 
     def deploy_serverless(
         self,
@@ -137,14 +162,17 @@ class SageMakerClient:
     def _create_model(self, image_name: str, s3_model_location: str) -> str:
         """Create SageMaker model and return model name."""
         image = self._construct_image_location(image_name)
-        model = sage.Model(
-            model_data=s3_model_location,
-            image_uri=image,
-            role=self.role,
-            sagemaker_session=self.sagemaker_session,
+        model_name = f"model-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+
+        self.sagemaker_client.create_model(
+            ModelName=model_name,
+            PrimaryContainer={
+                "Image": image,
+                "ModelDataUrl": s3_model_location,
+            },
+            ExecutionRoleArn=self.role,
         )
-        model.create()
-        return model.name
+        return model_name
 
     def _make_endpoint_config_name(self, endpoint_name: str) -> str:
         """Generate unique endpoint config name with timestamp."""
@@ -240,44 +268,45 @@ class SageMakerClient:
         :return: [str], transform job status if wait=True.
         Valid values: 'InProgress'|'Completed'|'Failed'|'Stopping'|'Stopped'
         """
-        image = self._construct_image_location(image_name)
+        # Create model for batch transform
+        model_name = self._create_model(image_name, s3_model_location)
 
-        model = sage.Model(
-            model_data=s3_model_location,
-            image_uri=image,
-            role=self.role,
-            sagemaker_session=self.sagemaker_session,
-        )
+        # Generate job name if not provided
+        if job_name is None:
+            job_name = f"transform-{datetime.now().strftime('%Y%m%d%H%M%S')}"
 
         content_type = "text/csv"
 
-        transformer = model.transformer(
-            instance_type=transform_instance_type,
-            instance_count=transform_instance_count,
-            output_path=s3_output_location,
-            accept=content_type,
-            strategy="MultiRecord",
-            assemble_with="Line",
-        )
-
-        transformer.transform(
-            data=s3_input_location,
-            split_type="Line",
-            content_type=content_type,
-            job_name=job_name,
+        self.sagemaker_client.create_transform_job(
+            TransformJobName=job_name,
+            ModelName=model_name,
+            TransformInput={
+                "DataSource": {
+                    "S3DataSource": {
+                        "S3DataType": "S3Prefix",
+                        "S3Uri": s3_input_location,
+                    }
+                },
+                "ContentType": content_type,
+                "SplitType": "Line",
+            },
+            TransformOutput={
+                "S3OutputPath": s3_output_location,
+                "Accept": content_type,
+                "AssembleWith": "Line",
+            },
+            TransformResources={
+                "InstanceType": transform_instance_type,
+                "InstanceCount": transform_instance_count,
+            },
         )
 
         if wait:
-            try:
-                transformer.wait()
-            except Exception:
-                pass
-            finally:
-                job_name = transformer.latest_transform_job.job_name
-                job_description = self.sagemaker_client.describe_transform_job(
-                    TransformJobName=job_name
-                )
-
+            waiter = self.sagemaker_client.get_waiter("transform_job_complete_or_stopped")
+            waiter.wait(TransformJobName=job_name)
+            job_description = self.sagemaker_client.describe_transform_job(
+                TransformJobName=job_name
+            )
             return job_description["TransformJobStatus"]
         return None
 
@@ -373,7 +402,7 @@ class SageMakerClient:
     ) -> None:
         """Run processing job with given arguments."""
         image = self._construct_image_location(image_name)
-        proc = sage.processing.Processor(
+        proc = Processor(
             image_uri=image,
             role=self.role,
             instance_count=instance_count,

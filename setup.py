@@ -35,7 +35,7 @@ Recommended to validate before updating.
     install_requires=[
         "click>=8.1.7, <8.1.99",
         "docker>=7.1.0, <7.2.0",
-        "sagemaker>=2.243.0, <3.0.0",
+        "sagemaker>=3.0.0, <4.0.0",
     ],
     entry_points={
         "console_scripts": [

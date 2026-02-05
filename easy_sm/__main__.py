@@ -1,5 +1,3 @@
-import os
-
 import click
 
 from easy_sm.commands.cloud import cloud
@@ -7,8 +5,6 @@ from easy_sm.commands.initialize import init
 from easy_sm.commands.build import build
 from easy_sm.commands.local import local
 from easy_sm.commands.push import push
-
-os.environ["DISABLE_JUMPSTART_LOGGING"] = "1"
 
 
 @click.group()
