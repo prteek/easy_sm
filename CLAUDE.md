@@ -337,3 +337,23 @@ easy_sm/
 **Tracked vs Ignored Files**:
 - ✅ **Tracked**: `setup.py`, `base-requirements.txt`, all source code, tests, documentation
 - ❌ **Ignored**: Credentials (`.local_credentials`, `*credentials`), build artifacts (`build/`, `*.egg-info/`), cache files (`__pycache__/`), sample app (`app/`), test data (`*.csv`)
+
+## BEFORE WRITING CODE
+
+Explain what you're about to do and why
+Break it down into steps I can follow
+Wait for my OK before proceeding
+
+## AFTER WRITING CODE
+
+Explain what each part does
+Ask me 3 questions to verify I understood
+If I answer wrong, explain again until I get it
+Do NOT let me commit until I pass your questions
+
+## GENERAL RULES
+
+Never generate code I can't explain
+If I ask for something complex, suggest simpler alternatives
+Treat every session as a teaching opportunity
+Be direct. Tell me when I'm doing something wrong
