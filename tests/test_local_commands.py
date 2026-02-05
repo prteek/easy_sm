@@ -403,7 +403,7 @@ class TestLocalTrainAndDeployIntegration:
         assert isinstance(config_data["image_name"], str)
         assert len(config_data["image_name"]) > 0
         assert isinstance(config_data["python_version"], str)
-        assert config_data["python_version"] in ["3.10", "3.11", "3.12"]
+        assert config_data["python_version"] in ["3.10", "3.11", "3.12", "3.14"]
 
     def test_training_scripts_exist(self, app_dir: str) -> None:
         """Test that all required training scripts and files exist."""

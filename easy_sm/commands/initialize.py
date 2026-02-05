@@ -84,12 +84,12 @@ def ask_for_root_dir() -> str:
 
 def ask_for_python_version() -> str:
     print("Select Python interpreter:")
-    print("{}".format("\n".join(["1 - Python310", "2 - Python311", "3 - Python312"])))
+    print("{}".format("\n".join(["1 - Python310", "2 - Python311", "3 - Python312", "4 - Python314"])))
 
     def _validate_python_option(input_value: Any) -> int:
-        if int(input_value) not in {1, 2, 3}:
+        if int(input_value) not in {1, 2, 3, 4}:
             raise BadParameter(
-                message="invalid choice: {}. (choose from 1, 2, 3)".format(
+                message="invalid choice: {}. (choose from 1, 2, 3, 4)".format(
                     str(input_value)
                 )
             )
@@ -97,12 +97,12 @@ def ask_for_python_version() -> str:
         return int(input_value)
 
     chosen_python_index = click.prompt(
-        text="Choose from 1, 2, 3",
-        default=3,
+        text="Choose from 1, 2, 3, 4",
+        default=4,
         value_proc=lambda x: _validate_python_option(x),
     )
 
-    _index_to_version = {1: "3.10", 2: "3.11", 3: "3.12"}
+    _index_to_version = {1: "3.10", 2: "3.11", 3: "3.12", 4: "3.14"}
 
     return _index_to_version[chosen_python_index]
 

@@ -25,7 +25,7 @@ class TestConfig:
             image_name="test-image",
             aws_profile="test-profile",
             aws_region="us-east-1",
-            python_version="3.12",
+            python_version="3.14",
             easy_sm_module_dir="./app",
             requirements_dir="requirements.txt",
         )
@@ -33,7 +33,7 @@ class TestConfig:
         assert config.image_name == "test-image"
         assert config.aws_profile == "test-profile"
         assert config.aws_region == "us-east-1"
-        assert config.python_version == "3.12"
+        assert config.python_version == "3.14"
         assert config.easy_sm_module_dir == "./app"
         assert config.requirements_dir == "requirements.txt"
 
@@ -83,7 +83,7 @@ class TestConfig:
             image_name="roundtrip-test",
             aws_profile="roundtrip-profile",
             aws_region="ap-southeast-1",
-            python_version="3.12",
+            python_version="3.14",
             easy_sm_module_dir="./module",
             requirements_dir="requirements/prod.txt",
         )
@@ -108,7 +108,7 @@ class TestConfig:
             image_name="my-app-v1.0.0",
             aws_profile="prod-env_profile",
             aws_region="us-east-1",
-            python_version="3.12",
+            python_version="3.14",
             easy_sm_module_dir="./my-app/src",
             requirements_dir="requirements/prod-requirements.txt",
         )
@@ -150,7 +150,7 @@ class TestConfigManager:
             image_name="test-app",
             aws_profile="test",
             aws_region="us-east-1",
-            python_version="3.12",
+            python_version="3.14",
             easy_sm_module_dir=".",
             requirements_dir="requirements.txt",
         )
@@ -172,7 +172,7 @@ class TestConfigManager:
             image_name="app",
             aws_profile="default",
             aws_region="us-east-1",
-            python_version="3.12",
+            python_version="3.14",
             easy_sm_module_dir=".",
             requirements_dir="requirements.txt",
         )
@@ -242,7 +242,7 @@ class TestConfigManager:
             image_name="app-v1",
             aws_profile="profile1",
             aws_region="us-east-1",
-            python_version="3.12",
+            python_version="3.14",
             easy_sm_module_dir=".",
             requirements_dir="requirements.txt",
         )
@@ -265,7 +265,7 @@ class TestConfigManager:
             image_name="app",
             aws_profile="dev",
             aws_region="us-east-1",
-            python_version="3.12",
+            python_version="3.14",
             easy_sm_module_dir=".",
             requirements_dir="requirements.txt",
         )
@@ -296,7 +296,7 @@ class TestConfigManager:
             image_name="format-test",
             aws_profile="test",
             aws_region="us-east-1",
-            python_version="3.12",
+            python_version="3.14",
             easy_sm_module_dir=".",
             requirements_dir="requirements.txt",
         )
@@ -348,7 +348,7 @@ class TestConfigManager:
             image_name="order-app",
             aws_profile="order-profile",
             aws_region="us-east-1",
-            python_version="3.12",
+            python_version="3.14",
             easy_sm_module_dir=".",
             requirements_dir="requirements.txt",
         )

@@ -30,7 +30,7 @@ The tests use the sample application in the `app/` directory which includes:
 
 - **Configuration**: `app/app.json`
   - Image name: `esm`
-  - Python version: 3.12
+  - Python version: 3.14
   - Module directory: `easy_sm_base`
 
 - **Training Script**: `app/easy_sm_base/training/train`
@@ -176,7 +176,7 @@ def test_app_json_format_validation(self, app_dir):
         config_data = json.load(f)
 
     assert "image_name" in config_data
-    assert config_data["python_version"] in ["3.10", "3.11", "3.12"]
+    assert config_data["python_version"] in ["3.10", "3.11", "3.12", "3.14"]
 ```
 
 ## Integration Test Requirements

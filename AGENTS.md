@@ -4,7 +4,7 @@ This file provides guidelines and commands for agents working on the easy_sm cod
 
 ## Project Overview
 
-easy_sm is a CLI tool that makes it easier to work with AWS SageMaker by enabling rapid prototyping with local training, processing, and deployment. The project is a Python package (>=3.11) using Click for CLI commands.
+easy_sm is a CLI tool that makes it easier to work with AWS SageMaker by enabling rapid prototyping with local training, processing, and deployment. The project is a Python package (>=3.14) using Click for CLI commands.
 
 ## Build Commands
 
@@ -73,7 +73,7 @@ mypy easy_sm/
 ## Code Style Guidelines
 
 ### Python Version
-- Minimum: Python 3.12
+- Minimum: Python 3.14
 - Check: `.python-version` file
 
 ### Imports

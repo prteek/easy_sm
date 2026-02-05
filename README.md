@@ -17,7 +17,7 @@ A Python CLI tool that simplifies AWS SageMaker workflows by enabling rapid loca
 
 ## Requirements
 
-- Python >=3.12
+- Python >=3.14
 - Docker (for local development)
 - AWS credentials configured (for cloud deployment)
 
@@ -167,7 +167,7 @@ Projects are configured via JSON files named `{app_name}.json`:
   "image_name": "my-training-image",
   "aws_profile": "default",
   "aws_region": "us-west-2",
-  "python_version": "3.12",
+  "python_version": "3.14",
   "easy_sm_module_dir": "./my_module",
   "requirements_dir": "./requirements.txt"
 }

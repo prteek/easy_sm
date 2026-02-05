@@ -44,7 +44,7 @@ class TestPushCommand:
             image_name=app_name,
             aws_profile="test-profile",
             aws_region="us-east-1",
-            python_version="3.12",
+            python_version="3.14",
             easy_sm_module_dir=easy_sm_module_dir,
             requirements_dir="requirements.txt",
         )
@@ -291,7 +291,7 @@ class TestPushCommand:
             image_name=app_name,
             aws_profile=config_aws_profile,
             aws_region=config_aws_region,
-            python_version="3.12",
+            python_version="3.14",
             easy_sm_module_dir=app_name,
             requirements_dir="requirements.txt",
         )
