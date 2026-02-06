@@ -56,13 +56,13 @@ ruff format easy_sm/
 
 ### Test Suite Overview
 
-**Total: 117 tests** covering all commands and core modules.
+**Total: 120 tests** covering all commands and core modules.
 
 #### Command Tests
 - **test_init_command.py** (7 tests): Project initialization with various configurations
 - **test_build_command.py** (13 tests): Docker image building with parameter variations and error scenarios
 - **test_local_commands.py** (23 tests): Local training, deployment, processing, and stop commands
-- **test_cloud_commands.py** (25 tests): SageMaker operations (train, deploy, batch-transform, process, list-endpoints, list-training-jobs, delete-endpoint)
+- **test_cloud_commands.py** (28 tests): SageMaker operations (train, deploy, batch-transform, process, list-endpoints, list-training-jobs, get-model-artifacts, delete-endpoint)
 - **test_push_command.py** (9 tests): ECR image push with IAM/profile authentication
 - **test_update_command.py** (7 tests): Shell script update command with security fixes
 
@@ -80,7 +80,7 @@ All tests use mocked external dependencies (subprocess, boto3, SageMaker SDK) fo
   - `init`: Initialize new easy_sm projects
   - `build`: Build Docker images
   - `local`: Local operations (commands: `train`, `deploy`, `process`, `stop`)
-  - `cloud`: Cloud SageMaker operations (commands: `train`, `deploy`, `deploy-serverless`, `batch-transform`, `process`, `upload-data`, `list-endpoints`, `list-training-jobs`, `delete-endpoint`)
+  - `cloud`: Cloud SageMaker operations (commands: `train`, `deploy`, `deploy-serverless`, `batch-transform`, `process`, `upload-data`, `list-endpoints`, `list-training-jobs`, `get-model-artifacts`, `delete-endpoint`)
   - `push`: Push Docker images to ECR
   - `update-scripts`: Update shell scripts with latest secure versions
 
@@ -262,11 +262,11 @@ easy_sm/
 │   │   └── sagemaker.py      # SageMakerClient wrapper
 │   └── template/
 │       └── easy_sm_base/     # Docker template and entry points
-├── tests/                    # Test suite (uses pytest) - 117 tests total
+├── tests/                    # Test suite (uses pytest) - 120 tests total
 │   ├── test_build_command.py         # Tests for build command (13 tests)
 │   ├── test_init_command.py          # Tests for init command (7 tests)
 │   ├── test_local_commands.py        # Tests for local commands (23 tests)
-│   ├── test_cloud_commands.py        # Tests for cloud SageMaker operations (25 tests)
+│   ├── test_cloud_commands.py        # Tests for cloud SageMaker operations (28 tests)
 │   ├── test_push_command.py          # Tests for ECR push command (9 tests)
 │   ├── test_update_command.py        # Tests for update-scripts command (7 tests)
 │   ├── test_config.py                # Tests for Config/ConfigManager (16 tests)

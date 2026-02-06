@@ -263,6 +263,20 @@ class SageMakerClient:
         )
         return response.get("TrainingJobSummaries", [])
 
+    def get_model_artifacts(self, training_job_name: str) -> str:
+        """Get S3 model artifacts location from training job name.
+
+        Args:
+            training_job_name: Name of the training job.
+
+        Returns:
+            S3 URI of the model artifacts (model.tar.gz).
+        """
+        response = self.sagemaker_client.describe_training_job(
+            TrainingJobName=training_job_name
+        )
+        return response["ModelArtifacts"]["S3ModelArtifacts"]
+
     @staticmethod
     def _get_s3_bucket(s3_dir: str) -> str:
         """Extract bucket from S3 dir."""

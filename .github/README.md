@@ -130,6 +130,9 @@ easy_sm cloud list-endpoints -a app-name -r $ROLE
 # List training jobs
 easy_sm cloud list-training-jobs -a app-name -r $ROLE [-m 10]
 
+# Get model artifacts from training job
+easy_sm cloud get-model-artifacts -a app-name -j training-job-name -r $ROLE
+
 # Delete endpoint
 easy_sm cloud delete-endpoint -a app-name -n endpoint-name -r $ROLE [--delete-config]
 ```
@@ -302,8 +305,22 @@ my-project/
 
 ## Tips
 
+- **Piped workflow for deployment**:
+  ```bash
+  # Get latest training job, extract model artifacts, and deploy
+  JOB=$(easy_sm cloud list-training-jobs -a app-name -r $ROLE -n -m 1)
+  MODEL=$(easy_sm cloud get-model-artifacts -a app-name -j $JOB -r $ROLE)
+  easy_sm cloud deploy -a app-name -n endpoint-name -r $ROLE -m $MODEL -e ml.m5.large
+  ```
+
+- **One-liner with shell substitution**:
+  ```bash
+  easy_sm cloud deploy -a app-name -n endpoint-name -r $ROLE -e ml.m5.large \
+    -m $(easy_sm cloud get-model-artifacts -a app-name -r $ROLE \
+         -j $(easy_sm cloud list-training-jobs -a app-name -r $ROLE -n -m 1))
+  ```
+
 - **Save training output**: `easy_sm cloud train ... | tee train_output.txt`
-- **Extract model location**: `grep -o -E "s3://[^ ]+" train_output.txt`
 - **Custom Docker**: Modify `app-name/easy_sm_base/Dockerfile`
 - **Docker tags**: Use `-t` flag: `easy_sm build -a app-name -t v1.0`
 

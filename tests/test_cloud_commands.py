@@ -1220,5 +1220,125 @@ class TestCloudListTrainingJobs:
         mock_client.list_training_jobs.assert_called_once()
 
 
+class TestCloudGetModelArtifacts:
+    """Tests for the cloud get-model-artifacts command."""
+
+    @pytest.fixture
+    def runner(self) -> CliRunner:
+        """Provide CliRunner instance."""
+        return CliRunner()
+
+    @pytest.fixture
+    def temp_dir(self) -> Generator[str, None, None]:
+        """Create a temporary directory for testing."""
+        temp_dir = tempfile.mkdtemp()
+        original_cwd = os.getcwd()
+        os.chdir(temp_dir)
+        yield temp_dir
+        os.chdir(original_cwd)
+
+    def _create_config(self, app_name: str) -> None:
+        """Helper to create a config file."""
+        config = Config(
+            image_name=app_name,
+            aws_profile="test-profile",
+            aws_region="us-east-1",
+            python_version="3.13",
+            easy_sm_module_dir=app_name,
+            requirements_dir="requirements.txt",
+        )
+        config_manager = ConfigManager(f"{app_name}.json")
+        config_manager.set_config(config)
+
+    @patch("easy_sm.commands.cloud.SageMakerClient")
+    def test_get_model_artifacts_success(
+        self, mock_sagemaker_client: MagicMock, runner: CliRunner, temp_dir: str
+    ) -> None:
+        """Test successful get-model-artifacts command."""
+        app_name = "test-app"
+        self._create_config(app_name)
+
+        mock_client = MagicMock()
+        mock_client.get_model_artifacts.return_value = "s3://bucket/path/model.tar.gz"
+        mock_sagemaker_client.return_value = mock_client
+
+        result = runner.invoke(
+            app,
+            [
+                "cloud",
+                "get-model-artifacts",
+                "-a",
+                app_name,
+                "-j",
+                "training-job-123",
+                "-r",
+                "arn:aws:iam::123456789012:role/SageMakerRole",
+            ],
+        )
+
+        assert result.exit_code == 0
+        assert result.output.strip() == "s3://bucket/path/model.tar.gz"
+        mock_client.get_model_artifacts.assert_called_once_with("training-job-123")
+
+    @patch("easy_sm.commands.cloud.SageMakerClient")
+    def test_get_model_artifacts_missing_config(
+        self, mock_sagemaker_client: MagicMock, runner: CliRunner, temp_dir: str
+    ) -> None:
+        """Test get-model-artifacts fails without config file."""
+        result = runner.invoke(
+            app,
+            [
+                "cloud",
+                "get-model-artifacts",
+                "-a",
+                "nonexistent-app",
+                "-j",
+                "training-job-123",
+                "-r",
+                "arn:aws:iam::123456789012:role/SageMakerRole",
+            ],
+        )
+
+        assert result.exit_code != 0
+        assert (
+            "Config file not found" in result.output
+            or result.exception is not None
+        )
+
+    @patch("easy_sm.commands.cloud.SageMakerClient")
+    def test_get_model_artifacts_output_format(
+        self, mock_sagemaker_client: MagicMock, runner: CliRunner, temp_dir: str
+    ) -> None:
+        """Test get-model-artifacts output is pipe-friendly (just the URI)."""
+        app_name = "test-app"
+        self._create_config(app_name)
+
+        mock_client = MagicMock()
+        s3_uri = "s3://my-bucket/output/job-name/output/model.tar.gz"
+        mock_client.get_model_artifacts.return_value = s3_uri
+        mock_sagemaker_client.return_value = mock_client
+
+        result = runner.invoke(
+            app,
+            [
+                "cloud",
+                "get-model-artifacts",
+                "-a",
+                app_name,
+                "-j",
+                "my-training-job",
+                "-r",
+                "arn:aws:iam::123456789012:role/SageMakerRole",
+            ],
+        )
+
+        assert result.exit_code == 0
+        # Output should be just the URI, nothing else
+        assert result.output.strip() == s3_uri
+        # Should not contain verbose messages
+        assert "Model" not in result.output or result.output.strip() == s3_uri
+        assert "location" not in result.output.lower() or result.output.strip() == s3_uri
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

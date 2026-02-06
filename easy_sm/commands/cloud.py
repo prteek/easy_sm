@@ -202,6 +202,18 @@ def list_training_jobs(
             print(f"{job.get('TrainingJobName')}  {job.get('TrainingJobStatus')}  {job.get('CreationTime')}")
 
 
+@cloud_app.command(name="get-model-artifacts")
+def get_model_artifacts(
+    training_job_name: Annotated[str, typer.Option("--training-job-name", "-j", help="Training job name")],
+    iam_role_arn: Annotated[str, typer.Option("--iam-role-arn", "-r", help="AWS IAM role ARN")],
+    app_name: Annotated[str, typer.Option("--app-name", "-a", help="App name for configuration")],
+) -> None:
+    """Get S3 model artifacts location from training job name."""
+    client = _get_client(app_name, iam_role_arn)
+    s3_location = client.get_model_artifacts(training_job_name)
+    print(s3_location)
+
+
 @cloud_app.command(name="process")
 def process(
     file: Annotated[str, typer.Option("--file", "-f", help="Python file name to run as processing job")],
