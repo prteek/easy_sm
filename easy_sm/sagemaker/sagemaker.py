@@ -252,7 +252,17 @@ class SageMakerClient:
     def list_training_jobs(
         self, max_results: int = 5, name_contains: str | None = None
     ) -> list[dict]:
-        """List SageMaker training jobs."""
+        """List SageMaker training jobs.
+
+        Args:
+            max_results: Maximum number of matching jobs to return.
+            name_contains: Filter to only return jobs whose name contains this string.
+                          When specified, filtering is applied first, then results
+                          are limited to max_results.
+
+        Returns:
+            List of training job summaries sorted by creation time (newest first).
+        """
         kwargs = {
             "MaxResults": max_results,
             "SortBy": "CreationTime",
@@ -297,29 +307,6 @@ class SageMakerClient:
             processing_instance_type,
             instance_count,
             ["process", file],
-            s3_input_location,
-            input_sharded,
-            s3_output_location,
-            base_job_name,
-        )
-
-    def make(
-        self,
-        image_name: str,
-        processing_instance_type: str,
-        instance_count: int,
-        target: str,
-        s3_input_location: str | None,
-        input_sharded: bool,
-        s3_output_location: str | None,
-        base_job_name: str,
-    ) -> None:
-        """Build make targets in easy_sm_base/processing on SageMaker."""
-        self._run_processing(
-            image_name,
-            processing_instance_type,
-            instance_count,
-            ["make", target],
             s3_input_location,
             input_sharded,
             s3_output_location,

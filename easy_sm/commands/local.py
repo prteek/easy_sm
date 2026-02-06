@@ -95,38 +95,6 @@ def deploy(
 
 
 @local_app.command()
-def make(
-    target: Annotated[str, typer.Option("--target", "-t", help="Make target to build")],
-    app_name: Annotated[str, typer.Option("--app-name", "-a", help="App name for configuration")],
-) -> None:
-    """Build make targets defined in easy_sm_base/processing."""
-    config = load_config(app_name)
-
-    easy_sm_module_path = os.path.join(config.easy_sm_module_dir, "easy_sm_base")
-    local_make_script_path = os.path.join(easy_sm_module_path, "local_test", "make_local.sh")
-    test_path = os.path.join(easy_sm_module_path, "local_test", "test_dir")
-    makefile_path = os.path.join(easy_sm_module_path, "processing", "Makefile")
-
-    if not os.path.isdir(test_path):
-        raise ValueError(f"This is not a easy_sm directory: {config.easy_sm_module_dir}")
-
-    if not os.path.isfile(makefile_path):
-        raise ValueError(f"Makefile does not exist: {makefile_path}")
-
-    command = [
-        local_make_script_path,
-        os.path.abspath(test_path),
-        helpers.docker_tag,
-        config.image_name,
-        target,
-        config.aws_profile,
-        config.aws_region,
-    ]
-
-    safe_run_subprocess(command, success_message=f"{target} built successfully!")
-
-
-@local_app.command()
 def stop(
     app_name: Annotated[str, typer.Option("--app-name", "-a", help="App name for configuration")],
     port: Annotated[int, typer.Option("--port", "-p", help="Port the service is running on")] = 8080,

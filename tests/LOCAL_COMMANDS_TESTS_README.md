@@ -1,6 +1,6 @@
 # Functional Tests for Local Commands
 
-This document describes the functional tests for the `local train` and `local deploy` commands.
+This document describes the functional tests for the `local train`, `local deploy`, `local process`, and `local stop` commands.
 
 ## Overview
 
@@ -15,10 +15,20 @@ The test suite in `test_local_commands.py` provides comprehensive coverage for:
 2. **Local Deployment** (`easy_sm local deploy`)
    - Command execution and configuration loading
    - Docker subprocess handling
-   - Custom Docker tags
+   - Custom Docker tags and ports
    - Error cases
 
-3. **Integration Tests**
+3. **Local Processing** (`easy_sm local process`)
+   - Command execution with file parameter
+   - Docker subprocess handling
+   - Error cases
+
+4. **Local Stop** (`easy_sm local stop`)
+   - Stop running deployments
+   - Custom port handling
+   - Error cases
+
+5. **Integration Tests**
    - Complete train → deploy workflow
    - Docker tag consistency
    - Sample app configuration validation

@@ -30,9 +30,9 @@ def _build(
     ):
         raise ValueError(f"This is not a easy_sm directory: {source_dir}")
 
-    os.chmod(train_file_path, 0o777)
-    os.chmod(serve_file_path, 0o777)
-    os.chmod(executor_file_path, 0o777)
+    os.chmod(train_file_path, 0o755)
+    os.chmod(serve_file_path, 0o755)
+    os.chmod(executor_file_path, 0o755)
 
     target_dir_name = os.path.basename(os.path.normpath(source_dir))
 

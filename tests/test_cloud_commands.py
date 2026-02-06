@@ -1202,6 +1202,66 @@ class TestCloudListTrainingJobs:
         )
 
     @patch("easy_sm.sagemaker.sagemaker.SageMakerClient")
+    def test_list_training_jobs_with_filter_and_limit(
+        self, mock_sagemaker_client: MagicMock, runner: CliRunner, temp_dir: str
+    ) -> None:
+        """Test cloud list-training-jobs with both -b filter and -m limit.
+
+        Verifies that when both options are used, the name filter is applied
+        and results are limited to max_results matching jobs.
+        """
+        app_name = "test-app"
+        self._create_config(app_name)
+
+        mock_client = MagicMock()
+        # Simulate 3 matching jobs returned (filtered by name, limited to 3)
+        mock_client.list_training_jobs.return_value = [
+            {
+                "TrainingJobName": "my-model-v1",
+                "TrainingJobStatus": "Completed",
+                "CreationTime": "2024-01-03T00:00:00Z",
+            },
+            {
+                "TrainingJobName": "my-model-v2",
+                "TrainingJobStatus": "Completed",
+                "CreationTime": "2024-01-02T00:00:00Z",
+            },
+            {
+                "TrainingJobName": "my-model-v3",
+                "TrainingJobStatus": "InProgress",
+                "CreationTime": "2024-01-01T00:00:00Z",
+            },
+        ]
+        mock_sagemaker_client.return_value = mock_client
+
+        result = runner.invoke(
+            app,
+            [
+                "cloud",
+                "list-training-jobs",
+                "-a",
+                app_name,
+                "-b",
+                "my-model",
+                "-m",
+                "3",
+                "-r",
+                "arn:aws:iam::123456789012:role/SageMakerRole",
+            ],
+        )
+
+        assert result.exit_code == 0
+        assert "Found 3 training job(s)" in result.output
+        assert "my-model-v1" in result.output
+        assert "my-model-v2" in result.output
+        assert "my-model-v3" in result.output
+
+        # Verify both filter and limit are passed to the API
+        mock_client.list_training_jobs.assert_called_once_with(
+            max_results=3, name_contains="my-model"
+        )
+
+    @patch("easy_sm.sagemaker.sagemaker.SageMakerClient")
     def test_list_training_jobs_empty(
         self, mock_sagemaker_client: MagicMock, runner: CliRunner, temp_dir: str
     ) -> None:
@@ -1229,114 +1289,6 @@ class TestCloudListTrainingJobs:
         assert "No training jobs found" in result.output
 
         mock_client.list_training_jobs.assert_called_once()
-
-
-class TestCloudMake:
-    """Tests for the cloud make command."""
-
-    @pytest.fixture
-    def runner(self) -> CliRunner:
-        """Provide CliRunner instance."""
-        return CliRunner()
-
-    @pytest.fixture
-    def temp_dir(self) -> Generator[str, None, None]:
-        """Create a temporary directory for testing."""
-        temp_dir = tempfile.mkdtemp()
-        original_cwd = os.getcwd()
-        os.chdir(temp_dir)
-        yield temp_dir
-        os.chdir(original_cwd)
-
-    def _create_config(self, app_name: str) -> None:
-        """Helper to create a config file."""
-        config = Config(
-            image_name=app_name,
-            aws_profile="test-profile",
-            aws_region="us-east-1",
-            python_version="3.13",
-            easy_sm_module_dir=app_name,
-            requirements_dir="requirements.txt",
-        )
-        config_manager = ConfigManager(f"{app_name}.json")
-        config_manager.set_config(config)
-
-    @patch("easy_sm.sagemaker.sagemaker.SageMakerClient")
-    def test_make_success(
-        self, mock_sagemaker_client: MagicMock, runner: CliRunner, temp_dir: str
-    ) -> None:
-        """Test successful cloud make command."""
-        app_name = "test-app"
-        target = "build-feature"
-        self._create_config(app_name)
-
-        mock_client = MagicMock()
-        mock_sagemaker_client.return_value = mock_client
-
-        result = runner.invoke(
-            app,
-            [
-                "cloud",
-                "make",
-                "-a",
-                app_name,
-                "-e",
-                "ml.m5.large",
-                "-t",
-                target,
-                "-r",
-                "arn:aws:iam::123456789012:role/SageMakerRole",
-                "-n",
-                "make-job",
-            ],
-        )
-
-        assert result.exit_code == 0
-        assert f"Building {target} on SageMaker" in result.output
-        assert f"{target} built on SageMaker successfully!" in result.output
-
-        mock_client.make.assert_called_once()
-        call_kwargs = mock_client.make.call_args[1]
-        assert call_kwargs["target"] == target
-
-    @patch("easy_sm.sagemaker.sagemaker.SageMakerClient")
-    def test_make_with_s3_locations(
-        self, mock_sagemaker_client: MagicMock, runner: CliRunner, temp_dir: str
-    ) -> None:
-        """Test cloud make with S3 input/output locations."""
-        app_name = "test-app"
-        target = "build-feature"
-        self._create_config(app_name)
-
-        mock_client = MagicMock()
-        mock_sagemaker_client.return_value = mock_client
-
-        result = runner.invoke(
-            app,
-            [
-                "cloud",
-                "make",
-                "-a",
-                app_name,
-                "-e",
-                "ml.m5.large",
-                "-t",
-                target,
-                "-i",
-                "s3://bucket/input",
-                "-o",
-                "s3://bucket/output",
-                "-r",
-                "arn:aws:iam::123456789012:role/SageMakerRole",
-                "-n",
-                "make-job",
-            ],
-        )
-
-        assert result.exit_code == 0
-        call_kwargs = mock_client.make.call_args[1]
-        assert call_kwargs["s3_input_location"] == "s3://bucket/input"
-        assert call_kwargs["s3_output_location"] == "s3://bucket/output"
 
 
 if __name__ == "__main__":

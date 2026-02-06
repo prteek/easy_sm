@@ -1,7 +1,7 @@
 #!/bin/sh
 
-image=$1
-port=$2
+image="$1"
+port="$2"
 
 # Find container running on the specified port with the specified image
 container_id=$(docker ps -q --filter "ancestor=${image}" --filter "status=running" | while read cid; do

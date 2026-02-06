@@ -230,10 +230,10 @@ class TestBuildCommand:
         result = runner.invoke(app, ["build", "-a", app_name])
 
         assert result.exit_code == 0
-        # Verify permissions were set to 0o777
-        assert stat.S_IMODE(os.stat(train_path).st_mode) == 0o777
-        assert stat.S_IMODE(os.stat(serve_path).st_mode) == 0o777
-        assert stat.S_IMODE(os.stat(executor_path).st_mode) == 0o777
+        # Verify permissions were set to 0o755 (secure permissions)
+        assert stat.S_IMODE(os.stat(train_path).st_mode) == 0o755
+        assert stat.S_IMODE(os.stat(serve_path).st_mode) == 0o755
+        assert stat.S_IMODE(os.stat(executor_path).st_mode) == 0o755
 
     @patch("easy_sm.commands.helpers.subprocess.Popen")
     def test_build_subprocess_called_with_correct_args(self, mock_popen: MagicMock, runner: CliRunner, temp_dir: str) -> None:

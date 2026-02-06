@@ -8,6 +8,7 @@ from easy_sm.commands.cloud import cloud_app
 from easy_sm.commands.initialize import init
 from easy_sm.commands.local import local_app
 from easy_sm.commands.push import push
+from easy_sm.commands.update import update_scripts
 
 app = typer.Typer(
     help="easy_sm enables training and deploying machine learning models on AWS SageMaker in a few minutes!"
@@ -38,6 +39,7 @@ def main(
 app.command(name="init")(init)
 app.command(name="build")(build)
 app.command(name="push")(push)
+app.command(name="update-scripts")(update_scripts)
 
 # Register sub-apps
 app.add_typer(local_app, name="local")

@@ -197,10 +197,14 @@ def list_endpoints(
 def list_training_jobs(
     iam_role_arn: Annotated[str, typer.Option("--iam-role-arn", "-r", help="AWS IAM role ARN")],
     app_name: Annotated[str, typer.Option("--app-name", "-a", help="App name for configuration")],
-    max_results: Annotated[int, typer.Option("--max-results", "-m", help="Number of training jobs to fetch")] = 5,
-    base_job_name: Annotated[Optional[str], typer.Option("--base-job-name", "-b", help="Filter by base job name")] = None,
+    max_results: Annotated[int, typer.Option("--max-results", "-m", help="Max number of matching jobs to return")] = 5,
+    base_job_name: Annotated[Optional[str], typer.Option("--base-job-name", "-b", help="Filter jobs by name (returns jobs containing this string)")] = None,
 ) -> None:
-    """List recent SageMaker training jobs."""
+    """List recent SageMaker training jobs.
+
+    When -b/--base-job-name is specified, only jobs containing that string
+    in their name are returned, up to the limit set by -m/--max-results.
+    """
     config = load_config(app_name)
     sage_maker_client = create_sagemaker_client(config.aws_profile, config.aws_region, iam_role_arn)
     training_jobs = sage_maker_client.list_training_jobs(max_results=max_results, name_contains=base_job_name)
@@ -252,34 +256,3 @@ def process(
     print("Processing job on SageMaker succeeded")
 
 
-@cloud_app.command(name="make")
-def make(
-    target: Annotated[str, typer.Option("--target", "-t", help="Make target to build")],
-    ec2_type: Annotated[str, typer.Option("--ec2-type", "-e", help="EC2 instance type")],
-    base_job_name: Annotated[str, typer.Option("--base-job-name", "-n", help="Prefix for the SageMaker job")],
-    iam_role_arn: Annotated[str, typer.Option("--iam-role-arn", "-r", help="AWS IAM role ARN")],
-    app_name: Annotated[str, typer.Option("--app-name", "-a", help="App name for configuration")],
-    instance_count: Annotated[int, typer.Option("--instance-count", "-c", help="EC2 instance count")] = 1,
-    s3_input_location: Annotated[Optional[str], typer.Option("--s3-input-location", "-i", help="S3 input data location")] = None,
-    s3_output_location: Annotated[Optional[str], typer.Option("--s3-output-location", "-o", help="S3 location to save output")] = None,
-    input_sharded: Annotated[bool, typer.Option("--input-sharded", "-is", help="Shard input data across machines")] = False,
-) -> None:
-    """Build make targets defined in easy_sm_base/processing on SageMaker."""
-    print(f"Building {target} on SageMaker...\n")
-    config = load_config(app_name)
-    sage_maker_client = create_sagemaker_client(config.aws_profile, config.aws_region, iam_role_arn)
-
-    image_name = build_image_name(config.image_name, helpers.docker_tag)
-
-    sage_maker_client.make(
-        image_name=image_name,
-        processing_instance_type=ec2_type,
-        instance_count=instance_count,
-        target=target,
-        s3_input_location=s3_input_location,
-        input_sharded=input_sharded,
-        s3_output_location=s3_output_location,
-        base_job_name=base_job_name,
-    )
-
-    print(f"{target} built on SageMaker successfully!")

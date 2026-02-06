@@ -1,4 +1,5 @@
 import os
+import re
 import subprocess
 from typing import List, Optional
 
@@ -7,6 +8,9 @@ from easy_sm.sagemaker import sagemaker
 
 # Global state for docker_tag (set by main CLI callback)
 docker_tag: str = "latest"
+
+# Pattern for valid app names: alphanumeric, hyphens, underscores only
+APP_NAME_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
 
 
 def safe_run_subprocess(
@@ -45,8 +49,20 @@ def safe_run_subprocess(
     return return_code
 
 
+def validate_app_name(app_name: str) -> None:
+    """Validate app_name to prevent path traversal and command injection."""
+    if not app_name:
+        raise ValueError("App name cannot be empty")
+    if not APP_NAME_PATTERN.match(app_name):
+        raise ValueError(
+            f"Invalid app name: {app_name}. "
+            "App name must contain only alphanumeric characters, hyphens, and underscores."
+        )
+
+
 def load_config(app_name: str) -> Config:
     """Load configuration from app_name.json in current directory."""
+    validate_app_name(app_name)
     config_file_path = os.path.join(f"{app_name}.json")
     if not os.path.isfile(config_file_path):
         raise ValueError(f"This is not a easy_sm directory: {os.getcwd()}")

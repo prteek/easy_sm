@@ -36,6 +36,7 @@ pytest tests/test_cloud_commands.py
 pytest tests/test_init_command.py
 pytest tests/test_local_commands.py
 pytest tests/test_push_command.py
+pytest tests/test_update_command.py
 pytest tests/test_config.py
 pytest tests/test_helpers.py
 
@@ -55,14 +56,15 @@ ruff format easy_sm/
 
 ### Test Suite Overview
 
-**Total: 112 tests** covering all commands and core modules.
+**Total: 117 tests** covering all commands and core modules.
 
 #### Command Tests
 - **test_init_command.py** (7 tests): Project initialization with various configurations
 - **test_build_command.py** (13 tests): Docker image building with parameter variations and error scenarios
 - **test_local_commands.py** (23 tests): Local training, deployment, processing, and stop commands
-- **test_cloud_commands.py** (27 tests): SageMaker operations (train, deploy, batch-transform, process, list-endpoints, list-training-jobs, delete-endpoint)
+- **test_cloud_commands.py** (25 tests): SageMaker operations (train, deploy, batch-transform, process, list-endpoints, list-training-jobs, delete-endpoint)
 - **test_push_command.py** (9 tests): ECR image push with IAM/profile authentication
+- **test_update_command.py** (7 tests): Shell script update command with security fixes
 
 #### Module Tests
 - **test_config.py** (16 tests): Configuration loading, saving, serialization, and error handling
@@ -77,9 +79,10 @@ All tests use mocked external dependencies (subprocess, boto3, SageMaker SDK) fo
 - **Command groups**:
   - `init`: Initialize new easy_sm projects
   - `build`: Build Docker images
-  - `local`: Local operations (commands: `train`, `deploy`, `process`, `make`, `stop`)
-  - `cloud`: Cloud SageMaker operations (commands: `train`, `deploy`, `deploy-serverless`, `batch-transform`, `process`, `make`, `upload-data`, `list-endpoints`, `list-training-jobs`, `delete-endpoint`)
+  - `local`: Local operations (commands: `train`, `deploy`, `process`, `stop`)
+  - `cloud`: Cloud SageMaker operations (commands: `train`, `deploy`, `deploy-serverless`, `batch-transform`, `process`, `upload-data`, `list-endpoints`, `list-training-jobs`, `delete-endpoint`)
   - `push`: Push Docker images to ECR
+  - `update-scripts`: Update shell scripts with latest secure versions
 
 ### Core Modules
 
@@ -95,6 +98,12 @@ All tests use mocked external dependencies (subprocess, boto3, SageMaker SDK) fo
 
 **Command Helpers** (`easy_sm/commands/helpers.py`):
 - `safe_run_subprocess`: Executes subprocess commands with error handling
+- `validate_app_name`: Validates app name to prevent path traversal and injection attacks
+- `load_config`: Loads and validates configuration from JSON files
+
+**Update Scripts** (`easy_sm/commands/update.py`):
+- `update_scripts`: Copies latest shell scripts from package template to app directory
+- Updates 7 shell scripts with security fixes (proper variable quoting)
 
 **Templates** (`easy_sm/template/easy_sm_base/`):
 - Dockerfile and scripts for containerized training/processing
@@ -104,14 +113,20 @@ All tests use mocked external dependencies (subprocess, boto3, SageMaker SDK) fo
 
 ### Configuration Flow
 1. Commands receive `app_name` parameter
-2. Load config from `{app_name}.json` in current directory (fails if not in valid easy_sm directory)
-3. Config specifies Docker image name, AWS credentials, Python version, and module locations
-4. Commands use config to build images, run jobs, or deploy endpoints
+2. Validate app_name (alphanumeric, hyphens, underscores only)
+3. Load config from `{app_name}.json` in current directory (fails if not in valid easy_sm directory)
+4. Config specifies Docker image name, AWS credentials, Python version, and module locations
+5. Commands use config to build images, run jobs, or deploy endpoints
 
 ### Docker Context
 - Docker tag passed via CLI flag `--docker-tag` (default: "latest"), accessible as `helpers.docker_tag`
 - Full image name: `{config.image_name}:{docker_tag}`
 - Source code is mounted/copied into Docker containers for training/processing
+
+### Security Features
+- **App name validation**: Prevents path traversal attacks (e.g., `../../../etc/passwd`)
+- **Shell script quoting**: All variables properly quoted to prevent injection
+- **File permissions**: Scripts set to 0o755 (not world-writable)
 
 ## Code Style Guidelines
 
@@ -239,19 +254,21 @@ easy_sm/
 │   │   ├── local.py          # Local training/deployment/processing
 │   │   ├── initialize.py     # Initialize projects
 │   │   ├── push.py           # Push images to ECR
-│   │   └── helpers.py        # Subprocess utilities and shared state
+│   │   ├── update.py         # Update shell scripts with security fixes
+│   │   └── helpers.py        # Subprocess utilities, validation, and shared state
 │   ├── config/
 │   │   └── config.py         # Config and ConfigManager classes
 │   ├── sagemaker/
 │   │   └── sagemaker.py      # SageMakerClient wrapper
 │   └── template/
 │       └── easy_sm_base/     # Docker template and entry points
-├── tests/                    # Test suite (uses pytest) - 112 tests total
+├── tests/                    # Test suite (uses pytest) - 117 tests total
 │   ├── test_build_command.py         # Tests for build command (13 tests)
 │   ├── test_init_command.py          # Tests for init command (7 tests)
 │   ├── test_local_commands.py        # Tests for local commands (23 tests)
-│   ├── test_cloud_commands.py        # Tests for cloud SageMaker operations (27 tests)
+│   ├── test_cloud_commands.py        # Tests for cloud SageMaker operations (25 tests)
 │   ├── test_push_command.py          # Tests for ECR push command (9 tests)
+│   ├── test_update_command.py        # Tests for update-scripts command (7 tests)
 │   ├── test_config.py                # Tests for Config/ConfigManager (16 tests)
 │   ├── test_helpers.py               # Tests for subprocess utilities (17 tests)
 │   └── LOCAL_COMMANDS_TESTS_README.md # Documentation for local command tests
@@ -279,6 +296,7 @@ easy_sm/
 - SageMaker operations require valid AWS credentials via configured profile
 - Local training/processing uses Docker to simulate SageMaker container environment
 - Configuration is persisted as JSON to maintain state across command invocations
+- App names are validated to prevent security issues (path traversal, injection)
 
 ## Git Configuration
 
