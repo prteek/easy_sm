@@ -131,6 +131,8 @@ The validation script checks for:
 - Parameter names match exactly
 - Defaults match code defaults
 - No unsupported features documented
+- Examples are syntactically correct
+- Examples use correct command output fields
 
 ### ❌ Invalid Documentation
 
@@ -157,6 +159,13 @@ May contain unsupported feature: 'spot.*instance'
 May contain unsupported feature: 'hyperparameter'
 ```
 → Remove hyperparameter references
+
+**Incorrect examples:**
+```
+Using -n flag with list-training-jobs then grepping for date - dates not in output with -n
+Using awk '$2' to extract from list-training-jobs - should use '$1' for job name
+```
+→ Fix example to use correct syntax
 
 ## Supported Features (as of latest validation)
 
@@ -215,10 +224,54 @@ May contain unsupported feature: 'hyperparameter'
 - ❌ Custom data paths (not supported via flags)
 - ❌ Hyperparameter passing (not supported)
 
+## Example Validation
+
+Beyond parameter validation, the script also checks command examples for:
+
+### Common Example Mistakes Detected
+
+**1. Date filtering with -n flag**
+```bash
+# ❌ WRONG: -n outputs only names, no timestamps
+easy_sm list-training-jobs -n -m 100 | grep $DATE
+
+# ✅ CORRECT: Without -n to include timestamps
+easy_sm list-training-jobs -m 100 | grep $DATE
+```
+
+**2. Wrong awk field extraction**
+```bash
+# ❌ WRONG: $2 is status, not job name
+JOB=$(easy_sm list-training-jobs | grep Completed | head -1 | awk '{print $2}')
+
+# ✅ CORRECT: $1 is job name
+JOB=$(easy_sm list-training-jobs | grep Completed | head -1 | awk '{print $1}')
+```
+
+**Output format reference:**
+```
+list-training-jobs default: {JobName}  {Status}  {Timestamp}
+                   with -n:  {JobName}
+
+Fields:
+$1 = JobName
+$2 = Status (Completed, InProgress, Failed)
+$3+ = Timestamp
+```
+
+**3. Incomplete variable assignment**
+```bash
+# ❌ WRONG: Assigns full output line, not just name
+JOB=$(easy_sm list-training-jobs -m 20 | grep Completed | head -1)
+
+# ✅ CORRECT: Extracts just the job name
+JOB=$(easy_sm list-training-jobs -m 20 | grep Completed | head -1 | awk '{print $1}')
+```
+
 ## Files Involved
 
 ### Validation
-- `scripts/validate_docs.py` - Main validation script
+- `scripts/validate_docs.py` - Main validation script with example checking
 - `.githooks/pre-commit` - Git hook that runs before commit
 - `.claude/skills/validate-docs/SKILL.md` - Skill definition
 
