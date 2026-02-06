@@ -96,9 +96,16 @@ def process(obj: Dict[str, Any], file: str, app_name: str) -> None:
 
 
 @click.command()
+@click.option(
+    "-p",
+    "--port",
+    type=int,
+    default=8080,
+    help="Port to run the service on (default: 8080)",
+)
 @app_name_option
 @click.pass_obj
-def deploy(obj: Dict[str, Any], app_name: str) -> None:
+def deploy(obj: Dict[str, Any], app_name: str, port: int) -> None:
     """
     Command to deploy ML model(s) locally
     """
@@ -116,12 +123,13 @@ def deploy(obj: Dict[str, Any], app_name: str) -> None:
     if not os.path.isdir(test_path):
         raise ValueError("This is not a easy_sm directory: {}".format(dir))
 
-    print("Started local deployment at localhost:8080 ...\n")
+    print("Started local deployment at localhost:{} ...\n".format(port))
     command = [
         "{}".format(local_deploy_script_path),
         "{}".format(os.path.abspath(test_path)),
         docker_tag,
         image_name,
+        str(port),
     ]
 
     safe_run_subprocess(command, success_message=None)
@@ -172,7 +180,46 @@ def make(obj: Dict[str, Any], target: str, app_name: str) -> None:
     safe_run_subprocess(command, success_message=f"{target} built successfully!")
 
 
+@click.command()
+@click.option(
+    "-p",
+    "--port",
+    type=int,
+    default=8080,
+    help="Port the service is running on (default: 8080)",
+)
+@app_name_option
+@click.pass_obj
+def stop(obj: Dict[str, Any], app_name: str, port: int) -> None:
+    """
+    Command to stop a local deployment
+    """
+    config = load_config(app_name)
+    dir = config.easy_sm_module_dir
+    image_name = config.image_name
+
+    easy_sm_module_path = os.path.join(dir, "easy_sm_base")
+    local_stop_script_path = os.path.join(
+        easy_sm_module_path, "local_test", "stop_local.sh"
+    )
+    test_path = os.path.join(easy_sm_module_path, "local_test", "test_dir")
+
+    if not os.path.isdir(test_path):
+        raise ValueError("This is not a easy_sm directory: {}".format(dir))
+
+    command = [
+        "{}".format(local_stop_script_path),
+        image_name,
+        str(port),
+    ]
+
+    safe_run_subprocess(
+        command, success_message="Local deployment stopped successfully!"
+    )
+
+
 local.add_command(train)
 local.add_command(deploy)
 local.add_command(process)
 local.add_command(make)
+local.add_command(stop)

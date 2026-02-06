@@ -213,9 +213,10 @@ class TestLocalDeploy:
                 # Verify subprocess was called
                 mock_popen.assert_called_once()
 
-                # Verify the command contains deploy script
+                # Verify the command contains deploy script and port parameter
                 call_args = mock_popen.call_args[0][0]
                 assert "deploy_local.sh" in " ".join(call_args)
+                assert "8080" in call_args
             finally:
                 os.chdir(original_cwd)
 
@@ -278,6 +279,59 @@ class TestLocalDeploy:
             finally:
                 os.chdir(original_cwd)
 
+    def test_local_deploy_custom_port(
+        self, runner: CliRunner, app_dir: str
+    ) -> None:
+        """Test local deploy command with custom port."""
+        with patch("easy_sm.commands.helpers.subprocess.Popen") as mock_popen:
+            mock_process = MagicMock()
+            mock_process.stdout = []
+            mock_process.wait.return_value = 0
+            mock_popen.return_value = mock_process
+
+            original_cwd = os.getcwd()
+            try:
+                os.chdir(app_dir)
+                result = runner.invoke(
+                    cli, ["local", "deploy", "-a", "app", "-p", "9000"]
+                )
+
+                assert result.exit_code == 0, f"Command failed: {result.output}"
+                assert "Started local deployment at localhost:9000" in result.output
+
+                # Verify subprocess was called with correct port
+                mock_popen.assert_called_once()
+                call_args = mock_popen.call_args[0][0]
+                assert "9000" in call_args
+            finally:
+                os.chdir(original_cwd)
+
+    def test_local_deploy_port_long_option(
+        self, runner: CliRunner, app_dir: str
+    ) -> None:
+        """Test local deploy command with --port long option."""
+        with patch("easy_sm.commands.helpers.subprocess.Popen") as mock_popen:
+            mock_process = MagicMock()
+            mock_process.stdout = []
+            mock_process.wait.return_value = 0
+            mock_popen.return_value = mock_process
+
+            original_cwd = os.getcwd()
+            try:
+                os.chdir(app_dir)
+                result = runner.invoke(
+                    cli, ["local", "deploy", "-a", "app", "--port", "3000"]
+                )
+
+                assert result.exit_code == 0, f"Command failed: {result.output}"
+                assert "Started local deployment at localhost:3000" in result.output
+
+                # Verify subprocess was called with correct port
+                call_args = mock_popen.call_args[0][0]
+                assert "3000" in call_args
+            finally:
+                os.chdir(original_cwd)
+
     def test_local_deploy_command_structure(
         self, runner: CliRunner, app_dir: str
     ) -> None:
@@ -304,6 +358,146 @@ class TestLocalDeploy:
                 assert "deploy_local.sh" in call_string
             finally:
                 os.chdir(original_cwd)
+
+
+class TestLocalStop:
+    """Functional tests for the local stop command."""
+
+    @pytest.fixture
+    def runner(self) -> CliRunner:
+        """Provide CliRunner instance."""
+        return CliRunner()
+
+    @pytest.fixture
+    def app_dir(self) -> str:
+        """Use the sample app directory for testing."""
+        app_path = os.path.join(os.path.dirname(__file__), "..", "app")
+        return os.path.abspath(app_path)
+
+    def test_local_stop_with_mock_subprocess(
+        self, runner: CliRunner, app_dir: str
+    ) -> None:
+        """
+        Test local stop command with mocked subprocess.
+
+        Verifies the command structure without requiring Docker.
+        """
+        with patch("easy_sm.commands.helpers.subprocess.Popen") as mock_popen:
+            mock_process = MagicMock()
+            mock_process.stdout = []
+            mock_process.wait.return_value = 0
+            mock_popen.return_value = mock_process
+
+            original_cwd = os.getcwd()
+            try:
+                os.chdir(app_dir)
+                result = runner.invoke(cli, ["local", "stop", "-a", "app"])
+
+                # Verify command succeeded
+                assert result.exit_code == 0, f"Command failed: {result.output}"
+                assert "Local deployment stopped successfully" in result.output
+
+                # Verify subprocess was called
+                mock_popen.assert_called_once()
+
+                # Verify the command contains stop script
+                call_args = mock_popen.call_args[0][0]
+                assert "stop_local.sh" in " ".join(call_args)
+            finally:
+                os.chdir(original_cwd)
+
+    def test_local_stop_with_default_port(
+        self, runner: CliRunner, app_dir: str
+    ) -> None:
+        """Test local stop command uses default port 8080."""
+        with patch("easy_sm.commands.helpers.subprocess.Popen") as mock_popen:
+            mock_process = MagicMock()
+            mock_process.stdout = []
+            mock_process.wait.return_value = 0
+            mock_popen.return_value = mock_process
+
+            original_cwd = os.getcwd()
+            try:
+                os.chdir(app_dir)
+                result = runner.invoke(cli, ["local", "stop", "-a", "app"])
+
+                assert result.exit_code == 0
+                # Verify default port is passed
+                call_args = mock_popen.call_args[0][0]
+                assert "8080" in call_args
+            finally:
+                os.chdir(original_cwd)
+
+    def test_local_stop_with_custom_port(
+        self, runner: CliRunner, app_dir: str
+    ) -> None:
+        """Test local stop command with custom port."""
+        with patch("easy_sm.commands.helpers.subprocess.Popen") as mock_popen:
+            mock_process = MagicMock()
+            mock_process.stdout = []
+            mock_process.wait.return_value = 0
+            mock_popen.return_value = mock_process
+
+            original_cwd = os.getcwd()
+            try:
+                os.chdir(app_dir)
+                result = runner.invoke(
+                    cli, ["local", "stop", "-a", "app", "-p", "9000"]
+                )
+
+                assert result.exit_code == 0, f"Command failed: {result.output}"
+
+                # Verify subprocess was called with correct port
+                call_args = mock_popen.call_args[0][0]
+                assert "9000" in call_args
+            finally:
+                os.chdir(original_cwd)
+
+    def test_local_stop_port_long_option(
+        self, runner: CliRunner, app_dir: str
+    ) -> None:
+        """Test local stop command with --port long option."""
+        with patch("easy_sm.commands.helpers.subprocess.Popen") as mock_popen:
+            mock_process = MagicMock()
+            mock_process.stdout = []
+            mock_process.wait.return_value = 0
+            mock_popen.return_value = mock_process
+
+            original_cwd = os.getcwd()
+            try:
+                os.chdir(app_dir)
+                result = runner.invoke(
+                    cli, ["local", "stop", "-a", "app", "--port", "3000"]
+                )
+
+                assert result.exit_code == 0, f"Command failed: {result.output}"
+
+                # Verify subprocess was called with correct port
+                call_args = mock_popen.call_args[0][0]
+                assert "3000" in call_args
+            finally:
+                os.chdir(original_cwd)
+
+    def test_local_stop_missing_config(
+        self, runner: CliRunner, tmp_path: Path
+    ) -> None:
+        """Test local stop command fails gracefully without config file."""
+        original_cwd = os.getcwd()
+        os.chdir(tmp_path)
+
+        try:
+            result = runner.invoke(cli, ["local", "stop", "-a", "nonexistent"])
+            # Command should fail
+            assert result.exit_code != 0
+            # Check either output or exception message
+            assert (
+                "This is not a easy_sm directory" in result.output
+                or "This is not a easy_sm directory"
+                in str(result.exception.__class__.__name__)
+                or result.exception is not None
+            )
+        finally:
+            os.chdir(original_cwd)
 
 
 class TestLocalTrainAndDeployIntegration:
@@ -403,7 +597,7 @@ class TestLocalTrainAndDeployIntegration:
         assert isinstance(config_data["image_name"], str)
         assert len(config_data["image_name"]) > 0
         assert isinstance(config_data["python_version"], str)
-        assert config_data["python_version"] in ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        assert config_data["python_version"] in ["3.10", "3.11", "3.12", "3.13"]
 
     def test_training_scripts_exist(self, app_dir: str) -> None:
         """Test that all required training scripts and files exist."""

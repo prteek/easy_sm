@@ -41,7 +41,7 @@ class TestCloudUploadData:
             image_name=app_name,
             aws_profile="test-profile",
             aws_region="us-east-1",
-            python_version="3.14",
+            python_version="3.13",
             easy_sm_module_dir=app_name,
             requirements_dir="requirements.txt",
         )
@@ -167,7 +167,7 @@ class TestCloudTrain:
             image_name=app_name,
             aws_profile="test-profile",
             aws_region="us-east-1",
-            python_version="3.14",
+            python_version="3.13",
             easy_sm_module_dir=app_name,
             requirements_dir="requirements.txt",
         )
@@ -352,7 +352,7 @@ class TestCloudDeploy:
             image_name=app_name,
             aws_profile="test-profile",
             aws_region="us-east-1",
-            python_version="3.14",
+            python_version="3.13",
             easy_sm_module_dir=app_name,
             requirements_dir="requirements.txt",
         )
@@ -461,7 +461,7 @@ class TestCloudDeployServerless:
             image_name=app_name,
             aws_profile="test-profile",
             aws_region="us-east-1",
-            python_version="3.14",
+            python_version="3.13",
             easy_sm_module_dir=app_name,
             requirements_dir="requirements.txt",
         )
@@ -567,7 +567,7 @@ class TestCloudBatchTransform:
             image_name=app_name,
             aws_profile="test-profile",
             aws_region="us-east-1",
-            python_version="3.14",
+            python_version="3.13",
             easy_sm_module_dir=app_name,
             requirements_dir="requirements.txt",
         )
@@ -724,7 +724,7 @@ class TestCloudProcess:
             image_name=app_name,
             aws_profile="test-profile",
             aws_region="us-east-1",
-            python_version="3.14",
+            python_version="3.13",
             easy_sm_module_dir=app_name,
             requirements_dir="requirements.txt",
         )
@@ -866,7 +866,7 @@ class TestCloudDeleteEndpoint:
             image_name=app_name,
             aws_profile="test-profile",
             aws_region="us-east-1",
-            python_version="3.14",
+            python_version="3.13",
             easy_sm_module_dir=app_name,
             requirements_dir="requirements.txt",
         )
@@ -965,7 +965,7 @@ class TestCloudListEndpoints:
             image_name=app_name,
             aws_profile="test-profile",
             aws_region="us-east-1",
-            python_version="3.14",
+            python_version="3.13",
             easy_sm_module_dir=app_name,
             requirements_dir="requirements.txt",
         )
@@ -1069,7 +1069,7 @@ class TestCloudListTrainingJobs:
             image_name=app_name,
             aws_profile="test-profile",
             aws_region="us-east-1",
-            python_version="3.14",
+            python_version="3.13",
             easy_sm_module_dir=app_name,
             requirements_dir="requirements.txt",
         )
@@ -1254,7 +1254,7 @@ class TestCloudMake:
             image_name=app_name,
             aws_profile="test-profile",
             aws_region="us-east-1",
-            python_version="3.14",
+            python_version="3.13",
             easy_sm_module_dir=app_name,
             requirements_dir="requirements.txt",
         )
