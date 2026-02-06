@@ -37,10 +37,10 @@ class TestInitCommand:
         python_version = "4"  # Select Python 3.13
         aws_profile = "1"  # First available profile
         aws_region = "us-east-1"
-        requirements_dir = "requirements.txt"
+        requirements_file_name = "requirements.txt"
 
         # Simulate user input
-        user_input = f"{app_name}\ny\n{python_version}\n{aws_profile}\n{aws_region}\n{requirements_dir}\n"
+        user_input = f"{app_name}\ny\n{python_version}\n{aws_profile}\n{aws_region}\n{requirements_file_name}\n"
 
         result = runner.invoke(cli, ["init"], input=user_input)
 
@@ -59,7 +59,7 @@ class TestInitCommand:
         assert config.image_name == app_name
         assert config.aws_region == aws_region
         assert config.python_version == "3.13"
-        assert config.requirements_dir == requirements_dir
+        assert config.requirements_file_name == requirements_file_name
         assert config.easy_sm_module_dir == root_dir
 
         # Verify template directory was created
@@ -73,13 +73,13 @@ class TestInitCommand:
         python_version = "1"  # Select Python 3.10
         aws_profile = "1"
         aws_region = "eu-west-1"
-        requirements_dir = "config/requirements.txt"
+        requirements_file_name = "config/requirements.txt"
 
         # Create the source directory
         Path(root_dir).mkdir(exist_ok=True)
 
         # Simulate user input (is_new_project=False)
-        user_input = f"{app_name}\nn\n{root_dir}\n{python_version}\n{aws_profile}\n{aws_region}\n{requirements_dir}\n"
+        user_input = f"{app_name}\nn\n{root_dir}\n{python_version}\n{aws_profile}\n{aws_region}\n{requirements_file_name}\n"
 
         result = runner.invoke(cli, ["init"], input=user_input)
 
@@ -98,7 +98,7 @@ class TestInitCommand:
         assert config.image_name == app_name
         assert config.aws_region == aws_region
         assert config.python_version == "3.10"
-        assert config.requirements_dir == requirements_dir
+        assert config.requirements_file_name == requirements_file_name
         assert config.easy_sm_module_dir == root_dir
 
     def test_init_config_json_structure(self, runner: CliRunner, temp_dir: str) -> None:
@@ -107,9 +107,9 @@ class TestInitCommand:
         python_version = "4"  # Select Python 3.13
         aws_profile = "1"
         aws_region = "ap-south-1"
-        requirements_dir = "requirements.txt"
+        requirements_file_name = "requirements.txt"
 
-        user_input = f"{app_name}\ny\n{python_version}\n{aws_profile}\n{aws_region}\n{requirements_dir}\n"
+        user_input = f"{app_name}\ny\n{python_version}\n{aws_profile}\n{aws_region}\n{requirements_file_name}\n"
 
         result = runner.invoke(cli, ["init"], input=user_input)
         assert result.exit_code == 0
@@ -126,7 +126,7 @@ class TestInitCommand:
             "aws_region",
             "python_version",
             "easy_sm_module_dir",
-            "requirements_dir",
+            "requirements_file_name",
         ]
         for field in required_fields:
             assert field in config_json, f"Missing required field: {field}"
@@ -134,7 +134,7 @@ class TestInitCommand:
         # Verify values
         assert config_json["image_name"] == app_name
         assert config_json["python_version"] == "3.13"
-        assert config_json["requirements_dir"] == requirements_dir
+        assert config_json["requirements_file_name"] == requirements_file_name
 
     def test_init_invalid_app_name(self, runner: CliRunner, temp_dir: str) -> None:
         """Test init command with invalid app name"""
@@ -153,9 +153,9 @@ class TestInitCommand:
         python_version = "3"
         aws_profile = "1"
         aws_region = "us-east-1"
-        requirements_dir = "requirements.txt"
+        requirements_file_name = "requirements.txt"
 
-        user_input = f"{app_name}\ny\n{python_version}\n{aws_profile}\n{aws_region}\n{requirements_dir}\n"
+        user_input = f"{app_name}\ny\n{python_version}\n{aws_profile}\n{aws_region}\n{requirements_file_name}\n"
 
         result = runner.invoke(cli, ["init"], input=user_input)
         assert result.exit_code == 0
@@ -180,9 +180,9 @@ class TestInitCommand:
         python_version = "3"
         aws_profile = "1"
         aws_region = "us-west-2"
-        requirements_dir = "requirements.txt"
+        requirements_file_name = "requirements.txt"
 
-        user_input = f"{app_name}\ny\n{python_version}\n{aws_profile}\n{aws_region}\n{requirements_dir}\n"
+        user_input = f"{app_name}\ny\n{python_version}\n{aws_profile}\n{aws_region}\n{requirements_file_name}\n"
 
         result = runner.invoke(cli, ["init"], input=user_input)
         assert result.exit_code == 0
@@ -204,9 +204,9 @@ class TestInitCommand:
         python_version = "3"
         aws_profile = "1"
         aws_region = "us-east-1"
-        requirements_dir = "requirements.txt"
+        requirements_file_name = "requirements.txt"
 
-        user_input = f"{app_name}\ny\n{python_version}\n{aws_profile}\n{aws_region}\n{requirements_dir}\n"
+        user_input = f"{app_name}\ny\n{python_version}\n{aws_profile}\n{aws_region}\n{requirements_file_name}\n"
 
         result = runner.invoke(cli, ["init"], input=user_input)
 

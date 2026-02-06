@@ -10,7 +10,7 @@ class Config(object):
     aws_region: str
     python_version: str
     easy_sm_module_dir: str
-    requirements_dir: str
+    requirements_file_name: str
 
     def __init__(
         self,
@@ -19,13 +19,13 @@ class Config(object):
         aws_region: str,
         python_version: str,
         easy_sm_module_dir: str,
-        requirements_dir: str,
+        requirements_file_name: str,
     ) -> None:
         self.image_name = image_name
         self.aws_profile = aws_profile
         self.aws_region = aws_region
         self.python_version = python_version
-        self.requirements_dir = requirements_dir
+        self.requirements_file_name = requirements_file_name
         self.easy_sm_module_dir = easy_sm_module_dir
 
     def to_dict(self) -> OrderedDict[str, Any]:
@@ -39,7 +39,7 @@ class Config(object):
             aws_region=input_dict["aws_region"],
             python_version=input_dict["python_version"],
             easy_sm_module_dir=input_dict["easy_sm_module_dir"],
-            requirements_dir=input_dict["requirements_dir"],
+            requirements_file_name=input_dict["requirements_file_name"],
         )
 
 
@@ -57,7 +57,7 @@ class ConfigManager(object):
                     aws_region="",
                     python_version="",
                     easy_sm_module_dir="",
-                    requirements_dir="",
+                    requirements_file_name="",
                 )
             )
 

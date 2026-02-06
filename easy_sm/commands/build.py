@@ -12,7 +12,7 @@ from easy_sm.commands.helpers import (
 
 def _build(
     source_dir: str,
-    requirements_dir: str,
+    requirements_file_name: str,
     image_name: str,
     docker_tag: str,
     python_version: str,
@@ -23,7 +23,7 @@ def _build(
     Assumes that Docker is installed and running locally.
 
     :param source_dir: [str], source root directory
-    :param requirements_dir: [str], path to requirements.txt
+    :param requirements_file_name: [str], filename of requirements file (e.g., requirements.txt)
     :param image_name: [str], The name of the Docker image
     :param docker_tag: [str], the Docker tag for the image
     :param python_version: [str], Python version for the Docker image
@@ -55,7 +55,7 @@ def _build(
         "{}".format(os.path.relpath(source_dir)),
         "{}".format(os.path.relpath(target_dir_name)),
         "{}".format(dockerfile_path),
-        "{}".format(os.path.relpath(requirements_dir)),
+        "{}".format(requirements_file_name),
         docker_tag,
         image_name,
         python_version,
@@ -75,7 +75,7 @@ def build(obj: Dict[str, Any], app_name: str) -> None:
     config = load_config(app_name)
     _build(
         source_dir=config.easy_sm_module_dir,
-        requirements_dir=config.requirements_dir,
+        requirements_file_name=config.requirements_file_name,
         docker_tag=obj["docker_tag"],
         image_name=config.image_name,
         python_version=config.python_version,
