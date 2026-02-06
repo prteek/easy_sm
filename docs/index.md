@@ -2,6 +2,7 @@
 
 [![Publish](https://github.com/prteek/easy_sm/actions/workflows/publish.yml/badge.svg)](https://github.com/prteek/easy_sm/actions/workflows/publish.yml)
 [![Documentation](https://github.com/prteek/easy_sm/actions/workflows/docs.yml/badge.svg)](https://github.com/prteek/easy_sm/actions/workflows/docs.yml)
+[![Release Version](https://img.shields.io/github/v/release/prteek/easy_sm?logo=github)](https://github.com/prteek/easy_sm/releases)
 [![PyPI version](https://img.shields.io/pypi/v/easy-sm?logo=python&logoColor=white)](https://pypi.org/project/easy-sm/)
 [![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)

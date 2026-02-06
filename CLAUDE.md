@@ -333,6 +333,15 @@ Returns:
   # Publish workflow triggers automatically
   ```
 
+**create-release.yml**: GitHub Release
+- **Trigger**: Git tag creation matching `v*`
+- **Process**:
+  1. Creates a GitHub Release with the tag name
+  2. Generates basic release notes with commit history link
+- **Result**: Release visible on GitHub releases page
+- **Badge**: GitHub release badge updates immediately
+- **Runs parallel to**: publish.yml (both triggered by same tag push)
+
 **docs.yml**: Documentation Deployment
 - **Trigger**: Push to main (when `docs/`, `mkdocs.yml`, or source docs files change)
 - **Process**:
