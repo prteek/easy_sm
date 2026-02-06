@@ -317,30 +317,26 @@ Returns:
 - **Result**: Validates code quality on every commit
 - **Badge**: Shows test status, not affected by release jobs
 
-**publish.yml**: PyPI Release
+**publish.yml**: Release and Publish
 - **Trigger**: Git tag creation matching `v*` (e.g., `git tag v1.0.1`)
 - **Process**:
   1. Build source distribution and wheel
   2. Publish to PyPI
-- **Result**: New version available on PyPI
+  3. Create GitHub Release with release notes
+- **Result**:
+  - New version available on PyPI
+  - GitHub release page created with commit history
 - **Important**: Only triggered on version tags, not on regular commits
-- **Badge**: Shows status of tag-triggered releases only
+- **Badges**:
+  - GitHub release badge updates immediately
+  - PyPI badge updates within minutes
 - **How to release**:
   ```bash
   # After version bump commit is merged to main:
   git tag v1.0.1
   git push origin v1.0.1
-  # Publish workflow triggers automatically
+  # Publish workflow triggers automatically and handles both PyPI + GitHub
   ```
-
-**create-release.yml**: GitHub Release
-- **Trigger**: Git tag creation matching `v*`
-- **Process**:
-  1. Creates a GitHub Release with the tag name
-  2. Generates basic release notes with commit history link
-- **Result**: Release visible on GitHub releases page
-- **Badge**: GitHub release badge updates immediately
-- **Runs parallel to**: publish.yml (both triggered by same tag push)
 
 **docs.yml**: Documentation Deployment
 - **Trigger**: Push to main (when `docs/`, `mkdocs.yml`, or source docs files change)

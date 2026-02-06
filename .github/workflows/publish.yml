@@ -6,8 +6,8 @@ on:
   workflow_dispatch:  # Allow manual workflow trigger
 
 jobs:
-  build-n-publish:
-    name: Build and publish Python 🐍 distributions 📦 to PyPI
+  publish:
+    name: Create Release and Publish to PyPI
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
@@ -32,3 +32,19 @@ jobs:
       with:
         user: __token__
         password: ${{ secrets.PYPI_TOKEN }}
+
+    - name: Create GitHub Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref_name }}
+        release_name: Release ${{ github.ref_name }}
+        body: |
+          ## Version ${{ github.ref_name }}
+
+          Package published to PyPI: https://pypi.org/project/easy-sm/${{ github.ref_name }}/
+
+          See commit history: https://github.com/${{ github.repository }}/commits/${{ github.ref_name }}
+        draft: false
+        prerelease: false
