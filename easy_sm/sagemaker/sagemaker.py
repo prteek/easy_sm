@@ -1,9 +1,14 @@
+import logging
 import os
 from urllib.parse import urlparse
 
 import boto3
 from sagemaker.core.helper.session_helper import Session, get_execution_role
 from sagemaker.core.processing import Processor, ProcessingInput, ProcessingOutput
+
+# Suppress verbose SageMaker SDK logging
+logging.getLogger("sagemaker.config").setLevel(logging.WARNING)
+logging.getLogger("botocore.credentials").setLevel(logging.WARNING)
 
 
 class SageMakerClient:
@@ -249,29 +254,18 @@ class SageMakerClient:
         response = self.sagemaker_client.list_endpoints()
         return response.get("Endpoints", [])
 
-    def list_training_jobs(
-        self, max_results: int = 5, name_contains: str | None = None
-    ) -> list[dict]:
-        """List SageMaker training jobs.
+    def list_training_jobs(self, max_results: int = 5) -> list[dict]:
+        """List recent SageMaker training jobs.
 
         Args:
-            max_results: Maximum number of matching jobs to return.
-            name_contains: Filter to only return jobs whose name contains this string.
-                          When specified, filtering is applied first, then results
-                          are limited to max_results.
+            max_results: Maximum number of jobs to return (default: 5).
 
         Returns:
             List of training job summaries sorted by creation time (newest first).
         """
-        kwargs = {
-            "MaxResults": max_results,
-            "SortBy": "CreationTime",
-            "SortOrder": "Descending",
-        }
-        if name_contains:
-            kwargs["NameContains"] = name_contains
-
-        response = self.sagemaker_client.list_training_jobs(**kwargs)
+        response = self.sagemaker_client.list_training_jobs(
+            MaxResults=max_results, SortBy="CreationTime", SortOrder="Descending"
+        )
         return response.get("TrainingJobSummaries", [])
 
     @staticmethod

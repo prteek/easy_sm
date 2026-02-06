@@ -1118,9 +1118,7 @@ class TestCloudListTrainingJobs:
         assert "Completed" in result.output
         assert "InProgress" in result.output
 
-        mock_client.list_training_jobs.assert_called_once_with(
-            max_results=5, name_contains=None
-        )
+        mock_client.list_training_jobs.assert_called_once_with(max_results=5)
 
     @patch("easy_sm.sagemaker.sagemaker.SageMakerClient")
     def test_list_training_jobs_with_max_results(
@@ -1157,109 +1155,7 @@ class TestCloudListTrainingJobs:
         assert result.exit_code == 0
         assert "Found 1 training job(s)" in result.output
 
-        mock_client.list_training_jobs.assert_called_once_with(
-            max_results=10, name_contains=None
-        )
-
-    @patch("easy_sm.sagemaker.sagemaker.SageMakerClient")
-    def test_list_training_jobs_with_base_job_name(
-        self, mock_sagemaker_client: MagicMock, runner: CliRunner, temp_dir: str
-    ) -> None:
-        """Test cloud list-training-jobs command with base job name filter."""
-        app_name = "test-app"
-        self._create_config(app_name)
-
-        mock_client = MagicMock()
-        mock_client.list_training_jobs.return_value = [
-            {
-                "TrainingJobName": "my-job-1",
-                "TrainingJobStatus": "Completed",
-                "CreationTime": "2024-01-01T00:00:00Z",
-            }
-        ]
-        mock_sagemaker_client.return_value = mock_client
-
-        result = runner.invoke(
-            app,
-            [
-                "cloud",
-                "list-training-jobs",
-                "-a",
-                app_name,
-                "-b",
-                "my-job",
-                "-r",
-                "arn:aws:iam::123456789012:role/SageMakerRole",
-            ],
-        )
-
-        assert result.exit_code == 0
-        assert "Found 1 training job(s)" in result.output
-        assert "my-job-1" in result.output
-
-        mock_client.list_training_jobs.assert_called_once_with(
-            max_results=5, name_contains="my-job"
-        )
-
-    @patch("easy_sm.sagemaker.sagemaker.SageMakerClient")
-    def test_list_training_jobs_with_filter_and_limit(
-        self, mock_sagemaker_client: MagicMock, runner: CliRunner, temp_dir: str
-    ) -> None:
-        """Test cloud list-training-jobs with both -b filter and -m limit.
-
-        Verifies that when both options are used, the name filter is applied
-        and results are limited to max_results matching jobs.
-        """
-        app_name = "test-app"
-        self._create_config(app_name)
-
-        mock_client = MagicMock()
-        # Simulate 3 matching jobs returned (filtered by name, limited to 3)
-        mock_client.list_training_jobs.return_value = [
-            {
-                "TrainingJobName": "my-model-v1",
-                "TrainingJobStatus": "Completed",
-                "CreationTime": "2024-01-03T00:00:00Z",
-            },
-            {
-                "TrainingJobName": "my-model-v2",
-                "TrainingJobStatus": "Completed",
-                "CreationTime": "2024-01-02T00:00:00Z",
-            },
-            {
-                "TrainingJobName": "my-model-v3",
-                "TrainingJobStatus": "InProgress",
-                "CreationTime": "2024-01-01T00:00:00Z",
-            },
-        ]
-        mock_sagemaker_client.return_value = mock_client
-
-        result = runner.invoke(
-            app,
-            [
-                "cloud",
-                "list-training-jobs",
-                "-a",
-                app_name,
-                "-b",
-                "my-model",
-                "-m",
-                "3",
-                "-r",
-                "arn:aws:iam::123456789012:role/SageMakerRole",
-            ],
-        )
-
-        assert result.exit_code == 0
-        assert "Found 3 training job(s)" in result.output
-        assert "my-model-v1" in result.output
-        assert "my-model-v2" in result.output
-        assert "my-model-v3" in result.output
-
-        # Verify both filter and limit are passed to the API
-        mock_client.list_training_jobs.assert_called_once_with(
-            max_results=3, name_contains="my-model"
-        )
+        mock_client.list_training_jobs.assert_called_once_with(max_results=10)
 
     @patch("easy_sm.sagemaker.sagemaker.SageMakerClient")
     def test_list_training_jobs_empty(
