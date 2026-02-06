@@ -172,7 +172,7 @@ easy_sm deploy -n my-endpoint -e ml.m5.large \
 - Source code is mounted/copied into Docker containers
 - Training: `/opt/ml/input/data/training`
 - Model output: `/opt/ml/model`
-- Hyperparameters: `/opt/ml/input/config/hyperparameters.json`
+- Output logs: `/opt/ml/output`
 
 ## Security Features
 

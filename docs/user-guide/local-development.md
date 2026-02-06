@@ -48,14 +48,13 @@ import pandas as pd
 import joblib
 import os
 
-def train(input_data_path, model_save_path, hyperparams_path=None):
+def train(input_data_path, model_save_path):
     """
     Training function called by easy_sm.
 
     Args:
         input_data_path: Path to input data directory
         model_save_path: Path where trained model should be saved
-        hyperparams_path: Optional path to hyperparameters file
     """
     # Load training data
     data = pd.read_csv(os.path.join(input_data_path, 'data.csv'))

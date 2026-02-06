@@ -45,35 +45,22 @@ easy_sm train -n job-name -e ml.m5.large \
 
 | Parameter | Flag | Required | Description |
 |-----------|------|----------|-------------|
-| Job Name | `-n, --job-name` | Yes | Unique name for training job |
+| Job Name | `-n, --base-job-name` | Yes | Prefix for training job name |
 | Instance Type | `-e, --ec2-type` | Yes | EC2 instance type (e.g., ml.m5.large) |
-| Input Path | `-i, --s3-input-location` | Yes | S3 path to training data |
-| Output Path | `-o, --s3-output-location` | Yes | S3 path for model artifacts |
-| Hyperparameters | `-p, --hyperparameters-file` | No | Path to hyperparameters JSON file |
-| Volume Size | `-v, --volume-size` | No | EBS volume size in GB (default: 30) |
-| Timeout | `--time-out` | No | Max training time in seconds |
-| Tags | `--tags` | No | JSON string of resource tags |
-| VPC Config | `--vpc-id, --subnet-ids, --security-group-ids` | No | VPC configuration |
+| Input Path | `-i, --input-s3-dir` | Yes | S3 path to training data |
+| Output Path | `-o, --output-s3-dir` | Yes | S3 path for model artifacts |
+| Instance Count | `-c, --instance-count` | No | Number of instances (default: 1) |
 | App Name | `-a, --app-name` | No | Override auto-detected app name |
 | IAM Role | `-r, --iam-role-arn` | No | Override SAGEMAKER_ROLE env var |
 
-### Example with Hyperparameters
+### Multi-Instance Training
 
 ```bash
-# Create hyperparameters file
-cat > hyperparams.json <<EOF
-{
-  "learning_rate": "0.001",
-  "epochs": "100",
-  "batch_size": "32"
-}
-EOF
-
-# Train with hyperparameters
+# Train on multiple instances for distributed training
 easy_sm train -n my-training-job -e ml.m5.xlarge \
   -i s3://my-bucket/training-data \
   -o s3://my-bucket/model-output \
-  -p hyperparams.json
+  -c 2
 ```
 
 ### Instance Type Selection

@@ -98,14 +98,13 @@ import pandas as pd
 import joblib
 import os
 
-def train(input_data_path, model_save_path, hyperparams_path=None):
+def train(input_data_path, model_save_path):
     """
     Train model locally.
 
     Args:
         input_data_path: Path to training data
         model_save_path: Path to save trained model
-        hyperparams_path: Path to hyperparameters JSON (optional)
     """
     # Load data
     data = pd.read_csv(os.path.join(input_data_path, 'train.csv'))

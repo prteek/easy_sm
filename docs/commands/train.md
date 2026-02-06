@@ -154,29 +154,21 @@ Your training code at `training/training.py` should implement:
 
 ```python
 import os
-import json
 import joblib
 
-def train(input_data_path, model_save_path, hyperparams_path=None):
+def train(input_data_path, model_save_path):
     """
     Train model on SageMaker.
 
     Args:
         input_data_path: /opt/ml/input/data/training
         model_save_path: /opt/ml/model
-        hyperparams_path: /opt/ml/input/config/hyperparameters.json
     """
-    # Load hyperparameters
-    hyperparams = {}
-    if hyperparams_path and os.path.exists(hyperparams_path):
-        with open(hyperparams_path) as f:
-            hyperparams = json.load(f)
-
     # Load training data
     train_data = load_data(input_data_path)
 
     # Train model
-    model = train_model(train_data, hyperparams)
+    model = train_model(train_data)
 
     # Save model
     joblib.dump(model, os.path.join(model_save_path, 'model.mdl'))
@@ -190,7 +182,6 @@ SageMaker uses these standard paths:
 | Path | Purpose |
 |------|---------|
 | `/opt/ml/input/data/training/` | Input training data |
-| `/opt/ml/input/config/hyperparameters.json` | Hyperparameters (optional) |
 | `/opt/ml/model/` | Save trained model here |
 | `/opt/ml/output/` | Training metrics and logs |
 
@@ -243,8 +234,9 @@ Example:
 
 ```python
 import os
+import json
 
-def train(input_data_path, model_save_path, hyperparams_path=None):
+def train(input_data_path, model_save_path):
     # Get distributed training info
     hosts = json.loads(os.environ.get('SM_HOSTS', '[]'))
     current_host = os.environ.get('SM_CURRENT_HOST', '')

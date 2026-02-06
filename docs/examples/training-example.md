@@ -94,9 +94,8 @@ if __name__ == '__main__':
     # SageMaker passes paths as arguments
     train_data_path = sys.argv[1] if len(sys.argv) > 1 else '/opt/ml/input/data/training'
     model_save_path = sys.argv[2] if len(sys.argv) > 2 else '/opt/ml/model'
-    hyperparams_path = sys.argv[3] if len(sys.argv) > 3 else '/opt/ml/input/config/hyperparameters.json'
 
-    train(train_data_path, model_save_path, hyperparams_path)
+    train(train_data_path, model_save_path)
 ```
 
 ### Key Points
@@ -315,49 +314,36 @@ s3://my-sagemaker-bucket/models/my-training-job-001/output/model.tar.gz
 
 This path can be used for deployment.
 
-## Advanced: Hyperparameters
-
-Pass hyperparameters to your training code:
-
-```bash
-easy_sm train -n my-training-job-002 -e ml.m5.large \
-  -i s3://my-sagemaker-bucket/training-data \
-  -o s3://my-sagemaker-bucket/models \
-  --hyperparameters '{"learning_rate": "0.01", "epochs": "100"}'
-```
-
-Access hyperparameters in your code:
-
-```python
-import json
-
-def train(input_data_path, model_save_path, hyperparams_path=None):
-    # Load hyperparameters
-    if hyperparams_path and os.path.exists(hyperparams_path):
-        with open(hyperparams_path, 'r') as f:
-            hyperparams = json.load(f)
-            learning_rate = float(hyperparams.get('learning_rate', 0.001))
-            epochs = int(hyperparams.get('epochs', 10))
-    else:
-        learning_rate = 0.001
-        epochs = 10
-
-    print(f"Training with lr={learning_rate}, epochs={epochs}")
-    # ... training logic
-```
-
 ## Advanced: Distributed Training
 
 Use multiple instances for distributed training:
 
 ```bash
 easy_sm train -n distributed-job -e ml.m5.xlarge \
-  --num-instances 3 \
+  -c 3 \
   -i s3://my-sagemaker-bucket/training-data \
   -o s3://my-sagemaker-bucket/models
 ```
 
-Your code must support distributed training (e.g., using Horovod, PyTorch DDP).
+Your training code can access distributed training environment variables:
+
+```python
+import os
+import json
+
+def train(input_data_path, model_save_path):
+    # Get distributed training info
+    hosts = json.loads(os.environ.get('SM_HOSTS', '[]'))
+    current_host = os.environ.get('SM_CURRENT_HOST', '')
+    num_gpus = int(os.environ.get('SM_NUM_GPUS', 0))
+
+    print(f"Running on {current_host}, total hosts: {len(hosts)}")
+
+    if len(hosts) > 1:
+        # Implement distributed training logic
+        # Use frameworks like Horovod, PyTorch DDP, etc.
+        pass
+```
 
 ## Advanced: GPU Training
 

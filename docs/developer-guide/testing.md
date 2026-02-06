@@ -117,34 +117,29 @@ Tests Docker image building with parameter variations and error scenarios:
 
 Tests local training, deployment, processing, and stop commands:
 
-- `test_local_train` - Train model locally
-- `test_local_train_with_custom_data_path` - Custom input data
-- `test_local_train_with_hyperparameters` - Pass hyperparameters
-- `test_local_train_with_missing_data` - Handle missing data
-- `test_local_deploy` - Deploy model locally
-- `test_local_deploy_with_custom_port` - Use custom port
-- `test_local_deploy_already_running` - Handle port conflict
-- `test_local_deploy_with_model_path` - Specify model path
-- `test_local_process` - Run processing job locally
-- `test_local_process_with_script` - Process with Python script
-- `test_local_process_with_inputs_outputs` - Multiple I/O paths
-- `test_local_stop` - Stop local deployment
-- `test_local_stop_not_running` - Handle no container running
-- `test_local_commands_with_auto_detect` - Auto-detect app name
-- 9 more tests...
+- `test_local_train_with_mock_subprocess` - Train model locally with mocked subprocess
+- `test_local_train_config_loading` - Config file loading
+- `test_local_train_missing_config` - Handle missing config
+- `test_local_train_custom_docker_tag` - Use custom Docker tag
+- `test_local_train_command_structure` - Verify command structure
+- `test_local_deploy_with_mock_subprocess` - Deploy model locally
+- `test_local_deploy_custom_port` - Use custom port
+- `test_local_deploy_port_long_option` - Long-form port option
+- `test_local_stop_with_mock_subprocess` - Stop local deployment
+- `test_local_stop_with_custom_port` - Stop with custom port
+- 13 more tests covering integration workflows, config validation, and script permissions
 
 #### test_cloud_commands.py (28 tests)
 
 Tests SageMaker operations:
 
 **Training**:
-- `test_train_command` - Basic training job
-- `test_train_with_hyperparameters` - Pass hyperparameters
+- `test_train_success` - Basic training job
+- `test_train_with_custom_docker_tag` - Use custom Docker tag
 - `test_train_with_multiple_instances` - Distributed training
-- `test_train_with_spot_instances` - Use spot instances
-- `test_list_training_jobs` - List all jobs
+- `test_list_training_jobs_success` - List all jobs
 - `test_list_training_jobs_names_only` - Names-only output
-- `test_get_model_artifacts` - Get model S3 path
+- `test_get_model_artifacts_success` - Get model S3 path
 
 **Deployment**:
 - `test_deploy_provisioned` - Deploy provisioned endpoint

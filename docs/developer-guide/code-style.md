@@ -399,7 +399,7 @@ Test names should describe what they test:
 
 ```python
 # Good
-def test_train_command_with_hyperparameters():
+def test_train_command_with_multiple_instances():
     pass
 
 def test_deploy_fails_without_model_path():
