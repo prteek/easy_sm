@@ -1,33 +1,53 @@
-import click
+from typing import Optional
 
-from easy_sm.commands.cloud import cloud
-from easy_sm.commands.initialize import init
+import typer
+
+from easy_sm.commands import helpers
 from easy_sm.commands.build import build
-from easy_sm.commands.local import local
+from easy_sm.commands.cloud import cloud_app
+from easy_sm.commands.initialize import init
+from easy_sm.commands.local import local_app
 from easy_sm.commands.push import push
 
-
-@click.group()
-@click.option(
-    "-t",
-    "--docker-tag",
-    default="latest",
-    help="Specify tag for Docker image",
+app = typer.Typer(
+    help="easy_sm enables training and deploying machine learning models on AWS SageMaker in a few minutes!"
 )
-@click.pass_context
-def cli(ctx: click.Context, docker_tag: str) -> None:
-    """
-    easy_sm enables training and deploying machine learning models on AWS SageMaker in a few minutes!
-    """
-    ctx.obj = {"docker_tag": docker_tag}
 
 
-def add_commands(cli: click.Group) -> None:
-    cli.add_command(init)
-    cli.add_command(build)
-    cli.add_command(local)
-    cli.add_command(push)
-    cli.add_command(cloud)
+def docker_tag_callback(tag: str) -> str:
+    """Set global docker_tag when provided."""
+    helpers.docker_tag = tag
+    return tag
 
 
-add_commands(cli)
+@app.callback()
+def main(
+    docker_tag: str = typer.Option(
+        "latest",
+        "--docker-tag",
+        "-t",
+        help="Specify tag for Docker image",
+        callback=docker_tag_callback,
+    ),
+) -> None:
+    """easy_sm CLI - Train and deploy ML models on AWS SageMaker."""
+    pass
+
+
+# Register commands
+app.command(name="init")(init)
+app.command(name="build")(build)
+app.command(name="push")(push)
+
+# Register sub-apps
+app.add_typer(local_app, name="local")
+app.add_typer(cloud_app, name="cloud")
+
+
+def cli() -> None:
+    """Entry point for the CLI."""
+    app()
+
+
+if __name__ == "__main__":
+    cli()

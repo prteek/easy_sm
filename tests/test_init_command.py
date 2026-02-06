@@ -6,9 +6,9 @@ from pathlib import Path
 from typing import Generator
 
 import pytest
-from click.testing import CliRunner
+from typer.testing import CliRunner
 
-from easy_sm.__main__ import cli
+from easy_sm.__main__ import app
 from easy_sm.config.config import ConfigManager
 
 
@@ -42,7 +42,7 @@ class TestInitCommand:
         # Simulate user input
         user_input = f"{app_name}\ny\n{python_version}\n{aws_profile}\n{aws_region}\n{requirements_dir}\n"
 
-        result = runner.invoke(cli, ["init"], input=user_input)
+        result = runner.invoke(app, ["init"], input=user_input)
 
         # Check command execution
         assert result.exit_code == 0, f"Command failed with: {result.output}"
@@ -81,7 +81,7 @@ class TestInitCommand:
         # Simulate user input (is_new_project=False)
         user_input = f"{app_name}\nn\n{root_dir}\n{python_version}\n{aws_profile}\n{aws_region}\n{requirements_dir}\n"
 
-        result = runner.invoke(cli, ["init"], input=user_input)
+        result = runner.invoke(app, ["init"], input=user_input)
 
         # Check command execution
         assert result.exit_code == 0, f"Command failed with: {result.output}"
@@ -111,7 +111,7 @@ class TestInitCommand:
 
         user_input = f"{app_name}\ny\n{python_version}\n{aws_profile}\n{aws_region}\n{requirements_dir}\n"
 
-        result = runner.invoke(cli, ["init"], input=user_input)
+        result = runner.invoke(app, ["init"], input=user_input)
         assert result.exit_code == 0
 
         # Load config file and verify JSON structure
@@ -141,7 +141,7 @@ class TestInitCommand:
         invalid_app_name = "test@app!"  # Invalid characters
         user_input = f"{invalid_app_name}\n"
 
-        result = runner.invoke(cli, ["init"], input=user_input)
+        result = runner.invoke(app, ["init"], input=user_input)
 
         # Should fail with invalid app name
         assert result.exit_code != 0
@@ -157,7 +157,7 @@ class TestInitCommand:
 
         user_input = f"{app_name}\ny\n{python_version}\n{aws_profile}\n{aws_region}\n{requirements_dir}\n"
 
-        result = runner.invoke(cli, ["init"], input=user_input)
+        result = runner.invoke(app, ["init"], input=user_input)
         assert result.exit_code == 0
 
         # Check for expected template directories and files
@@ -184,7 +184,7 @@ class TestInitCommand:
 
         user_input = f"{app_name}\ny\n{python_version}\n{aws_profile}\n{aws_region}\n{requirements_dir}\n"
 
-        result = runner.invoke(cli, ["init"], input=user_input)
+        result = runner.invoke(app, ["init"], input=user_input)
         assert result.exit_code == 0
 
         config_file = f"{app_name}.json"
@@ -208,7 +208,7 @@ class TestInitCommand:
 
         user_input = f"{app_name}\ny\n{python_version}\n{aws_profile}\n{aws_region}\n{requirements_dir}\n"
 
-        result = runner.invoke(cli, ["init"], input=user_input)
+        result = runner.invoke(app, ["init"], input=user_input)
 
         # Should fail due to existing easy_sm_base directory
         assert result.exit_code != 0

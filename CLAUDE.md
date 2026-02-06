@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**easy_sm** is a Python CLI tool (Python >=3.13) that simplifies AWS SageMaker workflows by enabling rapid local prototyping with Docker before deploying to the cloud. It's built on Click and provides commands for building Docker images, training/processing locally and in the cloud, and managing deployments.
+**easy_sm** is a Python CLI tool (Python >=3.13) that simplifies AWS SageMaker workflows by enabling rapid local prototyping with Docker before deploying to the cloud. It's built on Typer and provides commands for building Docker images, training/processing locally and in the cloud, and managing deployments.
 
 ## Build and Development Commands
 
@@ -130,15 +130,15 @@ All tests use mocked external dependencies (subprocess, boto3, SageMaker SDK) fo
 - Prefer f-strings for new code
 - Accept `.format()` in existing code for consistency
 
-### Click Commands
-- Use `u""` prefix for Unicode strings in decorators (legacy compatibility)
+### Typer Commands
+- Use `Annotated[type, typer.Option(...)]` for option parameters
 - Always include help text for options
-- Use `@click.pass_obj` to access context and docker_tag
-- Click groups: register subcommands with `group.add_command(subcommand)`
+- Access global `docker_tag` via `helpers.docker_tag`
+- Use `typer.Typer()` for sub-apps and register with `app.add_typer(sub_app, name="...")`
 
 ### Error Handling
 - Use `ValueError` for validation errors
-- Use Click exceptions for CLI errors (e.g., `click.BadParameter`)
+- Use `typer.BadParameter` for CLI-specific errors
 - Print error messages to stdout before `sys.exit()`
 - Use try/except for subprocess operations
 
@@ -148,37 +148,35 @@ All tests use mocked external dependencies (subprocess, boto3, SageMaker SDK) fo
 - Example:
   ```python
   import os
-  from typing import Any, Dict
+  from typing import Annotated, Optional
 
-  import click
+  import typer
 
-  from easy_sm.commands.helpers import safe_run_subprocess
-  from easy_sm.config.config import Config, ConfigManager
+  from easy_sm.commands import helpers
+  from easy_sm.commands.helpers import load_config
   ```
 
 ## Common Patterns
 
 ### Loading Configuration in Commands
 ```python
-def _config(app_name: str) -> Config:
-    config_file_path = os.path.join(f"{app_name}.json")
-    if not os.path.isfile(config_file_path):
-        raise ValueError("This is not a easy_sm directory: {}".format(os.getcwd()))
-    return ConfigManager(config_file_path).get_config()
+from easy_sm.commands.helpers import load_config
+
+config = load_config(app_name)
 ```
 
-### Click Group with Docker Tag Context
+### Typer Command with Options
 ```python
-@click.group()
-def command_group() -> None:
-    """Group description"""
-    pass
+from typing import Annotated
+import typer
+from easy_sm.commands import helpers
 
-@command_group.command()
-@click.option("-a", "--app-name", required=True, help="App name")
-@click.pass_obj
-def subcommand(obj: Dict[str, Any], app_name: str) -> None:
-    docker_tag = obj['docker_tag']
+@app.command()
+def subcommand(
+    app_name: Annotated[str, typer.Option("--app-name", "-a", help="App name")],
+) -> None:
+    """Command description."""
+    docker_tag = helpers.docker_tag
     # Implementation
 ```
 
@@ -251,10 +249,10 @@ Configured to allow specific bash commands for development:
 ## Dependencies
 
 ### Runtime Dependencies (from setup.py)
-- **click** (>=8.1.7): CLI framework
+- **typer** (>=0.9.0): CLI framework (built on Click)
 - **docker** (>=7.1.0): Docker SDK for building/pushing images
 - **sagemaker** (>=2.243.0): AWS SageMaker SDK
-- **boto3**: AWS SDK (transitive via sagemaker)
+- **boto3** (>=1.26.0): AWS SDK
 
 ### Development Dependencies (from base-requirements.txt)
 - **pytest**: Test framework

@@ -310,5 +310,5 @@ Created by Prateek (prteek@icloud.com)
 
 **Quick Links:**
 - [AWS SageMaker Documentation](https://docs.aws.amazon.com/sagemaker/)
-- [Click Documentation](https://click.palletsprojects.com/)
+- [Typer Documentation](https://typer.tiangolo.com/)
 - [Docker Documentation](https://docs.docker.com/)

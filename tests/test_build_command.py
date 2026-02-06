@@ -8,9 +8,9 @@ from typing import Generator
 from unittest.mock import MagicMock, patch
 
 import pytest
-from click.testing import CliRunner
+from typer.testing import CliRunner
 
-from easy_sm.__main__ import cli
+from easy_sm.__main__ import app
 from easy_sm.config.config import Config, ConfigManager
 
 
@@ -74,7 +74,7 @@ class TestBuildCommand:
         mock_process.wait.return_value = 0
         mock_popen.return_value = mock_process
 
-        result = runner.invoke(cli, ["build", "-a", app_name])
+        result = runner.invoke(app, ["build", "-a", app_name])
 
         assert result.exit_code == 0
         assert "Started building SageMaker Docker image" in result.output
@@ -95,7 +95,7 @@ class TestBuildCommand:
         mock_popen.return_value = mock_process
 
         result = runner.invoke(
-            cli, ["--docker-tag", docker_tag, "build", "-a", app_name]
+            app, ["--docker-tag", docker_tag, "build", "-a", app_name]
         )
 
         assert result.exit_code == 0
@@ -117,10 +117,8 @@ class TestBuildCommand:
         mock_process.wait.return_value = 0
         mock_popen.return_value = mock_process
 
-        # Pass obj with default docker_tag
-        result = runner.invoke(
-            cli, ["build", "-a", app_name], obj={"docker_tag": "latest"}
-        )
+        # Typer uses default docker_tag from callback
+        result = runner.invoke(app, ["build", "-a", app_name])
 
         assert result.exit_code == 0
 
@@ -128,7 +126,7 @@ class TestBuildCommand:
         """Test build fails when config file is missing"""
         app_name = "nonexistent-app"
 
-        result = runner.invoke(cli, ["build", "-a", app_name])
+        result = runner.invoke(app, ["build", "-a", app_name])
 
         assert result.exit_code != 0
         assert isinstance(result.exception, ValueError) or "This is not a easy_sm directory" in result.output
@@ -140,7 +138,7 @@ class TestBuildCommand:
         self._create_config(app_name)
         # Don't create the easy_sm_base structure
 
-        result = runner.invoke(cli, ["build", "-a", app_name])
+        result = runner.invoke(app, ["build", "-a", app_name])
 
         assert result.exit_code != 0
         assert isinstance(result.exception, ValueError) or "This is not a easy_sm directory" in result.output
@@ -161,7 +159,7 @@ class TestBuildCommand:
         Path(os.path.join(easy_sm_base, "prediction", "serve")).touch()
         Path(os.path.join(easy_sm_base, "executor.sh")).touch()
 
-        result = runner.invoke(cli, ["build", "-a", app_name])
+        result = runner.invoke(app, ["build", "-a", app_name])
 
         assert result.exit_code != 0
         assert isinstance(result.exception, ValueError) or "This is not a easy_sm directory" in result.output
@@ -182,7 +180,7 @@ class TestBuildCommand:
         Path(os.path.join(easy_sm_base, "prediction", "serve")).touch()
         Path(os.path.join(easy_sm_base, "executor.sh")).touch()
 
-        result = runner.invoke(cli, ["build", "-a", app_name])
+        result = runner.invoke(app, ["build", "-a", app_name])
 
         assert result.exit_code != 0
         assert isinstance(result.exception, ValueError) or "This is not a easy_sm directory" in result.output
@@ -203,7 +201,7 @@ class TestBuildCommand:
         Path(os.path.join(easy_sm_base, "training", "train")).touch()
         Path(os.path.join(easy_sm_base, "executor.sh")).touch()
 
-        result = runner.invoke(cli, ["build", "-a", app_name])
+        result = runner.invoke(app, ["build", "-a", app_name])
 
         assert result.exit_code != 0
         assert isinstance(result.exception, ValueError) or "This is not a easy_sm directory" in result.output
@@ -229,7 +227,7 @@ class TestBuildCommand:
         mock_process.wait.return_value = 0
         mock_popen.return_value = mock_process
 
-        result = runner.invoke(cli, ["build", "-a", app_name])
+        result = runner.invoke(app, ["build", "-a", app_name])
 
         assert result.exit_code == 0
         # Verify permissions were set to 0o777
@@ -253,7 +251,7 @@ class TestBuildCommand:
         mock_popen.return_value = mock_process
 
         result = runner.invoke(
-            cli, ["--docker-tag", docker_tag, "build", "-a", app_name]
+            app, ["--docker-tag", docker_tag, "build", "-a", app_name]
         )
 
         assert result.exit_code == 0
@@ -282,7 +280,7 @@ class TestBuildCommand:
         mock_process.wait.return_value = 1
         mock_popen.return_value = mock_process
 
-        result = runner.invoke(cli, ["build", "-a", app_name])
+        result = runner.invoke(app, ["build", "-a", app_name])
 
         # The command completes but subprocess returns error (safe_run_subprocess handles it)
         assert "Error occurred while running the command" in result.output or result.exit_code == 0
@@ -301,7 +299,7 @@ class TestBuildCommand:
         mock_process.wait.return_value = 0
         mock_popen.return_value = mock_process
 
-        result = runner.invoke(cli, ["build", "-a", app_name])
+        result = runner.invoke(app, ["build", "-a", app_name])
 
         assert result.exit_code == 0
         call_args = mock_popen.call_args[0][0]
@@ -330,7 +328,7 @@ class TestBuildCommand:
         mock_process.wait.return_value = 0
         mock_popen.return_value = mock_process
 
-        result = runner.invoke(cli, ["build", "-a", app_name])
+        result = runner.invoke(app, ["build", "-a", app_name])
 
         assert result.exit_code == 0
         call_args = mock_popen.call_args[0][0]

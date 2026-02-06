@@ -12,9 +12,9 @@ from typing import Generator
 from unittest.mock import MagicMock, patch
 
 import pytest
-from click.testing import CliRunner
+from typer.testing import CliRunner
 
-from easy_sm.__main__ import cli
+from easy_sm.__main__ import app
 from easy_sm.config.config import Config, ConfigManager
 
 
@@ -76,7 +76,7 @@ class TestPushCommand:
         mock_popen.return_value = mock_process
 
         result = runner.invoke(
-            cli,
+            app,
             [
                 "--docker-tag",
                 "v1.0.0",
@@ -110,7 +110,7 @@ class TestPushCommand:
         mock_popen.return_value = mock_process
 
         result = runner.invoke(
-            cli,
+            app,
             [
                 "push",
                 "-a",
@@ -145,7 +145,7 @@ class TestPushCommand:
         mock_popen.return_value = mock_process
 
         result = runner.invoke(
-            cli,
+            app,
             [
                 "push",
                 "-a",
@@ -179,7 +179,7 @@ class TestPushCommand:
         mock_popen.return_value = mock_process
 
         result = runner.invoke(
-            cli,
+            app,
             [
                 "--docker-tag",
                 docker_tag,
@@ -203,7 +203,7 @@ class TestPushCommand:
     ) -> None:
         """Test push command fails without config file."""
         result = runner.invoke(
-            cli,
+            app,
             [
                 "push",
                 "-a",
@@ -233,7 +233,7 @@ class TestPushCommand:
         os.makedirs(easy_sm_base, exist_ok=True)
 
         result = runner.invoke(
-            cli,
+            app,
             [
                 "push",
                 "-a",
@@ -261,7 +261,7 @@ class TestPushCommand:
         self._create_easy_sm_structure(app_name)
 
         result = runner.invoke(
-            cli,
+            app,
             [
                 "push",
                 "-a",
@@ -305,7 +305,7 @@ class TestPushCommand:
         mock_popen.return_value = mock_process
 
         result = runner.invoke(
-            cli,
+            app,
             [
                 "push",
                 "-a",
@@ -335,7 +335,7 @@ class TestPushCommand:
         mock_popen.return_value = mock_process
 
         result = runner.invoke(
-            cli,
+            app,
             [
                 "push",
                 "-a",

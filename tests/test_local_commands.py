@@ -14,9 +14,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 import requests
-from click.testing import CliRunner
+from typer.testing import CliRunner
 
-from easy_sm.__main__ import cli
+from easy_sm.__main__ import app
 from easy_sm.config.config import ConfigManager
 
 
@@ -69,7 +69,7 @@ class TestLocalTrain:
             original_cwd = os.getcwd()
             try:
                 os.chdir(app_dir)
-                result = runner.invoke(cli, ["local", "train", "-a", "app"])
+                result = runner.invoke(app, ["local", "train", "-a", "app"])
 
                 # Verify command succeeded
                 assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -108,7 +108,7 @@ class TestLocalTrain:
         os.chdir(tmp_path)
 
         try:
-            result = runner.invoke(cli, ["local", "train", "-a", "nonexistent"])
+            result = runner.invoke(app, ["local", "train", "-a", "nonexistent"])
             # Command should fail
             assert result.exit_code != 0
             # Check either output or exception message
@@ -135,7 +135,7 @@ class TestLocalTrain:
             try:
                 os.chdir(app_dir)
                 result = runner.invoke(
-                    cli, ["--docker-tag", "v1.0.0", "local", "train", "-a", "app"]
+                    app, ["--docker-tag", "v1.0.0", "local", "train", "-a", "app"]
                 )
 
                 assert result.exit_code == 0
@@ -158,7 +158,7 @@ class TestLocalTrain:
             original_cwd = os.getcwd()
             try:
                 os.chdir(app_dir)
-                result = runner.invoke(cli, ["local", "train", "-a", "app"])
+                result = runner.invoke(app, ["local", "train", "-a", "app"])
 
                 assert result.exit_code == 0
 
@@ -204,7 +204,7 @@ class TestLocalDeploy:
             original_cwd = os.getcwd()
             try:
                 os.chdir(app_dir)
-                result = runner.invoke(cli, ["local", "deploy", "-a", "app"])
+                result = runner.invoke(app, ["local", "deploy", "-a", "app"])
 
                 # Verify command structure
                 assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -242,7 +242,7 @@ class TestLocalDeploy:
         os.chdir(tmp_path)
 
         try:
-            result = runner.invoke(cli, ["local", "deploy", "-a", "nonexistent"])
+            result = runner.invoke(app, ["local", "deploy", "-a", "nonexistent"])
             # Command should fail
             assert result.exit_code != 0
             # Check either output or exception message
@@ -269,7 +269,7 @@ class TestLocalDeploy:
             try:
                 os.chdir(app_dir)
                 result = runner.invoke(
-                    cli, ["--docker-tag", "latest", "local", "deploy", "-a", "app"]
+                    app, ["--docker-tag", "latest", "local", "deploy", "-a", "app"]
                 )
 
                 assert result.exit_code == 0
@@ -293,7 +293,7 @@ class TestLocalDeploy:
             try:
                 os.chdir(app_dir)
                 result = runner.invoke(
-                    cli, ["local", "deploy", "-a", "app", "-p", "9000"]
+                    app, ["local", "deploy", "-a", "app", "-p", "9000"]
                 )
 
                 assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -320,7 +320,7 @@ class TestLocalDeploy:
             try:
                 os.chdir(app_dir)
                 result = runner.invoke(
-                    cli, ["local", "deploy", "-a", "app", "--port", "3000"]
+                    app, ["local", "deploy", "-a", "app", "--port", "3000"]
                 )
 
                 assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -345,7 +345,7 @@ class TestLocalDeploy:
             original_cwd = os.getcwd()
             try:
                 os.chdir(app_dir)
-                result = runner.invoke(cli, ["local", "deploy", "-a", "app"])
+                result = runner.invoke(app, ["local", "deploy", "-a", "app"])
 
                 assert result.exit_code == 0
 
@@ -391,7 +391,7 @@ class TestLocalStop:
             original_cwd = os.getcwd()
             try:
                 os.chdir(app_dir)
-                result = runner.invoke(cli, ["local", "stop", "-a", "app"])
+                result = runner.invoke(app, ["local", "stop", "-a", "app"])
 
                 # Verify command succeeded
                 assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -419,7 +419,7 @@ class TestLocalStop:
             original_cwd = os.getcwd()
             try:
                 os.chdir(app_dir)
-                result = runner.invoke(cli, ["local", "stop", "-a", "app"])
+                result = runner.invoke(app, ["local", "stop", "-a", "app"])
 
                 assert result.exit_code == 0
                 # Verify default port is passed
@@ -442,7 +442,7 @@ class TestLocalStop:
             try:
                 os.chdir(app_dir)
                 result = runner.invoke(
-                    cli, ["local", "stop", "-a", "app", "-p", "9000"]
+                    app, ["local", "stop", "-a", "app", "-p", "9000"]
                 )
 
                 assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -467,7 +467,7 @@ class TestLocalStop:
             try:
                 os.chdir(app_dir)
                 result = runner.invoke(
-                    cli, ["local", "stop", "-a", "app", "--port", "3000"]
+                    app, ["local", "stop", "-a", "app", "--port", "3000"]
                 )
 
                 assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -486,7 +486,7 @@ class TestLocalStop:
         os.chdir(tmp_path)
 
         try:
-            result = runner.invoke(cli, ["local", "stop", "-a", "nonexistent"])
+            result = runner.invoke(app, ["local", "stop", "-a", "nonexistent"])
             # Command should fail
             assert result.exit_code != 0
             # Check either output or exception message
@@ -528,12 +528,12 @@ class TestLocalTrainAndDeployIntegration:
             try:
                 os.chdir(app_dir)
                 # First, train
-                train_result = runner.invoke(cli, ["local", "train", "-a", "app"])
+                train_result = runner.invoke(app, ["local", "train", "-a", "app"])
                 assert train_result.exit_code == 0
                 assert "Local training completed successfully" in train_result.output
 
                 # Then, deploy
-                deploy_result = runner.invoke(cli, ["local", "deploy", "-a", "app"])
+                deploy_result = runner.invoke(app, ["local", "deploy", "-a", "app"])
                 assert deploy_result.exit_code == 0
                 assert "Started local deployment at localhost:8080" in deploy_result.output
 
@@ -557,12 +557,12 @@ class TestLocalTrainAndDeployIntegration:
                 os.chdir(app_dir)
                 # Train with custom tag
                 runner.invoke(
-                    cli, ["--docker-tag", docker_tag, "local", "train", "-a", "app"]
+                    app, ["--docker-tag", docker_tag, "local", "train", "-a", "app"]
                 )
 
                 # Deploy with same tag
                 runner.invoke(
-                    cli, ["--docker-tag", docker_tag, "local", "deploy", "-a", "app"]
+                    app, ["--docker-tag", docker_tag, "local", "deploy", "-a", "app"]
                 )
 
                 # Verify both calls used the same tag

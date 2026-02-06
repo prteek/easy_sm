@@ -1,225 +1,150 @@
 import os
-from typing import Any, Dict
+from typing import Annotated
 
-import click
+import typer
 
-from easy_sm.commands.helpers import app_name_option, load_config, safe_run_subprocess
+from easy_sm.commands import helpers
+from easy_sm.commands.helpers import load_config, safe_run_subprocess
 
-
-@click.group()
-def local() -> None:
-    """
-    Commands for local operations: train and deploy
-    """
-    pass
+local_app = typer.Typer(help="Commands for local operations: train and deploy")
 
 
-@click.command()
-@app_name_option
-@click.pass_obj
-def train(obj: Dict[str, Any], app_name: str) -> None:
-    """
-    Command to train ML model(s) locally
-    """
+@local_app.command()
+def train(
+    app_name: Annotated[str, typer.Option("--app-name", "-a", help="App name for configuration")],
+) -> None:
+    """Train ML model(s) locally."""
     print("Started local training...\n")
     config = load_config(app_name)
-    dir = config.easy_sm_module_dir
-    docker_tag = obj["docker_tag"]
-    image_name = config.image_name
-    easy_sm_module_path = os.path.join(dir, "easy_sm_base")
-    local_train_script_path = os.path.join(
-        easy_sm_module_path, "local_test", "train_local.sh"
-    )
+
+    easy_sm_module_path = os.path.join(config.easy_sm_module_dir, "easy_sm_base")
+    local_train_script_path = os.path.join(easy_sm_module_path, "local_test", "train_local.sh")
     test_path = os.path.join(easy_sm_module_path, "local_test", "test_dir")
 
     if not os.path.isdir(test_path):
-        raise ValueError("This is not a easy_sm directory: {}".format(dir))
+        raise ValueError(f"This is not a easy_sm directory: {config.easy_sm_module_dir}")
 
     command = [
-        "{}".format(local_train_script_path),
-        "{}".format(os.path.abspath(test_path)),
-        docker_tag,
-        image_name,
+        local_train_script_path,
+        os.path.abspath(test_path),
+        helpers.docker_tag,
+        config.image_name,
     ]
 
-    safe_run_subprocess(
-        command, success_message="Local training completed successfully!"
-    )
+    safe_run_subprocess(command, success_message="Local training completed successfully!")
 
 
-@click.command()
-@click.option(
-    "-f",
-    "--file",
-    required=True,
-    help="The name (not path) of python file to run as processing job",
-)
-@app_name_option
-@click.pass_obj
-def process(obj: Dict[str, Any], file: str, app_name: str) -> None:
-    """
-    Command to run python files locally as processing job
-    """
+@local_app.command()
+def process(
+    file: Annotated[str, typer.Option("--file", "-f", help="Python file name to run as processing job")],
+    app_name: Annotated[str, typer.Option("--app-name", "-a", help="App name for configuration")],
+) -> None:
+    """Run python files locally as processing job."""
     print("Started local processing job...\n")
     config = load_config(app_name)
-    dir = config.easy_sm_module_dir
-    docker_tag = obj["docker_tag"]
-    image_name = config.image_name
-    aws_profile = config.aws_profile
-    aws_region = config.aws_region
-    easy_sm_module_path = os.path.join(dir, "easy_sm_base")
-    local_process_script_path = os.path.join(
-        easy_sm_module_path, "local_test", "process_local.sh"
-    )
+
+    easy_sm_module_path = os.path.join(config.easy_sm_module_dir, "easy_sm_base")
+    local_process_script_path = os.path.join(easy_sm_module_path, "local_test", "process_local.sh")
     test_path = os.path.join(easy_sm_module_path, "local_test", "test_dir")
     job_file_path = os.path.join(easy_sm_module_path, "processing", file)
 
     if not os.path.isdir(test_path):
-        raise ValueError("This is not a easy_sm directory: {}".format(dir))
+        raise ValueError(f"This is not a easy_sm directory: {config.easy_sm_module_dir}")
 
     if not os.path.isfile(job_file_path):
-        raise ValueError("Processing file does not exist: {}".format(job_file_path))
+        raise ValueError(f"Processing file does not exist: {job_file_path}")
 
     command = [
-        "{}".format(local_process_script_path),
-        "{}".format(os.path.abspath(test_path)),
-        docker_tag,
-        image_name,
+        local_process_script_path,
+        os.path.abspath(test_path),
+        helpers.docker_tag,
+        config.image_name,
         file,
-        aws_profile,
-        aws_region,
+        config.aws_profile,
+        config.aws_region,
     ]
 
-    safe_run_subprocess(
-        command, success_message="Local processing completed successfully!"
-    )
+    safe_run_subprocess(command, success_message="Local processing completed successfully!")
 
 
-@click.command()
-@click.option(
-    "-p",
-    "--port",
-    type=int,
-    default=8080,
-    help="Port to run the service on (default: 8080)",
-)
-@app_name_option
-@click.pass_obj
-def deploy(obj: Dict[str, Any], app_name: str, port: int) -> None:
-    """
-    Command to deploy ML model(s) locally
-    """
+@local_app.command()
+def deploy(
+    app_name: Annotated[str, typer.Option("--app-name", "-a", help="App name for configuration")],
+    port: Annotated[int, typer.Option("--port", "-p", help="Port to run the service on")] = 8080,
+) -> None:
+    """Deploy ML model(s) locally."""
     config = load_config(app_name)
-    dir = config.easy_sm_module_dir
-    docker_tag = obj["docker_tag"]
-    image_name = config.image_name
 
-    easy_sm_module_path = os.path.join(dir, "easy_sm_base")
-    local_deploy_script_path = os.path.join(
-        easy_sm_module_path, "local_test", "deploy_local.sh"
-    )
+    easy_sm_module_path = os.path.join(config.easy_sm_module_dir, "easy_sm_base")
+    local_deploy_script_path = os.path.join(easy_sm_module_path, "local_test", "deploy_local.sh")
     test_path = os.path.join(easy_sm_module_path, "local_test", "test_dir")
 
     if not os.path.isdir(test_path):
-        raise ValueError("This is not a easy_sm directory: {}".format(dir))
+        raise ValueError(f"This is not a easy_sm directory: {config.easy_sm_module_dir}")
 
-    print("Started local deployment at localhost:{} ...\n".format(port))
+    print(f"Started local deployment at localhost:{port} ...\n")
     command = [
-        "{}".format(local_deploy_script_path),
-        "{}".format(os.path.abspath(test_path)),
-        docker_tag,
-        image_name,
+        local_deploy_script_path,
+        os.path.abspath(test_path),
+        helpers.docker_tag,
+        config.image_name,
         str(port),
     ]
 
-    safe_run_subprocess(command, success_message=None)
+    safe_run_subprocess(command)
 
 
-@click.command()
-@click.option(
-    "-t",
-    "--target",
-    required=True,
-    help="The name of target that needs to be built",
-)
-@app_name_option
-@click.pass_obj
-def make(obj: Dict[str, Any], target: str, app_name: str) -> None:
-    """
-    Command to build make targets defined in a Makefile in easy_sm_base/processing
-    """
+@local_app.command()
+def make(
+    target: Annotated[str, typer.Option("--target", "-t", help="Make target to build")],
+    app_name: Annotated[str, typer.Option("--app-name", "-a", help="App name for configuration")],
+) -> None:
+    """Build make targets defined in easy_sm_base/processing."""
     config = load_config(app_name)
-    dir = config.easy_sm_module_dir
-    docker_tag = obj["docker_tag"]
-    image_name = config.image_name
-    aws_profile = config.aws_profile
-    aws_region = config.aws_region
-    easy_sm_module_path = os.path.join(dir, "easy_sm_base")
-    local_make_script_path = os.path.join(
-        easy_sm_module_path, "local_test", "make_local.sh"
-    )
+
+    easy_sm_module_path = os.path.join(config.easy_sm_module_dir, "easy_sm_base")
+    local_make_script_path = os.path.join(easy_sm_module_path, "local_test", "make_local.sh")
     test_path = os.path.join(easy_sm_module_path, "local_test", "test_dir")
     makefile_path = os.path.join(easy_sm_module_path, "processing", "Makefile")
 
     if not os.path.isdir(test_path):
-        raise ValueError("This is not a easy_sm directory: {}".format(dir))
+        raise ValueError(f"This is not a easy_sm directory: {config.easy_sm_module_dir}")
 
     if not os.path.isfile(makefile_path):
-        raise ValueError("Makefile does not exist: {}".format(makefile_path))
+        raise ValueError(f"Makefile does not exist: {makefile_path}")
 
     command = [
-        "{}".format(local_make_script_path),
-        "{}".format(os.path.abspath(test_path)),
-        docker_tag,
-        image_name,
+        local_make_script_path,
+        os.path.abspath(test_path),
+        helpers.docker_tag,
+        config.image_name,
         target,
-        aws_profile,
-        aws_region,
+        config.aws_profile,
+        config.aws_region,
     ]
 
     safe_run_subprocess(command, success_message=f"{target} built successfully!")
 
 
-@click.command()
-@click.option(
-    "-p",
-    "--port",
-    type=int,
-    default=8080,
-    help="Port the service is running on (default: 8080)",
-)
-@app_name_option
-@click.pass_obj
-def stop(obj: Dict[str, Any], app_name: str, port: int) -> None:
-    """
-    Command to stop a local deployment
-    """
+@local_app.command()
+def stop(
+    app_name: Annotated[str, typer.Option("--app-name", "-a", help="App name for configuration")],
+    port: Annotated[int, typer.Option("--port", "-p", help="Port the service is running on")] = 8080,
+) -> None:
+    """Stop a local deployment."""
     config = load_config(app_name)
-    dir = config.easy_sm_module_dir
-    image_name = config.image_name
 
-    easy_sm_module_path = os.path.join(dir, "easy_sm_base")
-    local_stop_script_path = os.path.join(
-        easy_sm_module_path, "local_test", "stop_local.sh"
-    )
+    easy_sm_module_path = os.path.join(config.easy_sm_module_dir, "easy_sm_base")
+    local_stop_script_path = os.path.join(easy_sm_module_path, "local_test", "stop_local.sh")
     test_path = os.path.join(easy_sm_module_path, "local_test", "test_dir")
 
     if not os.path.isdir(test_path):
-        raise ValueError("This is not a easy_sm directory: {}".format(dir))
+        raise ValueError(f"This is not a easy_sm directory: {config.easy_sm_module_dir}")
 
     command = [
-        "{}".format(local_stop_script_path),
-        image_name,
+        local_stop_script_path,
+        config.image_name,
         str(port),
     ]
 
-    safe_run_subprocess(
-        command, success_message="Local deployment stopped successfully!"
-    )
-
-
-local.add_command(train)
-local.add_command(deploy)
-local.add_command(process)
-local.add_command(make)
-local.add_command(stop)
+    safe_run_subprocess(command, success_message="Local deployment stopped successfully!")

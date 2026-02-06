@@ -12,9 +12,9 @@ from typing import Generator
 from unittest.mock import MagicMock, patch
 
 import pytest
-from click.testing import CliRunner
+from typer.testing import CliRunner
 
-from easy_sm.__main__ import cli
+from easy_sm.__main__ import app
 from easy_sm.config.config import Config, ConfigManager
 
 
@@ -67,7 +67,7 @@ class TestCloudUploadData:
         mock_sagemaker_client.return_value = mock_client
 
         result = runner.invoke(
-            cli,
+            app,
             [
                 "cloud",
                 "upload-data",
@@ -96,7 +96,7 @@ class TestCloudUploadData:
         os.makedirs(input_dir)
 
         result = runner.invoke(
-            cli,
+            app,
             [
                 "cloud",
                 "upload-data",
@@ -126,7 +126,7 @@ class TestCloudUploadData:
         self._create_config(app_name)
 
         result = runner.invoke(
-            cli,
+            app,
             [
                 "cloud",
                 "upload-data",
@@ -188,7 +188,7 @@ class TestCloudTrain:
         mock_sagemaker_client.return_value = mock_client
 
         result = runner.invoke(
-            cli,
+            app,
             [
                 "cloud",
                 "train",
@@ -238,7 +238,7 @@ class TestCloudTrain:
         mock_sagemaker_client.return_value = mock_client
 
         result = runner.invoke(
-            cli,
+            app,
             [
                 "--docker-tag",
                 docker_tag,
@@ -276,7 +276,7 @@ class TestCloudTrain:
         mock_sagemaker_client.return_value = mock_client
 
         result = runner.invoke(
-            cli,
+            app,
             [
                 "cloud",
                 "train",
@@ -307,7 +307,7 @@ class TestCloudTrain:
     ) -> None:
         """Test cloud train fails without config file."""
         result = runner.invoke(
-            cli,
+            app,
             [
                 "cloud",
                 "train",
@@ -372,7 +372,7 @@ class TestCloudDeploy:
         mock_sagemaker_client.return_value = mock_client
 
         result = runner.invoke(
-            cli,
+            app,
             [
                 "cloud",
                 "deploy",
@@ -414,7 +414,7 @@ class TestCloudDeploy:
         mock_sagemaker_client.return_value = mock_client
 
         result = runner.invoke(
-            cli,
+            app,
             [
                 "cloud",
                 "deploy",
@@ -481,7 +481,7 @@ class TestCloudDeployServerless:
         mock_sagemaker_client.return_value = mock_client
 
         result = runner.invoke(
-            cli,
+            app,
             [
                 "cloud",
                 "deploy-serverless",
@@ -520,7 +520,7 @@ class TestCloudDeployServerless:
         mock_sagemaker_client.return_value = mock_client
 
         result = runner.invoke(
-            cli,
+            app,
             [
                 "cloud",
                 "deploy-serverless",
@@ -587,7 +587,7 @@ class TestCloudBatchTransform:
         mock_sagemaker_client.return_value = mock_client
 
         result = runner.invoke(
-            cli,
+            app,
             [
                 "cloud",
                 "batch-transform",
@@ -632,7 +632,7 @@ class TestCloudBatchTransform:
         mock_sagemaker_client.return_value = mock_client
 
         result = runner.invoke(
-            cli,
+            app,
             [
                 "cloud",
                 "batch-transform",
@@ -673,7 +673,7 @@ class TestCloudBatchTransform:
         mock_sagemaker_client.return_value = mock_client
 
         result = runner.invoke(
-            cli,
+            app,
             [
                 "cloud",
                 "batch-transform",
@@ -743,7 +743,7 @@ class TestCloudProcess:
         mock_sagemaker_client.return_value = mock_client
 
         result = runner.invoke(
-            cli,
+            app,
             [
                 "cloud",
                 "process",
@@ -782,7 +782,7 @@ class TestCloudProcess:
         mock_sagemaker_client.return_value = mock_client
 
         result = runner.invoke(
-            cli,
+            app,
             [
                 "cloud",
                 "process",
@@ -820,7 +820,7 @@ class TestCloudProcess:
         mock_sagemaker_client.return_value = mock_client
 
         result = runner.invoke(
-            cli,
+            app,
             [
                 "cloud",
                 "process",
@@ -886,7 +886,7 @@ class TestCloudDeleteEndpoint:
         mock_sagemaker_client.return_value = mock_client
 
         result = runner.invoke(
-            cli,
+            app,
             [
                 "cloud",
                 "delete-endpoint",
@@ -918,7 +918,7 @@ class TestCloudDeleteEndpoint:
         mock_sagemaker_client.return_value = mock_client
 
         result = runner.invoke(
-            cli,
+            app,
             [
                 "cloud",
                 "delete-endpoint",
@@ -996,7 +996,7 @@ class TestCloudListEndpoints:
         mock_sagemaker_client.return_value = mock_client
 
         result = runner.invoke(
-            cli,
+            app,
             [
                 "cloud",
                 "list-endpoints",
@@ -1029,7 +1029,7 @@ class TestCloudListEndpoints:
         mock_sagemaker_client.return_value = mock_client
 
         result = runner.invoke(
-            cli,
+            app,
             [
                 "cloud",
                 "list-endpoints",
@@ -1100,7 +1100,7 @@ class TestCloudListTrainingJobs:
         mock_sagemaker_client.return_value = mock_client
 
         result = runner.invoke(
-            cli,
+            app,
             [
                 "cloud",
                 "list-training-jobs",
@@ -1141,7 +1141,7 @@ class TestCloudListTrainingJobs:
         mock_sagemaker_client.return_value = mock_client
 
         result = runner.invoke(
-            cli,
+            app,
             [
                 "cloud",
                 "list-training-jobs",
@@ -1180,7 +1180,7 @@ class TestCloudListTrainingJobs:
         mock_sagemaker_client.return_value = mock_client
 
         result = runner.invoke(
-            cli,
+            app,
             [
                 "cloud",
                 "list-training-jobs",
@@ -1214,7 +1214,7 @@ class TestCloudListTrainingJobs:
         mock_sagemaker_client.return_value = mock_client
 
         result = runner.invoke(
-            cli,
+            app,
             [
                 "cloud",
                 "list-training-jobs",
@@ -1274,7 +1274,7 @@ class TestCloudMake:
         mock_sagemaker_client.return_value = mock_client
 
         result = runner.invoke(
-            cli,
+            app,
             [
                 "cloud",
                 "make",
@@ -1312,7 +1312,7 @@ class TestCloudMake:
         mock_sagemaker_client.return_value = mock_client
 
         result = runner.invoke(
-            cli,
+            app,
             [
                 "cloud",
                 "make",

@@ -34,7 +34,7 @@ Recommended to validate before updating.
         ]
     },
     install_requires=[
-        "click>=8.1.7",
+        "typer>=0.9.0",
         "docker>=7.1.0",
         "sagemaker>=2.243.0",
         "boto3>=1.26.0",
