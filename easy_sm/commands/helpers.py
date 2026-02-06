@@ -1,3 +1,4 @@
+import glob
 import os
 import re
 import subprocess
@@ -34,8 +35,87 @@ def safe_run_subprocess(command: list[str], success_message: str | None = None) 
         return e.returncode
 
 
-def load_config(app_name: str) -> Config:
-    """Load configuration from app_name.json in current directory."""
+def auto_detect_app_name() -> str:
+    """Auto-detect app name from *.json config file in current directory.
+
+    Returns:
+        App name (filename without .json extension).
+
+    Raises:
+        ValueError: If no config file or multiple config files found.
+    """
+    config_files = glob.glob("*.json")
+
+    if len(config_files) == 0:
+        raise ValueError(
+            "No config file found in current directory. "
+            "Run 'easy_sm init' or specify app name with -a/--app-name."
+        )
+
+    if len(config_files) > 1:
+        raise ValueError(
+            f"Multiple config files found: {', '.join(config_files)}. "
+            "Specify app name with -a/--app-name."
+        )
+
+    # Remove .json extension to get app name
+    app_name = config_files[0][:-5]
+    return app_name
+
+
+def get_app_name(app_name: str | None = None) -> str:
+    """Get app name from parameter or auto-detect.
+
+    Args:
+        app_name: Explicit app name, or None to auto-detect.
+
+    Returns:
+        App name string.
+    """
+    if app_name is None:
+        return auto_detect_app_name()
+    return app_name
+
+
+def get_iam_role(iam_role_arn: str | None = None) -> str:
+    """Get IAM role ARN from parameter or environment variable.
+
+    Args:
+        iam_role_arn: Explicit role ARN, or None to read from env.
+
+    Returns:
+        IAM role ARN string.
+
+    Raises:
+        ValueError: If no role specified and SAGEMAKER_ROLE env var not set.
+    """
+    if iam_role_arn is not None:
+        return iam_role_arn
+
+    env_role = os.environ.get("SAGEMAKER_ROLE")
+    if env_role:
+        return env_role
+
+    raise ValueError(
+        "IAM role not specified. Set SAGEMAKER_ROLE environment variable "
+        "or use -r/--iam-role-arn option."
+    )
+
+
+def load_config(app_name: str | None = None) -> Config:
+    """Load configuration from app_name.json in current directory.
+
+    Args:
+        app_name: Name of the app. If None, auto-detects from *.json files.
+
+    Returns:
+        Config object loaded from the JSON file.
+
+    Raises:
+        ValueError: If app name is invalid or config file not found.
+    """
+    app_name = get_app_name(app_name)
+
     if not app_name or not APP_NAME_PATTERN.match(app_name):
         raise ValueError(
             f"Invalid app name: {app_name}. "

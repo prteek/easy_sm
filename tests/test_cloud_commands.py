@@ -69,7 +69,6 @@ class TestCloudUploadData:
         result = runner.invoke(
             app,
             [
-                "cloud",
                 "upload-data",
                 "-a",
                 app_name,
@@ -83,8 +82,8 @@ class TestCloudUploadData:
         )
 
         assert result.exit_code == 0
-        assert "Data uploaded" in result.output
-        assert "Data uploaded" in result.output
+        assert "s3://bucket/data" in result.output
+        assert "s3://bucket/data" in result.output
         mock_client.upload_data.assert_called_once_with(input_dir, "s3://bucket/data")
 
     @patch("easy_sm.commands.cloud.SageMakerClient")
@@ -98,7 +97,6 @@ class TestCloudUploadData:
         result = runner.invoke(
             app,
             [
-                "cloud",
                 "upload-data",
                 "-a",
                 "nonexistent",
@@ -128,7 +126,6 @@ class TestCloudUploadData:
         result = runner.invoke(
             app,
             [
-                "cloud",
                 "upload-data",
                 "-a",
                 app_name,
@@ -190,7 +187,6 @@ class TestCloudTrain:
         result = runner.invoke(
             app,
             [
-                "cloud",
                 "train",
                 "-a",
                 app_name,
@@ -210,7 +206,7 @@ class TestCloudTrain:
         )
 
         assert result.exit_code == 0
-        assert "Model S3 location" in result.output
+        assert "s3://bucket/model.tar.gz" in result.output
         assert "" in result.output
         assert "s3://bucket/model.tar.gz" in result.output
 
@@ -242,8 +238,7 @@ class TestCloudTrain:
             [
                 "--docker-tag",
                 docker_tag,
-                "cloud",
-                "train",
+                                "train",
                 "-a",
                 app_name,
                 "-i",
@@ -278,7 +273,6 @@ class TestCloudTrain:
         result = runner.invoke(
             app,
             [
-                "cloud",
                 "train",
                 "-a",
                 app_name,
@@ -309,7 +303,6 @@ class TestCloudTrain:
         result = runner.invoke(
             app,
             [
-                "cloud",
                 "train",
                 "-a",
                 "nonexistent",
@@ -374,7 +367,6 @@ class TestCloudDeploy:
         result = runner.invoke(
             app,
             [
-                "cloud",
                 "deploy",
                 "-a",
                 app_name,
@@ -390,8 +382,7 @@ class TestCloudDeploy:
         )
 
         assert result.exit_code == 0
-        assert "Endpoint" in result.output
-        assert "Endpoint: test-endpoint" in result.output
+        assert "test-endpoint" == result.output.strip()
 
         mock_client.deploy.assert_called_once()
         call_kwargs = mock_client.deploy.call_args[1]
@@ -416,7 +407,6 @@ class TestCloudDeploy:
         result = runner.invoke(
             app,
             [
-                "cloud",
                 "deploy",
                 "-a",
                 app_name,
@@ -483,7 +473,6 @@ class TestCloudDeployServerless:
         result = runner.invoke(
             app,
             [
-                "cloud",
                 "deploy-serverless",
                 "-a",
                 app_name,
@@ -499,8 +488,7 @@ class TestCloudDeployServerless:
         )
 
         assert result.exit_code == 0
-        assert "Endpoint" in result.output
-        assert "Endpoint: test-serverless-endpoint" in result.output
+        assert "test-serverless-endpoint" == result.output.strip()
 
         mock_client.deploy_serverless.assert_called_once()
         call_kwargs = mock_client.deploy_serverless.call_args[1]
@@ -522,7 +510,6 @@ class TestCloudDeployServerless:
         result = runner.invoke(
             app,
             [
-                "cloud",
                 "deploy-serverless",
                 "-a",
                 app_name,
@@ -589,7 +576,6 @@ class TestCloudBatchTransform:
         result = runner.invoke(
             app,
             [
-                "cloud",
                 "batch-transform",
                 "-a",
                 app_name,
@@ -609,7 +595,6 @@ class TestCloudBatchTransform:
         )
 
         assert result.exit_code == 0
-        assert "Batch transform started" in result.output
 
         mock_client.batch_transform.assert_called_once()
         call_kwargs = mock_client.batch_transform.call_args[1]
@@ -634,7 +619,6 @@ class TestCloudBatchTransform:
         result = runner.invoke(
             app,
             [
-                "cloud",
                 "batch-transform",
                 "-a",
                 app_name,
@@ -655,7 +639,7 @@ class TestCloudBatchTransform:
         )
 
         assert result.exit_code == 0
-        assert "Batch transform finished with status: Completed" in result.output
+        assert "Completed" == result.output.strip()
 
         call_kwargs = mock_client.batch_transform.call_args[1]
         assert call_kwargs["wait"] is True
@@ -675,7 +659,6 @@ class TestCloudBatchTransform:
         result = runner.invoke(
             app,
             [
-                "cloud",
                 "batch-transform",
                 "-a",
                 app_name,
@@ -745,7 +728,6 @@ class TestCloudProcess:
         result = runner.invoke(
             app,
             [
-                "cloud",
                 "process",
                 "-a",
                 app_name,
@@ -761,8 +743,7 @@ class TestCloudProcess:
         )
 
         assert result.exit_code == 0
-        assert "Processing job" in result.output
-        assert "Processing job completed" in result.output
+        assert "process-job" in result.output
 
         mock_client.process.assert_called_once()
         call_kwargs = mock_client.process.call_args[1]
@@ -784,7 +765,6 @@ class TestCloudProcess:
         result = runner.invoke(
             app,
             [
-                "cloud",
                 "process",
                 "-a",
                 app_name,
@@ -822,7 +802,6 @@ class TestCloudProcess:
         result = runner.invoke(
             app,
             [
-                "cloud",
                 "process",
                 "-a",
                 app_name,
@@ -888,7 +867,6 @@ class TestCloudDeleteEndpoint:
         result = runner.invoke(
             app,
             [
-                "cloud",
                 "delete-endpoint",
                 "-a",
                 app_name,
@@ -900,7 +878,7 @@ class TestCloudDeleteEndpoint:
         )
 
         assert result.exit_code == 0
-        assert "deleted" in result.output
+        assert endpoint_name in result.output
 
         mock_client.shutdown_endpoint.assert_called_once_with(endpoint_name)
         mock_client.delete_endpoint_config.assert_not_called()
@@ -920,7 +898,6 @@ class TestCloudDeleteEndpoint:
         result = runner.invoke(
             app,
             [
-                "cloud",
                 "delete-endpoint",
                 "-a",
                 app_name,
@@ -933,8 +910,7 @@ class TestCloudDeleteEndpoint:
         )
 
         assert result.exit_code == 0
-        assert "deleted" in result.output
-        assert "deleted" in result.output
+        assert endpoint_name in result.output
 
         mock_client.shutdown_endpoint.assert_called_once_with(endpoint_name)
         mock_client.delete_endpoint_config.assert_called_once_with(
@@ -998,7 +974,6 @@ class TestCloudListEndpoints:
         result = runner.invoke(
             app,
             [
-                "cloud",
                 "list-endpoints",
                 "-a",
                 app_name,
@@ -1030,7 +1005,6 @@ class TestCloudListEndpoints:
         result = runner.invoke(
             app,
             [
-                "cloud",
                 "list-endpoints",
                 "-a",
                 app_name,
@@ -1040,7 +1014,7 @@ class TestCloudListEndpoints:
         )
 
         assert result.exit_code == 0
-        assert "No endpoints found" in result.output
+        assert result.output.strip() == ""
 
         mock_client.list_endpoints.assert_called_once()
 
@@ -1101,7 +1075,6 @@ class TestCloudListTrainingJobs:
         result = runner.invoke(
             app,
             [
-                "cloud",
                 "list-training-jobs",
                 "-a",
                 app_name,
@@ -1139,7 +1112,6 @@ class TestCloudListTrainingJobs:
         result = runner.invoke(
             app,
             [
-                "cloud",
                 "list-training-jobs",
                 "-a",
                 app_name,
@@ -1173,7 +1145,6 @@ class TestCloudListTrainingJobs:
         result = runner.invoke(
             app,
             [
-                "cloud",
                 "list-training-jobs",
                 "-a",
                 app_name,
@@ -1205,7 +1176,6 @@ class TestCloudListTrainingJobs:
         result = runner.invoke(
             app,
             [
-                "cloud",
                 "list-training-jobs",
                 "-a",
                 app_name,
@@ -1215,7 +1185,7 @@ class TestCloudListTrainingJobs:
         )
 
         assert result.exit_code == 0
-        assert "No training jobs found" in result.output
+        assert result.output.strip() == ""
 
         mock_client.list_training_jobs.assert_called_once()
 
@@ -1265,7 +1235,6 @@ class TestCloudGetModelArtifacts:
         result = runner.invoke(
             app,
             [
-                "cloud",
                 "get-model-artifacts",
                 "-a",
                 app_name,
@@ -1288,7 +1257,6 @@ class TestCloudGetModelArtifacts:
         result = runner.invoke(
             app,
             [
-                "cloud",
                 "get-model-artifacts",
                 "-a",
                 "nonexistent-app",
@@ -1321,7 +1289,6 @@ class TestCloudGetModelArtifacts:
         result = runner.invoke(
             app,
             [
-                "cloud",
                 "get-model-artifacts",
                 "-a",
                 app_name,

@@ -57,84 +57,123 @@ Copy your code to the appropriate folder:
 ### 3. Build and Test Locally
 
 ```bash
-easy_sm build -a app-name
-easy_sm local train -a app-name
+# App name auto-detected from *.json file
+easy_sm build
+easy_sm local train
 ```
 
 ### 4. Deploy to SageMaker
 
 ```bash
-easy_sm push -a app-name
-easy_sm cloud train -n job-name -r $SAGEMAKER_EXECUTION_ROLE -e ml.m5.large \
-  -i s3://bucket/input -o s3://bucket/output -a app-name
+# Set role once (or add to ~/.bashrc)
+export SAGEMAKER_ROLE=arn:aws:iam::123456789012:role/SageMakerRole
+
+# Push and train
+easy_sm push
+easy_sm train -n job-name -e ml.m5.large \
+  -i s3://bucket/input -o s3://bucket/output
 ```
 
 ## Commands
 
+Cloud commands are at the top level for simplicity. Local operations are under `local` sub-command.
+
 ```text
 Commands:
-  init            Initialize SageMaker template
-  build           Build Docker image
-  push            Push Docker image to AWS ECR
-  update-scripts  Update shell scripts with latest secure versions
-  local           Local operations (train, deploy, process, stop)
-  cloud           Cloud operations (train, deploy, process, etc.)
+  init                  Initialize SageMaker template
+  build                 Build Docker image
+  push                  Push Docker image to AWS ECR
+  update-scripts        Update shell scripts with latest secure versions
+
+  # Cloud Operations (default)
+  upload-data           Upload data to S3
+  train                 Train models on SageMaker
+  deploy                Deploy to provisioned endpoint
+  deploy-serverless     Deploy to serverless endpoint
+  batch-transform       Run batch predictions
+  process               Run processing jobs
+  list-endpoints        List all endpoints
+  list-training-jobs    List recent training jobs
+  get-model-artifacts   Get S3 path from training job
+  delete-endpoint       Delete an endpoint
+
+  # Local Operations
+  local                 Local operations (train, deploy, process, stop)
+```
+
+### Context Auto-Detection
+
+The CLI auto-detects context to minimize repetitive flags:
+
+- **App name**: Auto-detected from `*.json` config file in current directory
+- **IAM role**: Read from `SAGEMAKER_ROLE` environment variable
+- **AWS profile/region**: From config file (uses boto3 defaults)
+
+You can always override with `-a/--app-name` and `-r/--iam-role-arn` flags.
+
+### Setup Environment
+
+```bash
+# Set IAM role once (add to ~/.bashrc for persistence)
+export SAGEMAKER_ROLE=arn:aws:iam::123456789012:role/SageMakerRole
+
+# Navigate to project directory (config auto-detected)
+cd my-app/
 ```
 
 ### Local Commands
 
 ```bash
 # Train locally
-easy_sm local train -a app-name
+easy_sm local train
 
 # Run processing job
-easy_sm local process -a app-name -f script.py
+easy_sm local process -f script.py
 
 # Deploy locally (starts server on port 8080)
-easy_sm local deploy -a app-name [-p 8080]
+easy_sm local deploy
 
 # Stop local deployment
-easy_sm local stop -a app-name [-p 8080]
+easy_sm local stop
 ```
 
 ### Cloud Commands
 
 ```bash
 # Upload data to S3
-easy_sm cloud upload-data -a app-name -i ./data -t s3://bucket/data -r $ROLE
+easy_sm upload-data -i ./data -t s3://bucket/data
 
 # Train on SageMaker
-easy_sm cloud train -a app-name -n job-name -r $ROLE -e ml.m5.large \
+easy_sm train -n job-name -e ml.m5.large \
   -i s3://bucket/input -o s3://bucket/output
 
 # Deploy to provisioned endpoint
-easy_sm cloud deploy -a app-name -n endpoint-name -r $ROLE \
-  -m s3://bucket/model.tar.gz -e ml.m5.large
+easy_sm deploy -n endpoint-name -e ml.m5.large \
+  -m s3://bucket/model.tar.gz
 
 # Deploy to serverless endpoint
-easy_sm cloud deploy-serverless -a app-name -n endpoint-name -r $ROLE \
-  -m s3://bucket/model.tar.gz -s 2048
+easy_sm deploy-serverless -n endpoint-name -s 2048 \
+  -m s3://bucket/model.tar.gz
 
 # Run batch transform
-easy_sm cloud batch-transform -a app-name -r $ROLE -e ml.m5.large \
-  -m s3://bucket/model.tar.gz -i s3://bucket/input -o s3://bucket/output \
-  --num-instances 1
+easy_sm batch-transform -e ml.m5.large --num-instances 1 \
+  -m s3://bucket/model.tar.gz -i s3://bucket/input -o s3://bucket/output
 
 # Run processing job
-easy_sm cloud process -a app-name -f script.py -r $ROLE -e ml.m5.large \
-  -n job-name
+easy_sm process -f script.py -e ml.m5.large -n job-name
 
 # List endpoints
-easy_sm cloud list-endpoints -a app-name -r $ROLE
+easy_sm list-endpoints
 
-# List training jobs
-easy_sm cloud list-training-jobs -a app-name -r $ROLE [-m 10]
+# List training jobs (pipe-friendly with -n flag)
+easy_sm list-training-jobs -m 10
+easy_sm list-training-jobs -n -m 1  # Just names, one per line
 
 # Get model artifacts from training job
-easy_sm cloud get-model-artifacts -a app-name -j training-job-name -r $ROLE
+easy_sm get-model-artifacts -j training-job-name
 
 # Delete endpoint
-easy_sm cloud delete-endpoint -a app-name -n endpoint-name -r $ROLE [--delete-config]
+easy_sm delete-endpoint -n endpoint-name [--delete-config]
 ```
 
 ### Update Scripts
@@ -142,6 +181,10 @@ easy_sm cloud delete-endpoint -a app-name -n endpoint-name -r $ROLE [--delete-co
 If you have an existing project, update shell scripts with security fixes:
 
 ```bash
+# Auto-detects app from *.json file
+easy_sm update-scripts
+
+# Or specify explicitly
 easy_sm update-scripts -a app-name
 ```
 
@@ -218,15 +261,16 @@ Place sample data at:
 
 ```bash
 # Build container
-easy_sm build -a app-name
+easy_sm build
 
 # Test locally
-easy_sm local train -a app-name
+easy_sm local train
 
 # Push and train on SageMaker
-easy_sm push -a app-name
-easy_sm cloud train -a app-name -n my-training-job -r $ROLE \
-  -e ml.m5.large -i s3://bucket/input -o s3://bucket/output
+export SAGEMAKER_ROLE=arn:aws:iam::123456789012:role/SageMakerRole
+easy_sm push
+easy_sm train -n my-training-job -e ml.m5.large \
+  -i s3://bucket/input -o s3://bucket/output
 ```
 
 ## Deployment Example
@@ -250,9 +294,9 @@ def predict_fn(input_data, model):
 
 ```bash
 # Local testing
-easy_sm build -a app-name
-easy_sm local train -a app-name
-easy_sm local deploy -a app-name
+easy_sm build
+easy_sm local train
+easy_sm local deploy
 
 # Test endpoint
 curl -X POST http://localhost:8080/invocations \
@@ -260,13 +304,14 @@ curl -X POST http://localhost:8080/invocations \
   -d '1.0,2.0,3.0'
 
 # Cloud deployment
-easy_sm push -a app-name
-easy_sm cloud deploy -a app-name -n my-endpoint -r $ROLE \
-  -m s3://bucket/model.tar.gz -e ml.m5.large
+export SAGEMAKER_ROLE=arn:aws:iam::123456789012:role/SageMakerRole
+easy_sm push
+easy_sm deploy -n my-endpoint -e ml.m5.large \
+  -m s3://bucket/model.tar.gz
 
 # Or serverless
-easy_sm cloud deploy-serverless -a app-name -n my-endpoint -r $ROLE \
-  -m s3://bucket/model.tar.gz -s 2048
+easy_sm deploy-serverless -n my-endpoint -s 2048 \
+  -m s3://bucket/model.tar.gz
 ```
 
 ## Configuration
@@ -305,24 +350,38 @@ my-project/
 
 ## Tips
 
-- **Piped workflow for deployment**:
-  ```bash
-  # Get latest training job, extract model artifacts, and deploy
-  JOB=$(easy_sm cloud list-training-jobs -a app-name -r $ROLE -n -m 1)
-  MODEL=$(easy_sm cloud get-model-artifacts -a app-name -j $JOB -r $ROLE)
-  easy_sm cloud deploy -a app-name -n endpoint-name -r $ROLE -m $MODEL -e ml.m5.large
-  ```
+### Piped Workflows
 
-- **One-liner with shell substitution**:
-  ```bash
-  easy_sm cloud deploy -a app-name -n endpoint-name -r $ROLE -e ml.m5.large \
-    -m $(easy_sm cloud get-model-artifacts -a app-name -r $ROLE \
-         -j $(easy_sm cloud list-training-jobs -a app-name -r $ROLE -n -m 1))
-  ```
+The CLI is designed for Unix-style composition:
 
-- **Save training output**: `easy_sm cloud train ... | tee train_output.txt`
+```bash
+# Get latest training job, extract model, and deploy
+JOB=$(easy_sm list-training-jobs -n -m 1)
+MODEL=$(easy_sm get-model-artifacts -j $JOB)
+easy_sm deploy -n my-endpoint -e ml.m5.large -m $MODEL
+```
+
+**One-liner deployment**:
+```bash
+easy_sm deploy -n my-endpoint -e ml.m5.large \
+  -m $(easy_sm get-model-artifacts -j $(easy_sm list-training-jobs -n -m 1))
+```
+
+**Filter and process training jobs**:
+```bash
+# Get all training jobs and filter completed ones
+easy_sm list-training-jobs -m 20 | grep Completed
+
+# Get model from specific job
+easy_sm list-training-jobs -n -m 10 | grep "prod-" | head -1 | xargs -I {} easy_sm get-model-artifacts -j {}
+```
+
+### Other Tips
+
+- **Save training output**: `easy_sm train ... | tee train_output.txt`
 - **Custom Docker**: Modify `app-name/easy_sm_base/Dockerfile`
-- **Docker tags**: Use `-t` flag: `easy_sm build -a app-name -t v1.0`
+- **Docker tags**: Use `-t` flag: `easy_sm build -t v1.0`
+- **Override auto-detection**: Use `-a app-name` or `-r $ROLE` flags when needed
 
 ## License
 

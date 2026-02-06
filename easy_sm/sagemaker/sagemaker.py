@@ -139,12 +139,10 @@ class SageMakerClient:
             self.sagemaker_client.update_endpoint(
                 EndpointName=endpoint_name, EndpointConfigName=endpoint_config_name
             )
-            print(f"Update in progress for endpoint: {endpoint_name}")
         else:
             self.sagemaker_client.create_endpoint(
                 EndpointName=endpoint_name, EndpointConfigName=endpoint_config_name
             )
-            print(f"Creation in progress for endpoint: {endpoint_name}")
         return endpoint_name
 
     def _create_endpoint_config(

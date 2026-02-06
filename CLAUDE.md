@@ -6,6 +6,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **easy_sm** is a Python CLI tool (Python >=3.13) that simplifies AWS SageMaker workflows by enabling rapid local prototyping with Docker before deploying to the cloud. It's built on Typer and provides commands for building Docker images, training/processing locally and in the cloud, and managing deployments.
 
+### Design Philosophy
+
+The CLI follows Unix philosophy:
+- **Composable**: Commands output clean data for piping
+- **Context-aware**: Auto-detects app name and IAM role from environment
+- **Minimal flags**: Only essential options required
+- **Pipe-friendly**: Output is data, not verbose messages
+
 ## Build and Development Commands
 
 ```bash
@@ -75,14 +83,24 @@ All tests use mocked external dependencies (subprocess, boto3, SageMaker SDK) fo
 ## Architecture
 
 ### Command Structure
-- **Entry point**: `easy_sm/__main__.py` - Defines the main Typer app with `--docker-tag` option and registers all command groups
-- **Command groups**:
+- **Entry point**: `easy_sm/__main__.py` - Defines the main Typer app with `--docker-tag` option and registers all commands
+- **Top-level commands** (cloud operations - no prefix needed):
   - `init`: Initialize new easy_sm projects
   - `build`: Build Docker images
-  - `local`: Local operations (commands: `train`, `deploy`, `process`, `stop`)
-  - `cloud`: Cloud SageMaker operations (commands: `train`, `deploy`, `deploy-serverless`, `batch-transform`, `process`, `upload-data`, `list-endpoints`, `list-training-jobs`, `get-model-artifacts`, `delete-endpoint`)
   - `push`: Push Docker images to ECR
   - `update-scripts`: Update shell scripts with latest secure versions
+  - `upload-data`: Upload data to S3
+  - `train`: Train models on SageMaker
+  - `deploy`: Deploy to provisioned endpoint
+  - `deploy-serverless`: Deploy to serverless endpoint
+  - `batch-transform`: Run batch predictions
+  - `process`: Run processing jobs
+  - `list-endpoints`: List all endpoints
+  - `list-training-jobs`: List recent training jobs (supports `-n` for names-only)
+  - `get-model-artifacts`: Get S3 model path from training job
+  - `delete-endpoint`: Delete an endpoint
+- **Sub-commands**:
+  - `local`: Local operations (commands: `train`, `deploy`, `process`, `stop`)
 
 ### Core Modules
 
@@ -98,8 +116,10 @@ All tests use mocked external dependencies (subprocess, boto3, SageMaker SDK) fo
 
 **Command Helpers** (`easy_sm/commands/helpers.py`):
 - `safe_run_subprocess`: Executes subprocess commands with error handling
-- `validate_app_name`: Validates app name to prevent path traversal and injection attacks
-- `load_config`: Loads and validates configuration from JSON files
+- `auto_detect_app_name`: Finds `*.json` config file in current directory
+- `get_app_name`: Gets app name from parameter or auto-detects
+- `get_iam_role`: Gets IAM role from parameter or `SAGEMAKER_ROLE` env var
+- `load_config`: Loads and validates configuration from JSON files (supports auto-detection)
 
 **Update Scripts** (`easy_sm/commands/update.py`):
 - `update_scripts`: Copies latest shell scripts from package template to app directory
@@ -112,11 +132,35 @@ All tests use mocked external dependencies (subprocess, boto3, SageMaker SDK) fo
 - Local test scripts in `local_test/`
 
 ### Configuration Flow
-1. Commands receive `app_name` parameter
-2. Validate app_name (alphanumeric, hyphens, underscores only)
-3. Load config from `{app_name}.json` in current directory (fails if not in valid easy_sm directory)
-4. Config specifies Docker image name, AWS credentials, Python version, and module locations
-5. Commands use config to build images, run jobs, or deploy endpoints
+1. Commands receive optional `app_name` and `iam_role_arn` parameters
+2. Auto-detect app_name from `*.json` file if not provided
+3. Read IAM role from `SAGEMAKER_ROLE` env var if not provided
+4. Validate app_name (alphanumeric, hyphens, underscores only)
+5. Load config from `{app_name}.json` in current directory
+6. Config specifies Docker image name, AWS credentials, Python version, and module locations
+7. Commands use config to build images, run jobs, or deploy endpoints
+
+### Auto-Detection Behavior
+- **App name**: Searches for `*.json` files in current directory. Fails if none or multiple found (can override with `-a`)
+- **IAM role**: Reads from `SAGEMAKER_ROLE` environment variable. Fails if not set and not provided via `-r`
+- **AWS profile/region**: From config file, uses boto3 default credential chain
+
+### Output Design
+Commands output clean, pipable data:
+- **train**: S3 model path (`s3://bucket/path/model.tar.gz`)
+- **deploy**: Endpoint name
+- **upload-data**: S3 data path
+- **get-model-artifacts**: S3 model path
+- **list-training-jobs**: Job details or names-only with `-n` flag
+- **list-endpoints**: Endpoint details (name, status, timestamp)
+- **delete-endpoint**: Endpoint name
+- **Errors**: Go to stderr (via typer)
+
+This enables Unix-style composition:
+```bash
+easy_sm deploy -n my-endpoint -e ml.m5.large \
+  -m $(easy_sm get-model-artifacts -j $(easy_sm list-training-jobs -n -m 1))
+```
 
 ### Docker Context
 - Docker tag passed via CLI flag `--docker-tag` (default: "latest"), accessible as `helpers.docker_tag`
@@ -174,24 +218,46 @@ All tests use mocked external dependencies (subprocess, boto3, SageMaker SDK) fo
 
 ### Loading Configuration in Commands
 ```python
-from easy_sm.commands.helpers import load_config
+from easy_sm.commands.helpers import get_app_name, get_iam_role, load_config
 
+# Get app name (from parameter or auto-detect)
+app_name = get_app_name(app_name)
+
+# Get IAM role (from parameter or SAGEMAKER_ROLE env var)
+iam_role = get_iam_role(iam_role_arn)
+
+# Load config
 config = load_config(app_name)
 ```
 
-### Typer Command with Options
+### Typer Command with Optional Context
 ```python
-from typing import Annotated
+from typing import Annotated, Optional
 import typer
 from easy_sm.commands import helpers
+from easy_sm.commands.helpers import get_app_name, get_iam_role
 
 @app.command()
 def subcommand(
-    app_name: Annotated[str, typer.Option("--app-name", "-a", help="App name")],
+    app_name: Annotated[Optional[str], typer.Option("--app-name", "-a", help="App name (auto-detected if not specified)")] = None,
+    iam_role_arn: Annotated[Optional[str], typer.Option("--iam-role-arn", "-r", help="AWS IAM role ARN (or set SAGEMAKER_ROLE env var)")] = None,
 ) -> None:
     """Command description."""
+    app_name = get_app_name(app_name)
+    iam_role = get_iam_role(iam_role_arn)
     docker_tag = helpers.docker_tag
     # Implementation
+```
+
+### Pipe-Friendly Output
+```python
+# Good: Output just the data
+print(s3_path)
+print(endpoint_name)
+
+# Bad: Verbose messages
+print(f"Model uploaded to {s3_path}")
+print(f"Endpoint: {endpoint_name}")
 ```
 
 ## Available Skills
