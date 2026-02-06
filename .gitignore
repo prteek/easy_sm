@@ -12,3 +12,14 @@ misc/
 *.tar.gz
 app.json
 *__pycache__/
+
+# Documentation build
+site/
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Distribution
+dist/
