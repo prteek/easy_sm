@@ -142,8 +142,8 @@ easy_sm deploy -n my-endpoint -e ml.m5.large \
 Filter for completed jobs:
 
 ```bash
-# Get latest completed job
-JOB=$(easy_sm list-training-jobs -m 20 | grep Completed | head -1 | awk '{print $2}')
+# Get latest completed job (extract job name with $1, not $2 which is status)
+JOB=$(easy_sm list-training-jobs -m 20 | grep Completed | head -1 | awk '{print $1}')
 
 # Get model and deploy
 MODEL=$(easy_sm get-model-artifacts -j $JOB)
@@ -227,10 +227,16 @@ done
 ### Find Job by Date
 
 ```bash
-# Get jobs from specific date
+# Get jobs from specific date (without -n to include timestamp in output)
 DATE="2025-01"
-easy_sm list-training-jobs -n -m 100 | grep $DATE
+easy_sm list-training-jobs -m 100 | grep $DATE
+
+# Get job names from specific date
+DATE="2025-01"
+easy_sm list-training-jobs -m 100 | grep $DATE | awk '{print $1}'
 ```
+
+**Note**: Don't use `-n` flag if you need to filter by date - the `-n` flag outputs only names without timestamps!
 
 ## Automation Scripts
 

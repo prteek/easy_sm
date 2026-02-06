@@ -171,6 +171,51 @@ class CommandValidator:
             for pattern in doc_params['deprecated']:
                 self.issues.append(f"⚠️  {doc_file.name}: May contain unsupported feature: '{pattern}'")
 
+    def validate_examples(self, doc_file: Path) -> List[str]:
+        """Validate command examples in documentation."""
+        issues = []
+        with open(doc_file) as f:
+            content = f.read()
+
+        # Find bash code blocks with easy_sm commands
+        bash_pattern = r'```bash\n(.*?)\n```'
+        for match in re.finditer(bash_pattern, content, re.DOTALL):
+            code_block = match.group(1)
+
+            # Check for common mistakes
+
+            # 1. list-training-jobs with -n flag and grep for date
+            if 'list-training-jobs' in code_block and '-n' in code_block:
+                if any(keyword in code_block for keyword in ['grep $DATE', 'grep "2025-', 'grep "202', '| grep']):
+                    # More specific check: -n flag with date filtering
+                    lines_with_n = [line for line in code_block.split('\n') if 'list-training-jobs' in line and '-n' in line]
+                    for line in lines_with_n:
+                        # Check if this line or nearby lines have date grep
+                        context = code_block[max(0, code_block.find(line)-100):code_block.find(line)+200]
+                        if 'grep' in context and any(d in context for d in ['DATE', '202', '2025']):
+                            issues.append(f"⚠️  {doc_file.name}: Using -n flag with list-training-jobs then grepping for date - dates are not in output with -n")
+
+            # 2. Incorrect awk field extraction
+            if 'awk' in code_block and 'list-training-jobs' in code_block:
+                # Check for {print $2} on list-training-jobs output
+                awk_patterns = re.findall(r"awk\s+'(?:\{|')?print\s+\$(\d+)", code_block)
+                for field in awk_patterns:
+                    if field == '2':
+                        # Check if this is for extracting job name from list-training-jobs
+                        if 'grep Completed' in code_block or 'grep Failed' in code_block:
+                            issues.append(f"⚠️  {doc_file.name}: Using awk '$2' to extract from list-training-jobs - should use '$1' for job name")
+
+            # 3. Missing awk field extraction from list-training-jobs grep
+            if 'list-training-jobs' in code_block and 'grep Completed' in code_block:
+                # Check if we're assigning to a variable without extracting
+                if 'JOB=$(' in code_block:
+                    job_line = [line for line in code_block.split('\n') if 'JOB=$(' in line and 'list-training-jobs' in line]
+                    for line in job_line:
+                        if 'awk' not in line:
+                            issues.append(f"⚠️  {doc_file.name}: Assigning full list-training-jobs output to JOB variable without awk extraction")
+
+        return issues
+
     def validate_all(self) -> bool:
         """Validate all command documentation."""
         print("🔍 Validating documentation against code implementation...\n")
@@ -197,6 +242,13 @@ class CommandValidator:
             if doc_params['deprecated']:
                 for pattern in doc_params['deprecated']:
                     self.issues.append(f"⚠️  cloud-deployment.md: May contain unsupported feature: '{pattern}'")
+
+        # Validate examples in documentation
+        print("🔍 Validating command examples...\n")
+        doc_files = list(self.docs_dir.glob('**/*.md'))
+        for doc_file in doc_files:
+            example_issues = self.validate_examples(doc_file)
+            self.issues.extend(example_issues)
 
         # Report results
         if self.issues:

@@ -24,8 +24,8 @@ easy_sm deploy -n my-endpoint -e ml.m5.large \
 Filter for completed jobs only:
 
 ```bash
-# Get latest completed training job
-JOB=$(easy_sm list-training-jobs -m 20 | grep Completed | head -1 | awk '{print $2}')
+# Get latest completed training job (extract job name with $1, not $2 which is status)
+JOB=$(easy_sm list-training-jobs -m 20 | grep Completed | head -1 | awk '{print $1}')
 
 # Deploy that model
 MODEL=$(easy_sm get-model-artifacts -j $JOB)

@@ -456,10 +456,10 @@ my-training-job-1
 ### Pipe-Friendly Usage
 
 ```bash
-# Get latest completed job
-easy_sm list-training-jobs -m 10 | grep Completed | head -1
+# Get latest completed job name
+JOB=$(easy_sm list-training-jobs -m 10 | grep Completed | head -1 | awk '{print $1}')
 
-# Get all production jobs
+# Get all production job names
 easy_sm list-training-jobs -n -m 20 | grep "prod-"
 
 # Get latest model and deploy
