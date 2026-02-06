@@ -1,8 +1,12 @@
 #!/bin/bash
 # Pre-commit hook: Validate documentation on commit
 
-# Check if docs files are being committed
-DOCS_CHANGED=$(git diff --cached --name-only | grep -E '^docs/|^CLAUDE\.md|^README\.md' || true)
+# Check if any documentation files are being committed
+# This includes:
+# - All files under docs/ directory (commands, user-guide, examples, etc.)
+# - Root-level markdown files (CLAUDE.md, README.md, DOCS_WORKFLOW.md)
+# - Configuration files (mkdocs.yml, requirements-docs.txt)
+DOCS_CHANGED=$(git diff --cached --name-only | grep -E '^docs/|^CLAUDE\.md|^README\.md|^DOCS_WORKFLOW\.md|^mkdocs\.yml|^requirements-docs\.txt' || true)
 
 if [ -z "$DOCS_CHANGED" ]; then
     exit 0
