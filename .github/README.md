@@ -127,8 +127,8 @@ easy_sm cloud process -a app-name -f script.py -r $ROLE -e ml.m5.large \
 # List endpoints
 easy_sm cloud list-endpoints -a app-name -r $ROLE
 
-# List training jobs (filter by name, limit results)
-easy_sm cloud list-training-jobs -a app-name -r $ROLE [-b job-prefix] [-m 10]
+# List training jobs
+easy_sm cloud list-training-jobs -a app-name -r $ROLE [-m 10]
 
 # Delete endpoint
 easy_sm cloud delete-endpoint -a app-name -n endpoint-name -r $ROLE [--delete-config]

@@ -127,7 +127,7 @@ class TestConfig:
             # Missing aws_region
         }
 
-        with pytest.raises(KeyError):
+        with pytest.raises(TypeError):
             Config.from_dict(incomplete_dict)
 
 

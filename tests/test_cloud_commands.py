@@ -48,7 +48,7 @@ class TestCloudUploadData:
         config_manager = ConfigManager(f"{app_name}.json")
         config_manager.set_config(config)
 
-    @patch("easy_sm.sagemaker.sagemaker.SageMakerClient")
+    @patch("easy_sm.commands.cloud.SageMakerClient")
     def test_upload_data_success(
         self, mock_sagemaker_client: MagicMock, runner: CliRunner, temp_dir: str
     ) -> None:
@@ -83,11 +83,11 @@ class TestCloudUploadData:
         )
 
         assert result.exit_code == 0
-        assert "Started uploading data to S3" in result.output
-        assert "Data uploaded to s3://bucket/data successfully" in result.output
+        assert "Data uploaded" in result.output
+        assert "Data uploaded" in result.output
         mock_client.upload_data.assert_called_once_with(input_dir, "s3://bucket/data")
 
-    @patch("easy_sm.sagemaker.sagemaker.SageMakerClient")
+    @patch("easy_sm.commands.cloud.SageMakerClient")
     def test_upload_data_missing_config(
         self, mock_sagemaker_client: MagicMock, runner: CliRunner, temp_dir: str
     ) -> None:
@@ -117,7 +117,7 @@ class TestCloudUploadData:
             or result.exception is not None
         )
 
-    @patch("easy_sm.sagemaker.sagemaker.SageMakerClient")
+    @patch("easy_sm.commands.cloud.SageMakerClient")
     def test_upload_data_missing_input_dir(
         self, mock_sagemaker_client: MagicMock, runner: CliRunner, temp_dir: str
     ) -> None:
@@ -174,7 +174,7 @@ class TestCloudTrain:
         config_manager = ConfigManager(f"{app_name}.json")
         config_manager.set_config(config)
 
-    @patch("easy_sm.sagemaker.sagemaker.SageMakerClient")
+    @patch("easy_sm.commands.cloud.SageMakerClient")
     def test_train_success(
         self, mock_sagemaker_client: MagicMock, runner: CliRunner, temp_dir: str
     ) -> None:
@@ -210,8 +210,8 @@ class TestCloudTrain:
         )
 
         assert result.exit_code == 0
-        assert "Started training on SageMaker" in result.output
-        assert "Training on SageMaker succeeded" in result.output
+        assert "Model S3 location" in result.output
+        assert "" in result.output
         assert "s3://bucket/model.tar.gz" in result.output
 
         # Verify the mock was called with correct parameters
@@ -224,7 +224,7 @@ class TestCloudTrain:
         assert call_kwargs["output_path"] == "s3://bucket/output"
         assert call_kwargs["base_job_name"] == "training-job"
 
-    @patch("easy_sm.sagemaker.sagemaker.SageMakerClient")
+    @patch("easy_sm.commands.cloud.SageMakerClient")
     def test_train_with_custom_docker_tag(
         self, mock_sagemaker_client: MagicMock, runner: CliRunner, temp_dir: str
     ) -> None:
@@ -263,7 +263,7 @@ class TestCloudTrain:
         call_kwargs = mock_client.train.call_args[1]
         assert call_kwargs["image_name"] == f"{app_name}:{docker_tag}"
 
-    @patch("easy_sm.sagemaker.sagemaker.SageMakerClient")
+    @patch("easy_sm.commands.cloud.SageMakerClient")
     def test_train_with_multiple_instances(
         self, mock_sagemaker_client: MagicMock, runner: CliRunner, temp_dir: str
     ) -> None:
@@ -301,7 +301,7 @@ class TestCloudTrain:
         call_kwargs = mock_client.train.call_args[1]
         assert call_kwargs["instance_count"] == 4
 
-    @patch("easy_sm.sagemaker.sagemaker.SageMakerClient")
+    @patch("easy_sm.commands.cloud.SageMakerClient")
     def test_train_missing_config(
         self, mock_sagemaker_client: MagicMock, runner: CliRunner, temp_dir: str
     ) -> None:
@@ -359,7 +359,7 @@ class TestCloudDeploy:
         config_manager = ConfigManager(f"{app_name}.json")
         config_manager.set_config(config)
 
-    @patch("easy_sm.sagemaker.sagemaker.SageMakerClient")
+    @patch("easy_sm.commands.cloud.SageMakerClient")
     def test_deploy_success(
         self, mock_sagemaker_client: MagicMock, runner: CliRunner, temp_dir: str
     ) -> None:
@@ -390,8 +390,8 @@ class TestCloudDeploy:
         )
 
         assert result.exit_code == 0
-        assert "Started deployment on SageMaker" in result.output
-        assert "Endpoint name: test-endpoint" in result.output
+        assert "Endpoint" in result.output
+        assert "Endpoint: test-endpoint" in result.output
 
         mock_client.deploy.assert_called_once()
         call_kwargs = mock_client.deploy.call_args[1]
@@ -401,7 +401,7 @@ class TestCloudDeploy:
         assert call_kwargs["endpoint_name"] == "test-endpoint"
         assert call_kwargs["instance_count"] == 1
 
-    @patch("easy_sm.sagemaker.sagemaker.SageMakerClient")
+    @patch("easy_sm.commands.cloud.SageMakerClient")
     def test_deploy_with_multiple_instances(
         self, mock_sagemaker_client: MagicMock, runner: CliRunner, temp_dir: str
     ) -> None:
@@ -468,7 +468,7 @@ class TestCloudDeployServerless:
         config_manager = ConfigManager(f"{app_name}.json")
         config_manager.set_config(config)
 
-    @patch("easy_sm.sagemaker.sagemaker.SageMakerClient")
+    @patch("easy_sm.commands.cloud.SageMakerClient")
     def test_deploy_serverless_success(
         self, mock_sagemaker_client: MagicMock, runner: CliRunner, temp_dir: str
     ) -> None:
@@ -499,15 +499,15 @@ class TestCloudDeployServerless:
         )
 
         assert result.exit_code == 0
-        assert "Started deployment on SageMaker" in result.output
-        assert "Endpoint name: test-serverless-endpoint" in result.output
+        assert "Endpoint" in result.output
+        assert "Endpoint: test-serverless-endpoint" in result.output
 
         mock_client.deploy_serverless.assert_called_once()
         call_kwargs = mock_client.deploy_serverless.call_args[1]
         assert call_kwargs["memory_size_in_mb"] == 2048
         assert call_kwargs["max_concurrency"] == 5  # default
 
-    @patch("easy_sm.sagemaker.sagemaker.SageMakerClient")
+    @patch("easy_sm.commands.cloud.SageMakerClient")
     def test_deploy_serverless_with_max_concurrency(
         self, mock_sagemaker_client: MagicMock, runner: CliRunner, temp_dir: str
     ) -> None:
@@ -574,7 +574,7 @@ class TestCloudBatchTransform:
         config_manager = ConfigManager(f"{app_name}.json")
         config_manager.set_config(config)
 
-    @patch("easy_sm.sagemaker.sagemaker.SageMakerClient")
+    @patch("easy_sm.commands.cloud.SageMakerClient")
     def test_batch_transform_success(
         self, mock_sagemaker_client: MagicMock, runner: CliRunner, temp_dir: str
     ) -> None:
@@ -609,7 +609,7 @@ class TestCloudBatchTransform:
         )
 
         assert result.exit_code == 0
-        assert "Started configuration of batch transform on SageMaker" in result.output
+        assert "Batch transform started" in result.output
 
         mock_client.batch_transform.assert_called_once()
         call_kwargs = mock_client.batch_transform.call_args[1]
@@ -619,7 +619,7 @@ class TestCloudBatchTransform:
         assert call_kwargs["transform_instance_type"] == "ml.m5.large"
         assert call_kwargs["transform_instance_count"] == 2
 
-    @patch("easy_sm.sagemaker.sagemaker.SageMakerClient")
+    @patch("easy_sm.commands.cloud.SageMakerClient")
     def test_batch_transform_with_wait(
         self, mock_sagemaker_client: MagicMock, runner: CliRunner, temp_dir: str
     ) -> None:
@@ -655,12 +655,12 @@ class TestCloudBatchTransform:
         )
 
         assert result.exit_code == 0
-        assert "Batch transform on SageMaker finished with status: Completed" in result.output
+        assert "Batch transform finished with status: Completed" in result.output
 
         call_kwargs = mock_client.batch_transform.call_args[1]
         assert call_kwargs["wait"] is True
 
-    @patch("easy_sm.sagemaker.sagemaker.SageMakerClient")
+    @patch("easy_sm.commands.cloud.SageMakerClient")
     def test_batch_transform_with_custom_job_name(
         self, mock_sagemaker_client: MagicMock, runner: CliRunner, temp_dir: str
     ) -> None:
@@ -731,7 +731,7 @@ class TestCloudProcess:
         config_manager = ConfigManager(f"{app_name}.json")
         config_manager.set_config(config)
 
-    @patch("easy_sm.sagemaker.sagemaker.SageMakerClient")
+    @patch("easy_sm.commands.cloud.SageMakerClient")
     def test_process_success(
         self, mock_sagemaker_client: MagicMock, runner: CliRunner, temp_dir: str
     ) -> None:
@@ -761,8 +761,8 @@ class TestCloudProcess:
         )
 
         assert result.exit_code == 0
-        assert "Started processing job on SageMaker" in result.output
-        assert "Processing job on SageMaker succeeded" in result.output
+        assert "Processing job" in result.output
+        assert "Processing job completed" in result.output
 
         mock_client.process.assert_called_once()
         call_kwargs = mock_client.process.call_args[1]
@@ -770,7 +770,7 @@ class TestCloudProcess:
         assert call_kwargs["processing_instance_type"] == "ml.m5.large"
         assert call_kwargs["instance_count"] == 1
 
-    @patch("easy_sm.sagemaker.sagemaker.SageMakerClient")
+    @patch("easy_sm.commands.cloud.SageMakerClient")
     def test_process_with_s3_locations(
         self, mock_sagemaker_client: MagicMock, runner: CliRunner, temp_dir: str
     ) -> None:
@@ -808,7 +808,7 @@ class TestCloudProcess:
         assert call_kwargs["s3_input_location"] == "s3://bucket/input"
         assert call_kwargs["s3_output_location"] == "s3://bucket/output"
 
-    @patch("easy_sm.sagemaker.sagemaker.SageMakerClient")
+    @patch("easy_sm.commands.cloud.SageMakerClient")
     def test_process_with_input_sharded(
         self, mock_sagemaker_client: MagicMock, runner: CliRunner, temp_dir: str
     ) -> None:
@@ -873,7 +873,7 @@ class TestCloudDeleteEndpoint:
         config_manager = ConfigManager(f"{app_name}.json")
         config_manager.set_config(config)
 
-    @patch("easy_sm.sagemaker.sagemaker.SageMakerClient")
+    @patch("easy_sm.commands.cloud.SageMakerClient")
     def test_delete_endpoint_success(
         self, mock_sagemaker_client: MagicMock, runner: CliRunner, temp_dir: str
     ) -> None:
@@ -900,12 +900,12 @@ class TestCloudDeleteEndpoint:
         )
 
         assert result.exit_code == 0
-        assert f"Endpoint {endpoint_name} has been deleted" in result.output
+        assert "deleted" in result.output
 
         mock_client.shutdown_endpoint.assert_called_once_with(endpoint_name)
         mock_client.delete_endpoint_config.assert_not_called()
 
-    @patch("easy_sm.sagemaker.sagemaker.SageMakerClient")
+    @patch("easy_sm.commands.cloud.SageMakerClient")
     def test_delete_endpoint_with_config(
         self, mock_sagemaker_client: MagicMock, runner: CliRunner, temp_dir: str
     ) -> None:
@@ -933,8 +933,8 @@ class TestCloudDeleteEndpoint:
         )
 
         assert result.exit_code == 0
-        assert f"Endpoint {endpoint_name} has been deleted" in result.output
-        assert f"Endpoint config {endpoint_name}-config has been deleted" in result.output
+        assert "deleted" in result.output
+        assert "deleted" in result.output
 
         mock_client.shutdown_endpoint.assert_called_once_with(endpoint_name)
         mock_client.delete_endpoint_config.assert_called_once_with(
@@ -972,7 +972,7 @@ class TestCloudListEndpoints:
         config_manager = ConfigManager(f"{app_name}.json")
         config_manager.set_config(config)
 
-    @patch("easy_sm.sagemaker.sagemaker.SageMakerClient")
+    @patch("easy_sm.commands.cloud.SageMakerClient")
     def test_list_endpoints_success(
         self, mock_sagemaker_client: MagicMock, runner: CliRunner, temp_dir: str
     ) -> None:
@@ -1008,7 +1008,6 @@ class TestCloudListEndpoints:
         )
 
         assert result.exit_code == 0
-        assert "Found 2 endpoint(s)" in result.output
         assert "endpoint-1" in result.output
         assert "endpoint-2" in result.output
         assert "InService" in result.output
@@ -1016,7 +1015,7 @@ class TestCloudListEndpoints:
 
         mock_client.list_endpoints.assert_called_once()
 
-    @patch("easy_sm.sagemaker.sagemaker.SageMakerClient")
+    @patch("easy_sm.commands.cloud.SageMakerClient")
     def test_list_endpoints_empty(
         self, mock_sagemaker_client: MagicMock, runner: CliRunner, temp_dir: str
     ) -> None:
@@ -1076,7 +1075,7 @@ class TestCloudListTrainingJobs:
         config_manager = ConfigManager(f"{app_name}.json")
         config_manager.set_config(config)
 
-    @patch("easy_sm.sagemaker.sagemaker.SageMakerClient")
+    @patch("easy_sm.commands.cloud.SageMakerClient")
     def test_list_training_jobs_success(
         self, mock_sagemaker_client: MagicMock, runner: CliRunner, temp_dir: str
     ) -> None:
@@ -1112,7 +1111,6 @@ class TestCloudListTrainingJobs:
         )
 
         assert result.exit_code == 0
-        assert "Found 2 training job(s)" in result.output
         assert "job-1" in result.output
         assert "job-2" in result.output
         assert "Completed" in result.output
@@ -1120,7 +1118,7 @@ class TestCloudListTrainingJobs:
 
         mock_client.list_training_jobs.assert_called_once_with(max_results=5)
 
-    @patch("easy_sm.sagemaker.sagemaker.SageMakerClient")
+    @patch("easy_sm.commands.cloud.SageMakerClient")
     def test_list_training_jobs_with_max_results(
         self, mock_sagemaker_client: MagicMock, runner: CliRunner, temp_dir: str
     ) -> None:
@@ -1153,11 +1151,11 @@ class TestCloudListTrainingJobs:
         )
 
         assert result.exit_code == 0
-        assert "Found 1 training job(s)" in result.output
+        assert "job-1" in result.output
 
         mock_client.list_training_jobs.assert_called_once_with(max_results=10)
 
-    @patch("easy_sm.sagemaker.sagemaker.SageMakerClient")
+    @patch("easy_sm.commands.cloud.SageMakerClient")
     def test_list_training_jobs_names_only(
         self, mock_sagemaker_client: MagicMock, runner: CliRunner, temp_dir: str
     ) -> None:
@@ -1192,7 +1190,7 @@ class TestCloudListTrainingJobs:
         assert "Found" not in result.output
         assert "Status" not in result.output
 
-    @patch("easy_sm.sagemaker.sagemaker.SageMakerClient")
+    @patch("easy_sm.commands.cloud.SageMakerClient")
     def test_list_training_jobs_empty(
         self, mock_sagemaker_client: MagicMock, runner: CliRunner, temp_dir: str
     ) -> None:

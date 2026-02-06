@@ -73,8 +73,8 @@ class TestLocalTrain:
 
                 # Verify command succeeded
                 assert result.exit_code == 0, f"Command failed: {result.output}"
-                assert "Started local training" in result.output
-                assert "Local training completed successfully" in result.output
+                assert "Local training" in result.output
+                assert "Local training completed" in result.output
 
                 # Verify subprocess was called
                 mock_popen.assert_called_once()
@@ -208,7 +208,7 @@ class TestLocalDeploy:
 
                 # Verify command structure
                 assert result.exit_code == 0, f"Command failed: {result.output}"
-                assert "Started local deployment at localhost:8080" in result.output
+                assert "Starting local deployment at localhost:8080" in result.output
 
                 # Verify subprocess was called
                 mock_popen.assert_called_once()
@@ -297,7 +297,7 @@ class TestLocalDeploy:
                 )
 
                 assert result.exit_code == 0, f"Command failed: {result.output}"
-                assert "Started local deployment at localhost:9000" in result.output
+                assert "Starting local deployment at localhost:9000" in result.output
 
                 # Verify subprocess was called with correct port
                 mock_popen.assert_called_once()
@@ -324,7 +324,7 @@ class TestLocalDeploy:
                 )
 
                 assert result.exit_code == 0, f"Command failed: {result.output}"
-                assert "Started local deployment at localhost:3000" in result.output
+                assert "Starting local deployment at localhost:3000" in result.output
 
                 # Verify subprocess was called with correct port
                 call_args = mock_popen.call_args[0][0]
@@ -395,7 +395,7 @@ class TestLocalStop:
 
                 # Verify command succeeded
                 assert result.exit_code == 0, f"Command failed: {result.output}"
-                assert "Local deployment stopped successfully" in result.output
+                assert "Local deployment stopped" in result.output
 
                 # Verify subprocess was called
                 mock_popen.assert_called_once()
@@ -530,12 +530,12 @@ class TestLocalTrainAndDeployIntegration:
                 # First, train
                 train_result = runner.invoke(app, ["local", "train", "-a", "app"])
                 assert train_result.exit_code == 0
-                assert "Local training completed successfully" in train_result.output
+                assert "Local training completed" in train_result.output
 
                 # Then, deploy
                 deploy_result = runner.invoke(app, ["local", "deploy", "-a", "app"])
                 assert deploy_result.exit_code == 0
-                assert "Started local deployment at localhost:8080" in deploy_result.output
+                assert "Starting local deployment at localhost:8080" in deploy_result.output
 
                 # Verify both commands were called
                 assert mock_popen.call_count >= 2

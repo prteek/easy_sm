@@ -152,7 +152,7 @@ class TestSafeRunSubprocess:
             # Verify error message was printed
             print_calls = [str(call_arg) for call_arg in mock_print.call_args_list]
             assert any(
-                "Error occurred while running the command" in str(call_arg)
+                "Command failed" in str(call_arg)
                 for call_arg in print_calls
             )
 
@@ -222,8 +222,8 @@ class TestSafeRunSubprocess:
             print_calls = [str(call_arg) for call_arg in mock_print.call_args_list]
             combined_output = " ".join(print_calls)
 
-            assert "Error occurred while running the command" in combined_output
-            assert "Return code" in combined_output or "return" in combined_output.lower()
+            assert "Command failed" in combined_output
+            assert "return code" in combined_output.lower()
 
     @patch("subprocess.Popen")
     def test_subprocess_return_code_propagated(

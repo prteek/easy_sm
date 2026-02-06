@@ -1,10 +1,8 @@
 import os
 import re
 import subprocess
-from typing import List, Optional
 
 from easy_sm.config.config import Config, ConfigManager
-from easy_sm.sagemaker import sagemaker
 
 # Global state for docker_tag (set by main CLI callback)
 docker_tag: str = "latest"
@@ -13,69 +11,39 @@ docker_tag: str = "latest"
 APP_NAME_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
 
 
-def safe_run_subprocess(
-    command: List[str], success_message: Optional[str] = None
-) -> int:
-    """Safely run any subprocesses and print error messages sensibly."""
-    return_code: int = 0
+def safe_run_subprocess(command: list[str], success_message: str | None = None) -> int:
+    """Run subprocess and stream output. Returns exit code."""
     try:
         process = subprocess.Popen(
-            command,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
+            command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
         )
-
-        stdout = process.stdout
-        if stdout:
-            for line in stdout:
+        if process.stdout:
+            for line in process.stdout:
                 print(line, end="")
 
         return_code = process.wait()
-
         if return_code != 0:
             raise subprocess.CalledProcessError(return_code, command)
 
         if success_message:
             print(success_message)
+        return return_code
 
     except subprocess.CalledProcessError as e:
-        print("Error occurred while running the command:")
-        print(f"Return code: {e.returncode}")
-        print(f"Command: {e.cmd}")
-        print("Error output:")
-        print(e.output)
-
-    return return_code
-
-
-def validate_app_name(app_name: str) -> None:
-    """Validate app_name to prevent path traversal and command injection."""
-    if not app_name:
-        raise ValueError("App name cannot be empty")
-    if not APP_NAME_PATTERN.match(app_name):
-        raise ValueError(
-            f"Invalid app name: {app_name}. "
-            "App name must contain only alphanumeric characters, hyphens, and underscores."
-        )
+        print(f"Command failed with return code {e.returncode}: {e.cmd}")
+        return e.returncode
 
 
 def load_config(app_name: str) -> Config:
     """Load configuration from app_name.json in current directory."""
-    validate_app_name(app_name)
-    config_file_path = os.path.join(f"{app_name}.json")
-    if not os.path.isfile(config_file_path):
-        raise ValueError(f"This is not a easy_sm directory: {os.getcwd()}")
-    return ConfigManager(config_file_path).get_config()
+    if not app_name or not APP_NAME_PATTERN.match(app_name):
+        raise ValueError(
+            f"Invalid app name: {app_name}. "
+            "Must contain only alphanumeric characters, hyphens, and underscores."
+        )
 
+    config_file = f"{app_name}.json"
+    if not os.path.isfile(config_file):
+        raise ValueError(f"Config file not found: {config_file}")
 
-def build_image_name(image_name: str, tag: str) -> str:
-    """Build full Docker image name with tag."""
-    return f"{image_name}:{tag}"
-
-
-def create_sagemaker_client(
-    aws_profile: str, aws_region: str, iam_role_arn: str
-) -> sagemaker.SageMakerClient:
-    """Create and return a SageMaker client."""
-    return sagemaker.SageMakerClient(aws_profile, aws_region, iam_role_arn)
+    return ConfigManager(config_file).get_config()
