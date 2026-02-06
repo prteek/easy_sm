@@ -17,11 +17,6 @@ class SageMakerClient:
     ) -> None:
         profile_name: str | None = aws_profile if aws_profile else None
 
-        if profile_name:
-            print("Using profile {}.".format(profile_name))
-        else:
-            print("Using AWS credentials from environment or default chain.")
-
         self.boto_session = boto3.Session(
             profile_name=profile_name, region_name=aws_region
         )
