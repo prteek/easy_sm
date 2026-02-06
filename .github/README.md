@@ -1,5 +1,11 @@
 # easy_sm
 
+[![Release](https://github.com/prteek/easy_sm/actions/workflows/release.yml/badge.svg)](https://github.com/prteek/easy_sm/actions/workflows/release.yml)
+[![Documentation](https://github.com/prteek/easy_sm/actions/workflows/docs.yml/badge.svg)](https://github.com/prteek/easy_sm/actions/workflows/docs.yml)
+[![PyPI version](https://badge.fury.io/py/easy-sm.svg)](https://badge.fury.io/py/easy-sm)
+[![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A Python CLI tool that simplifies AWS SageMaker workflows by enabling rapid local prototyping with Docker before deploying to the cloud.
 
 **Credits**: This project borrows heavily from [Sagify](https://github.com/Kenza-AI/sagify). Check it out especially if you want to work with LLMs on SageMaker.
