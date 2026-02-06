@@ -197,30 +197,31 @@ def list_endpoints(
 def list_training_jobs(
     iam_role_arn: Annotated[str, typer.Option("--iam-role-arn", "-r", help="AWS IAM role ARN")],
     app_name: Annotated[str, typer.Option("--app-name", "-a", help="App name for configuration")],
-    max_results: Annotated[int, typer.Option("--max-results", "-m", help="Max number of matching jobs to return")] = 5,
-    base_job_name: Annotated[Optional[str], typer.Option("--base-job-name", "-b", help="Filter jobs by name (returns jobs containing this string)")] = None,
+    max_results: Annotated[int, typer.Option("--max-results", "-m", help="Maximum number of jobs to return")] = 5,
+    names_only: Annotated[bool, typer.Option("--names-only", "-n", help="Output only job names (one per line)")] = False,
 ) -> None:
-    """List recent SageMaker training jobs.
-
-    When -b/--base-job-name is specified, only jobs containing that string
-    in their name are returned, up to the limit set by -m/--max-results.
-    """
+    """List recent SageMaker training jobs."""
     config = load_config(app_name)
     sage_maker_client = create_sagemaker_client(config.aws_profile, config.aws_region, iam_role_arn)
-    training_jobs = sage_maker_client.list_training_jobs(max_results=max_results, name_contains=base_job_name)
+    training_jobs = sage_maker_client.list_training_jobs(max_results=max_results)
 
     if not training_jobs:
-        print("No training jobs found")
+        if not names_only:
+            print("No training jobs found")
         return
 
-    print(f"\nFound {len(training_jobs)} training job(s):\n")
-    for job in training_jobs:
-        job_name = job.get("TrainingJobName", "N/A")
-        job_status = job.get("TrainingJobStatus", "N/A")
-        creation_time = job.get("CreationTime", "N/A")
-        print(f"  • Name: {job_name}")
-        print(f"    Status: {job_status}")
-        print(f"    Created: {creation_time}\n")
+    if names_only:
+        for job in training_jobs:
+            print(job.get("TrainingJobName", ""))
+    else:
+        print(f"\nFound {len(training_jobs)} training job(s):\n")
+        for job in training_jobs:
+            job_name = job.get("TrainingJobName", "N/A")
+            job_status = job.get("TrainingJobStatus", "N/A")
+            creation_time = job.get("CreationTime", "N/A")
+            print(f"  • Name: {job_name}")
+            print(f"    Status: {job_status}")
+            print(f"    Created: {creation_time}\n")
 
 
 @cloud_app.command(name="process")

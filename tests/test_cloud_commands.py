@@ -1158,6 +1158,41 @@ class TestCloudListTrainingJobs:
         mock_client.list_training_jobs.assert_called_once_with(max_results=10)
 
     @patch("easy_sm.sagemaker.sagemaker.SageMakerClient")
+    def test_list_training_jobs_names_only(
+        self, mock_sagemaker_client: MagicMock, runner: CliRunner, temp_dir: str
+    ) -> None:
+        """Test cloud list-training-jobs with --names-only outputs just job names."""
+        app_name = "test-app"
+        self._create_config(app_name)
+
+        mock_client = MagicMock()
+        mock_client.list_training_jobs.return_value = [
+            {"TrainingJobName": "job-alpha", "TrainingJobStatus": "Completed", "CreationTime": "2024-01-01"},
+            {"TrainingJobName": "job-beta", "TrainingJobStatus": "InProgress", "CreationTime": "2024-01-02"},
+        ]
+        mock_sagemaker_client.return_value = mock_client
+
+        result = runner.invoke(
+            app,
+            [
+                "cloud",
+                "list-training-jobs",
+                "-a",
+                app_name,
+                "-r",
+                "arn:aws:iam::123456789012:role/SageMakerRole",
+                "--names-only",
+            ],
+        )
+
+        assert result.exit_code == 0
+        # Should output just names, one per line
+        assert result.output.strip() == "job-alpha\njob-beta"
+        # Should NOT contain verbose output
+        assert "Found" not in result.output
+        assert "Status" not in result.output
+
+    @patch("easy_sm.sagemaker.sagemaker.SageMakerClient")
     def test_list_training_jobs_empty(
         self, mock_sagemaker_client: MagicMock, runner: CliRunner, temp_dir: str
     ) -> None:
