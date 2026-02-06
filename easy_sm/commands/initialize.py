@@ -20,27 +20,30 @@ def _template_creation(
     python_version: str,
     output_dir: str,
     requirements_dir: str,
+    is_new_project: bool
 ) -> None:
     easy_sm_module_name = "easy_sm_base"
 
     easy_sm_exists = os.path.exists(os.path.join(output_dir, easy_sm_module_name))
-    if easy_sm_exists:
-        raise ValueError(
-            "There is a easy_sm directory/module already. "
-            "Please, rename it in order to use easy_sm."
-        )
 
-    Path(output_dir).mkdir(exist_ok=True)
-    Path(os.path.join(output_dir, "__init__.py")).touch()
+    if is_new_project:
+        if easy_sm_exists:
+            raise ValueError(
+                "There is a easy_sm directory/module already. "
+                "Please, rename it in order to use easy_sm."
+            )
 
-    template_path = os.path.join(_FILE_DIR_PATH, "../template")
-    for item in os.listdir(template_path):
-        src = os.path.join(template_path, item)
-        dst = os.path.join(output_dir, item)
-        if os.path.isdir(src):
-            shutil.copytree(src, dst, dirs_exist_ok=True)
-        else:
-            shutil.copy2(src, dst)
+        Path(output_dir).mkdir(exist_ok=True)
+        Path(os.path.join(output_dir, "__init__.py")).touch()
+
+        template_path = os.path.join(_FILE_DIR_PATH, "../template")
+        for item in os.listdir(template_path):
+            src = os.path.join(template_path, item)
+            dst = os.path.join(output_dir, item)
+            if os.path.isdir(src):
+                shutil.copytree(src, dst, dirs_exist_ok=True)
+            else:
+                shutil.copy2(src, dst)
 
     config_manager = ConfigManager(os.path.join(f"{app_name}.json"))
     config = config_manager.get_config()
@@ -84,7 +87,7 @@ def ask_for_root_dir() -> str:
 
 def ask_for_python_version() -> str:
     print("Select Python interpreter:")
-    print("{}".format("\n".join(["1 - Python310", "2 - Python311", "3 - Python312", "4 - Python314"])))
+    print("{}".format("\n".join(["1 - Python310", "2 - Python311", "3 - Python312", "4 - Python313"])))
 
     def _validate_python_option(input_value: Any) -> int:
         if int(input_value) not in {1, 2, 3, 4}:
@@ -102,7 +105,7 @@ def ask_for_python_version() -> str:
         value_proc=lambda x: _validate_python_option(x),
     )
 
-    _index_to_version = {1: "3.10", 2: "3.11", 3: "3.12", 4: "3.14"}
+    _index_to_version = {1: "3.10", 2: "3.11", 3: "3.12", 4: "3.13"}
 
     return _index_to_version[chosen_python_index]
 
@@ -196,6 +199,7 @@ def init() -> None:
         python_version=python_version,
         output_dir=root_dir if root_dir else easy_sm_app_name,
         requirements_dir=requirements_dir,
+        is_new_project=is_new_project
     )
 
     print("\neasy_sm module is created! ヽ(´▽`)/")
