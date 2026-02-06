@@ -306,6 +306,32 @@ Returns:
 
 ### GitHub Actions Workflows
 
+**test.yml**: Continuous Testing
+- **Trigger**: Push to main and pull requests
+- **Process**:
+  1. Setup Python 3.13
+  2. Install package and test dependencies
+  3. Run full test suite (`pytest` all 120 tests)
+  4. Run type checking (`mypy`)
+  5. Run linting (`ruff check`)
+- **Result**: Validates code quality on every commit
+- **Badge**: Shows test status, not affected by release jobs
+
+**release.yml**: PyPI Release
+- **Trigger**: Git tag creation matching `v*` (e.g., `git tag v1.0.1`)
+- **Process**:
+  1. Build source distribution and wheel
+  2. Publish to PyPI
+- **Result**: New version available on PyPI
+- **Important**: Only triggered on version tags, not on regular commits
+- **How to release**:
+  ```bash
+  # After version bump commit is merged to main:
+  git tag v1.0.1
+  git push origin v1.0.1
+  # Release workflow triggers automatically
+  ```
+
 **docs.yml**: Documentation Deployment
 - **Trigger**: Push to main (when `docs/`, `mkdocs.yml`, or source docs files change)
 - **Process**:
@@ -316,16 +342,6 @@ Returns:
   5. Deploy to GitHub Pages using GitHub Actions (`configure-pages`, `upload-pages-artifact`, `deploy-pages`)
 - **Result**: Documentation automatically available at https://prteek.github.io/easy_sm/
 - **MkDocs Configuration**: Material theme, search, code copy buttons, dark mode toggle, git revision dates
-
-**release.yml**: PyPI Release and Testing
-- **Trigger**: Tag creation (e.g., `git tag v1.0.0`) or manual `workflow_dispatch`
-- **Process**:
-  1. Run full test suite (`pytest` all 120 tests)
-  2. Run type checking (`mypy`)
-  3. Run linting (`ruff check`)
-  4. Build package distribution
-  5. Publish to PyPI
-- **Result**: New version available on PyPI after tests pass
 
 ### Pre-commit Hook
 
@@ -445,6 +461,40 @@ easy_sm/
 - Local training/processing uses Docker to simulate SageMaker container environment
 - Configuration is persisted as JSON to maintain state across command invocations
 - App names are validated to prevent security issues (path traversal, injection)
+
+## Release Process
+
+### Creating a Release
+
+1. **Bump version** in:
+   - `setup.py`: version="X.Y.Z"
+   - `easy_sm/__init__.py`: __version__ = "X.Y.Z"
+   - `mkdocs.yml`: version: X.Y.Z
+
+2. **Commit version bump** to main:
+   ```bash
+   git add setup.py easy_sm/__init__.py mkdocs.yml
+   git commit -m "chore: bump version to X.Y.Z"
+   git push origin main
+   ```
+
+3. **Create git tag** to trigger release:
+   ```bash
+   git tag vX.Y.Z
+   git push origin vX.Y.Z
+   ```
+
+4. **Watch release workflow**: GitHub Actions automatically:
+   - Builds distribution packages
+   - Publishes to PyPI
+   - Updates PyPI badge with new version
+
+### Why This Approach
+
+- **Separation of concerns**: Tests run on every commit, releases only on tags
+- **Badge stability**: Release badge only shows failures on actual release attempts
+- **Clear history**: Git tags mark stable release points
+- **No spurious failures**: Minor fixes don't trigger release job failures
 
 ## Git Configuration
 
