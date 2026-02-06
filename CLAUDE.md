@@ -317,19 +317,20 @@ Returns:
 - **Result**: Validates code quality on every commit
 - **Badge**: Shows test status, not affected by release jobs
 
-**release.yml**: PyPI Release
+**publish.yml**: PyPI Release
 - **Trigger**: Git tag creation matching `v*` (e.g., `git tag v1.0.1`)
 - **Process**:
   1. Build source distribution and wheel
   2. Publish to PyPI
 - **Result**: New version available on PyPI
 - **Important**: Only triggered on version tags, not on regular commits
+- **Badge**: Shows status of tag-triggered releases only
 - **How to release**:
   ```bash
   # After version bump commit is merged to main:
   git tag v1.0.1
   git push origin v1.0.1
-  # Release workflow triggers automatically
+  # Publish workflow triggers automatically
   ```
 
 **docs.yml**: Documentation Deployment

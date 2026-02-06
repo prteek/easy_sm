@@ -1,6 +1,6 @@
 # Welcome to easy_sm
 
-[![Release](https://github.com/prteek/easy_sm/actions/workflows/release.yml/badge.svg)](https://github.com/prteek/easy_sm/actions/workflows/release.yml)
+[![Publish](https://github.com/prteek/easy_sm/actions/workflows/publish.yml/badge.svg)](https://github.com/prteek/easy_sm/actions/workflows/publish.yml)
 [![Documentation](https://github.com/prteek/easy_sm/actions/workflows/docs.yml/badge.svg)](https://github.com/prteek/easy_sm/actions/workflows/docs.yml)
 [![PyPI version](https://img.shields.io/pypi/v/easy-sm?logo=python&logoColor=white)](https://pypi.org/project/easy-sm/)
 [![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
