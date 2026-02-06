@@ -14,7 +14,7 @@ Recommended to validate before updating.
     """,
     author="Prateek",
     author_email="prteek@icloud.com",
-    version="1.0.0",
+    version="1.0.1",
     python_requires=">=3.13",
     packages=find_packages(where="."),
     package_data={
