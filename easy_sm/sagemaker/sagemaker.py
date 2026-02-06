@@ -238,6 +238,32 @@ class SageMakerClient:
         """Shuts down a SageMaker endpoint."""
         self.sagemaker_client.delete_endpoint(EndpointName=endpoint_name)
 
+    def delete_endpoint_config(self, endpoint_config_name: str) -> None:
+        """Delete a SageMaker endpoint config."""
+        self.sagemaker_client.delete_endpoint_config(
+            EndpointConfigName=endpoint_config_name
+        )
+
+    def list_endpoints(self) -> list[dict]:
+        """List all SageMaker endpoints."""
+        response = self.sagemaker_client.list_endpoints()
+        return response.get("Endpoints", [])
+
+    def list_training_jobs(
+        self, max_results: int = 5, name_contains: str | None = None
+    ) -> list[dict]:
+        """List SageMaker training jobs."""
+        kwargs = {
+            "MaxResults": max_results,
+            "SortBy": "CreationTime",
+            "SortOrder": "Descending",
+        }
+        if name_contains:
+            kwargs["NameContains"] = name_contains
+
+        response = self.sagemaker_client.list_training_jobs(**kwargs)
+        return response.get("TrainingJobSummaries", [])
+
     @staticmethod
     def _get_s3_bucket(s3_dir: str) -> str:
         """Extract bucket from S3 dir."""

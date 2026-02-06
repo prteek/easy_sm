@@ -903,6 +903,332 @@ class TestCloudDeleteEndpoint:
         assert f"Endpoint {endpoint_name} has been deleted" in result.output
 
         mock_client.shutdown_endpoint.assert_called_once_with(endpoint_name)
+        mock_client.delete_endpoint_config.assert_not_called()
+
+    @patch("easy_sm.sagemaker.sagemaker.SageMakerClient")
+    def test_delete_endpoint_with_config(
+        self, mock_sagemaker_client: MagicMock, runner: CliRunner, temp_dir: str
+    ) -> None:
+        """Test cloud delete-endpoint command with --delete-config flag."""
+        app_name = "test-app"
+        endpoint_name = "test-endpoint"
+        self._create_config(app_name)
+
+        mock_client = MagicMock()
+        mock_sagemaker_client.return_value = mock_client
+
+        result = runner.invoke(
+            cli,
+            [
+                "cloud",
+                "delete-endpoint",
+                "-a",
+                app_name,
+                "-n",
+                endpoint_name,
+                "--delete-config",
+                "-r",
+                "arn:aws:iam::123456789012:role/SageMakerRole",
+            ],
+        )
+
+        assert result.exit_code == 0
+        assert f"Endpoint {endpoint_name} has been deleted" in result.output
+        assert f"Endpoint config {endpoint_name}-config has been deleted" in result.output
+
+        mock_client.shutdown_endpoint.assert_called_once_with(endpoint_name)
+        mock_client.delete_endpoint_config.assert_called_once_with(
+            f"{endpoint_name}-config"
+        )
+
+
+class TestCloudListEndpoints:
+    """Tests for the cloud list-endpoints command."""
+
+    @pytest.fixture
+    def runner(self) -> CliRunner:
+        """Provide CliRunner instance."""
+        return CliRunner()
+
+    @pytest.fixture
+    def temp_dir(self) -> Generator[str, None, None]:
+        """Create a temporary directory for testing."""
+        temp_dir = tempfile.mkdtemp()
+        original_cwd = os.getcwd()
+        os.chdir(temp_dir)
+        yield temp_dir
+        os.chdir(original_cwd)
+
+    def _create_config(self, app_name: str) -> None:
+        """Helper to create a config file."""
+        config = Config(
+            image_name=app_name,
+            aws_profile="test-profile",
+            aws_region="us-east-1",
+            python_version="3.14",
+            easy_sm_module_dir=app_name,
+            requirements_dir="requirements.txt",
+        )
+        config_manager = ConfigManager(f"{app_name}.json")
+        config_manager.set_config(config)
+
+    @patch("easy_sm.sagemaker.sagemaker.SageMakerClient")
+    def test_list_endpoints_success(
+        self, mock_sagemaker_client: MagicMock, runner: CliRunner, temp_dir: str
+    ) -> None:
+        """Test successful cloud list-endpoints command."""
+        app_name = "test-app"
+        self._create_config(app_name)
+
+        mock_client = MagicMock()
+        mock_client.list_endpoints.return_value = [
+            {
+                "EndpointName": "endpoint-1",
+                "EndpointStatus": "InService",
+                "CreationTime": "2024-01-01T00:00:00Z",
+            },
+            {
+                "EndpointName": "endpoint-2",
+                "EndpointStatus": "Creating",
+                "CreationTime": "2024-01-02T00:00:00Z",
+            },
+        ]
+        mock_sagemaker_client.return_value = mock_client
+
+        result = runner.invoke(
+            cli,
+            [
+                "cloud",
+                "list-endpoints",
+                "-a",
+                app_name,
+                "-r",
+                "arn:aws:iam::123456789012:role/SageMakerRole",
+            ],
+        )
+
+        assert result.exit_code == 0
+        assert "Found 2 endpoint(s)" in result.output
+        assert "endpoint-1" in result.output
+        assert "endpoint-2" in result.output
+        assert "InService" in result.output
+        assert "Creating" in result.output
+
+        mock_client.list_endpoints.assert_called_once()
+
+    @patch("easy_sm.sagemaker.sagemaker.SageMakerClient")
+    def test_list_endpoints_empty(
+        self, mock_sagemaker_client: MagicMock, runner: CliRunner, temp_dir: str
+    ) -> None:
+        """Test cloud list-endpoints command with no endpoints."""
+        app_name = "test-app"
+        self._create_config(app_name)
+
+        mock_client = MagicMock()
+        mock_client.list_endpoints.return_value = []
+        mock_sagemaker_client.return_value = mock_client
+
+        result = runner.invoke(
+            cli,
+            [
+                "cloud",
+                "list-endpoints",
+                "-a",
+                app_name,
+                "-r",
+                "arn:aws:iam::123456789012:role/SageMakerRole",
+            ],
+        )
+
+        assert result.exit_code == 0
+        assert "No endpoints found" in result.output
+
+        mock_client.list_endpoints.assert_called_once()
+
+
+class TestCloudListTrainingJobs:
+    """Tests for the cloud list-training-jobs command."""
+
+    @pytest.fixture
+    def runner(self) -> CliRunner:
+        """Provide CliRunner instance."""
+        return CliRunner()
+
+    @pytest.fixture
+    def temp_dir(self) -> Generator[str, None, None]:
+        """Create a temporary directory for testing."""
+        temp_dir = tempfile.mkdtemp()
+        original_cwd = os.getcwd()
+        os.chdir(temp_dir)
+        yield temp_dir
+        os.chdir(original_cwd)
+
+    def _create_config(self, app_name: str) -> None:
+        """Helper to create a config file."""
+        config = Config(
+            image_name=app_name,
+            aws_profile="test-profile",
+            aws_region="us-east-1",
+            python_version="3.14",
+            easy_sm_module_dir=app_name,
+            requirements_dir="requirements.txt",
+        )
+        config_manager = ConfigManager(f"{app_name}.json")
+        config_manager.set_config(config)
+
+    @patch("easy_sm.sagemaker.sagemaker.SageMakerClient")
+    def test_list_training_jobs_success(
+        self, mock_sagemaker_client: MagicMock, runner: CliRunner, temp_dir: str
+    ) -> None:
+        """Test successful cloud list-training-jobs command."""
+        app_name = "test-app"
+        self._create_config(app_name)
+
+        mock_client = MagicMock()
+        mock_client.list_training_jobs.return_value = [
+            {
+                "TrainingJobName": "job-1",
+                "TrainingJobStatus": "Completed",
+                "CreationTime": "2024-01-01T00:00:00Z",
+            },
+            {
+                "TrainingJobName": "job-2",
+                "TrainingJobStatus": "InProgress",
+                "CreationTime": "2024-01-02T00:00:00Z",
+            },
+        ]
+        mock_sagemaker_client.return_value = mock_client
+
+        result = runner.invoke(
+            cli,
+            [
+                "cloud",
+                "list-training-jobs",
+                "-a",
+                app_name,
+                "-r",
+                "arn:aws:iam::123456789012:role/SageMakerRole",
+            ],
+        )
+
+        assert result.exit_code == 0
+        assert "Found 2 training job(s)" in result.output
+        assert "job-1" in result.output
+        assert "job-2" in result.output
+        assert "Completed" in result.output
+        assert "InProgress" in result.output
+
+        mock_client.list_training_jobs.assert_called_once_with(
+            max_results=5, name_contains=None
+        )
+
+    @patch("easy_sm.sagemaker.sagemaker.SageMakerClient")
+    def test_list_training_jobs_with_max_results(
+        self, mock_sagemaker_client: MagicMock, runner: CliRunner, temp_dir: str
+    ) -> None:
+        """Test cloud list-training-jobs command with custom max results."""
+        app_name = "test-app"
+        self._create_config(app_name)
+
+        mock_client = MagicMock()
+        mock_client.list_training_jobs.return_value = [
+            {
+                "TrainingJobName": "job-1",
+                "TrainingJobStatus": "Completed",
+                "CreationTime": "2024-01-01T00:00:00Z",
+            }
+        ]
+        mock_sagemaker_client.return_value = mock_client
+
+        result = runner.invoke(
+            cli,
+            [
+                "cloud",
+                "list-training-jobs",
+                "-a",
+                app_name,
+                "-m",
+                "10",
+                "-r",
+                "arn:aws:iam::123456789012:role/SageMakerRole",
+            ],
+        )
+
+        assert result.exit_code == 0
+        assert "Found 1 training job(s)" in result.output
+
+        mock_client.list_training_jobs.assert_called_once_with(
+            max_results=10, name_contains=None
+        )
+
+    @patch("easy_sm.sagemaker.sagemaker.SageMakerClient")
+    def test_list_training_jobs_with_base_job_name(
+        self, mock_sagemaker_client: MagicMock, runner: CliRunner, temp_dir: str
+    ) -> None:
+        """Test cloud list-training-jobs command with base job name filter."""
+        app_name = "test-app"
+        self._create_config(app_name)
+
+        mock_client = MagicMock()
+        mock_client.list_training_jobs.return_value = [
+            {
+                "TrainingJobName": "my-job-1",
+                "TrainingJobStatus": "Completed",
+                "CreationTime": "2024-01-01T00:00:00Z",
+            }
+        ]
+        mock_sagemaker_client.return_value = mock_client
+
+        result = runner.invoke(
+            cli,
+            [
+                "cloud",
+                "list-training-jobs",
+                "-a",
+                app_name,
+                "-b",
+                "my-job",
+                "-r",
+                "arn:aws:iam::123456789012:role/SageMakerRole",
+            ],
+        )
+
+        assert result.exit_code == 0
+        assert "Found 1 training job(s)" in result.output
+        assert "my-job-1" in result.output
+
+        mock_client.list_training_jobs.assert_called_once_with(
+            max_results=5, name_contains="my-job"
+        )
+
+    @patch("easy_sm.sagemaker.sagemaker.SageMakerClient")
+    def test_list_training_jobs_empty(
+        self, mock_sagemaker_client: MagicMock, runner: CliRunner, temp_dir: str
+    ) -> None:
+        """Test cloud list-training-jobs command with no jobs."""
+        app_name = "test-app"
+        self._create_config(app_name)
+
+        mock_client = MagicMock()
+        mock_client.list_training_jobs.return_value = []
+        mock_sagemaker_client.return_value = mock_client
+
+        result = runner.invoke(
+            cli,
+            [
+                "cloud",
+                "list-training-jobs",
+                "-a",
+                app_name,
+                "-r",
+                "arn:aws:iam::123456789012:role/SageMakerRole",
+            ],
+        )
+
+        assert result.exit_code == 0
+        assert "No training jobs found" in result.output
+
+        mock_client.list_training_jobs.assert_called_once()
 
 
 class TestCloudMake:

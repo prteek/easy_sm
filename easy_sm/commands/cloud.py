@@ -320,15 +320,100 @@ def batch_transform(
     default=None,
     help="Name of the SageMaker endpoint",
 )
+@click.option(
+    "--delete-config",
+    is_flag=True,
+    default=False,
+    help="Also delete the associated endpoint config",
+)
 @iam_role_option
 @app_name_option
-def delete_endpoint(endpoint_name: str, iam_role_arn: str, app_name: str) -> None:
+def delete_endpoint(
+    endpoint_name: str, delete_config: bool, iam_role_arn: str, app_name: str
+) -> None:
     config = load_config(app_name)
     sage_maker_client = create_sagemaker_client(
         config.aws_profile, config.aws_region, iam_role_arn
     )
     sage_maker_client.shutdown_endpoint(endpoint_name)
     print(f"Endpoint {endpoint_name} has been deleted")
+
+    if delete_config:
+        endpoint_config_name = f"{endpoint_name}-config"
+        sage_maker_client.delete_endpoint_config(endpoint_config_name)
+        print(f"Endpoint config {endpoint_config_name} has been deleted")
+
+
+@click.command(name="list-endpoints")
+@iam_role_option
+@app_name_option
+def list_endpoints(iam_role_arn: str, app_name: str) -> None:
+    """
+    Command to list all SageMaker endpoints
+    """
+    config = load_config(app_name)
+    sage_maker_client = create_sagemaker_client(
+        config.aws_profile, config.aws_region, iam_role_arn
+    )
+    endpoints = sage_maker_client.list_endpoints()
+
+    if not endpoints:
+        print("No endpoints found")
+        return
+
+    print(f"\nFound {len(endpoints)} endpoint(s):\n")
+    for endpoint in endpoints:
+        endpoint_name = endpoint.get("EndpointName", "N/A")
+        endpoint_status = endpoint.get("EndpointStatus", "N/A")
+        creation_time = endpoint.get("CreationTime", "N/A")
+        print(f"  • Name: {endpoint_name}")
+        print(f"    Status: {endpoint_status}")
+        print(f"    Created: {creation_time}\n")
+
+
+@click.command(name="list-training-jobs")
+@click.option(
+    "-m",
+    "--max-results",
+    type=int,
+    default=5,
+    help="Number of training jobs to fetch (default: 5)",
+)
+@click.option(
+    "-b",
+    "--base-job-name",
+    required=False,
+    default=None,
+    help="Filter by base job name (optional)",
+)
+@iam_role_option
+@app_name_option
+def list_training_jobs(
+    max_results: int, base_job_name: Optional[str], iam_role_arn: str, app_name: str
+) -> None:
+    """
+    Command to list recent SageMaker training jobs
+    """
+    config = load_config(app_name)
+    sage_maker_client = create_sagemaker_client(
+        config.aws_profile, config.aws_region, iam_role_arn
+    )
+    training_jobs = sage_maker_client.list_training_jobs(
+        max_results=max_results, name_contains=base_job_name
+    )
+
+    if not training_jobs:
+        print("No training jobs found")
+        return
+
+    print(f"\nFound {len(training_jobs)} training job(s):\n")
+    for job in training_jobs:
+        job_name = job.get("TrainingJobName", "N/A")
+        job_status = job.get("TrainingJobStatus", "N/A")
+        creation_time = job.get("CreationTime", "N/A")
+        print(f"  • Name: {job_name}")
+        print(f"    Status: {job_status}")
+        print(f"    Created: {creation_time}\n")
 
 
 @click.command(name="process")
@@ -480,5 +565,7 @@ cloud.add_command(deploy)
 cloud.add_command(deploy_serverless)
 cloud.add_command(batch_transform)
 cloud.add_command(delete_endpoint)
+cloud.add_command(list_endpoints)
+cloud.add_command(list_training_jobs)
 cloud.add_command(process)
 cloud.add_command(make)
