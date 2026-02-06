@@ -4,6 +4,7 @@ import shutil
 import tempfile
 from pathlib import Path
 from typing import Generator
+from unittest.mock import MagicMock, patch
 
 import pytest
 from typer.testing import CliRunner
@@ -30,8 +31,14 @@ class TestInitCommand:
         os.chdir(original_cwd)
         shutil.rmtree(temp_dir)
 
-    def test_init_new_project(self, runner: CliRunner, temp_dir: str) -> None:
+    @patch('easy_sm.commands.initialize.boto3.Session')
+    def test_init_new_project(self, mock_session, runner: CliRunner, temp_dir: str) -> None:
         """Test init command for a new project"""
+        # Mock AWS profiles to ensure consistent test behavior
+        mock_boto_session = MagicMock()
+        mock_boto_session.available_profiles = ['default', 'dev', 'prod']
+        mock_session.return_value = mock_boto_session
+
         app_name = "test-app"
         root_dir = app_name
         python_version = "4"  # Select Python 3.13
@@ -66,8 +73,14 @@ class TestInitCommand:
         assert os.path.isdir(os.path.join(root_dir, "easy_sm_base"))
         assert os.path.isfile(os.path.join(root_dir, "__init__.py"))
 
-    def test_init_existing_project(self, runner: CliRunner, temp_dir: str) -> None:
+    @patch('easy_sm.commands.initialize.boto3.Session')
+    def test_init_existing_project(self, mock_session, runner: CliRunner, temp_dir: str) -> None:
         """Test init command for an existing project"""
+        # Mock AWS profiles to ensure consistent test behavior
+        mock_boto_session = MagicMock()
+        mock_boto_session.available_profiles = ['default', 'dev', 'prod']
+        mock_session.return_value = mock_boto_session
+
         app_name = "existing-app"
         root_dir = "src"
         python_version = "1"  # Select Python 3.10
@@ -101,8 +114,14 @@ class TestInitCommand:
         assert config.requirements_dir == requirements_dir
         assert config.easy_sm_module_dir == root_dir
 
-    def test_init_config_json_structure(self, runner: CliRunner, temp_dir: str) -> None:
+    @patch('easy_sm.commands.initialize.boto3.Session')
+    def test_init_config_json_structure(self, mock_session, runner: CliRunner, temp_dir: str) -> None:
         """Test that the generated config.json has correct structure"""
+        # Mock AWS profiles to ensure consistent test behavior
+        mock_boto_session = MagicMock()
+        mock_boto_session.available_profiles = ['default', 'dev', 'prod']
+        mock_session.return_value = mock_boto_session
+
         app_name = "json-test-app"
         python_version = "4"  # Select Python 3.13
         aws_profile = "1"
