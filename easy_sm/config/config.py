@@ -33,18 +33,13 @@ class Config(object):
 
     @classmethod
     def from_dict(cls, input_dict: Dict[str, Any]) -> "Config":
-        # Handle migration from requirements_dir to requirements_file_name
-        requirements_file_name = input_dict.get(
-            "requirements_file_name",
-            input_dict.get("requirements_dir", "")
-        )
         return Config(
             image_name=input_dict["image_name"],
             aws_profile=input_dict["aws_profile"],
             aws_region=input_dict["aws_region"],
             python_version=input_dict["python_version"],
             easy_sm_module_dir=input_dict["easy_sm_module_dir"],
-            requirements_file_name=requirements_file_name,
+            requirements_file_name=input_dict["requirements_file_name"],
         )
 
 
