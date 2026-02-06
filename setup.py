@@ -6,15 +6,16 @@ from setuptools import setup, find_packages
 setup(
     name="easy_sm",
     description="Easy SageMaker Ops",
-    long_description="""This package makes it easier to work with SageMaker by enabling rapid prototyping with local training, processing and deployment.
-And correspondingly training, processing and deployment on cloud.
-This is very much an experimental package and API is likely to evolve and may break.
+    long_description="""This package makes it easier to work with SageMaker by enabling rapid prototyping with local training, processing, and deployment.
+Provides seamless integration between local Docker-based development and AWS SageMaker cloud operations.
+Features include: local training/processing/deployment, cloud job management, endpoint management, and job monitoring.
+This is an experimental package and API is likely to evolve and may break.
 Recommended to validate before updating.
     """,
     author="Prateek",
     author_email="prteek@icloud.com",
-    version="0.1.13",
-    python_requires=">=3.13",
+    version="0.1.14",
+    python_requires=">=3.14",
     packages=find_packages(where="."),
     package_data={
         "easy_sm": [
@@ -33,9 +34,10 @@ Recommended to validate before updating.
         ]
     },
     install_requires=[
-        "click>=8.1.7, <8.1.99",
-        "docker>=7.1.0, <7.2.0",
-        "sagemaker>=3.0.0, <4.0.0",
+        "click>=8.1.7",
+        "docker>=7.1.0",
+        "sagemaker>=2.243.0",
+        "boto3>=1.26.0",
     ],
     entry_points={
         "console_scripts": [

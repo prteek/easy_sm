@@ -8,10 +8,12 @@ A Python CLI tool that simplifies AWS SageMaker workflows by enabling rapid loca
 
 ## Features
 
-- **Local Development**: Train and test models locally in Docker containers that mimic SageMaker environments
+- **Local Development**: Train, process, and deploy models locally in Docker containers that mimic SageMaker environments
 - **Cloud Deployment**: Deploy trained models to AWS SageMaker with minimal configuration changes
 - **Docker Integration**: Automatically build and manage Docker images for your workflows
-- **Training & Processing**: Support for training jobs and data processing pipelines
+- **Training & Processing**: Support for training jobs, batch transformations, and data processing pipelines
+- **Endpoint Management**: Deploy, list, and manage SageMaker endpoints (provisioned and serverless)
+- **Job Monitoring**: List and filter training jobs with multiple options
 - **Easy Configuration**: Project-based config files (JSON) for managing credentials, AWS regions, and image names
 - **Quick Prototyping**: Iterate rapidly locally before committing to cloud resources
 
@@ -34,7 +36,7 @@ cd easy_sm
 pip install -e .
 
 # Install with development dependencies (for testing, linting, type checking)
-pip install -e . -r requirements.txt
+pip install -e . -r base-requirements.txt
 ```
 
 ### From PyPI (When Available)
@@ -57,7 +59,7 @@ This creates a `myapp.json` configuration file with default values. Edit this fi
 - `aws_region`: AWS region for SageMaker
 - `python_version`: Python version for your container
 - `easy_sm_module_dir`: Directory containing your training code
-- `requirements_dir`: Directory containing requirements files
+- `requirements_dir`: Path to your requirements file
 
 ### 2. Build Docker Image
 
@@ -103,30 +105,88 @@ easy_sm build --app-name myapp [--docker-tag latest]
 Run local training, processing, or deployment in Docker.
 
 ```bash
-easy_sm local train --app-name myapp
-easy_sm local process --app-name myapp
-easy_sm local deploy --app-name myapp
+# Local training
+easy_sm local train --app-name myapp [--docker-tag latest]
+
+# Local processing
+easy_sm local process --app-name myapp --file <filename> [--docker-tag latest]
+
+# Local deployment
+easy_sm local deploy --app-name myapp [--port 8080] [--docker-tag latest]
+
+# Build make targets locally
+easy_sm local make --app-name myapp --target <target> [--docker-tag latest]
+
+# Stop a local deployment
+easy_sm local stop --app-name myapp [--port 8080]
 ```
 
 ### cloud
-Submit jobs to AWS SageMaker for training, processing, or deployment.
+Submit jobs to AWS SageMaker for training, processing, deployment, and more.
 
+**Data Management:**
 ```bash
-easy_sm cloud train --app-name myapp
-easy_sm cloud process --app-name myapp
-easy_sm cloud deploy --app-name myapp
+easy_sm cloud upload-data --app-name myapp --input-dir <path> --target-dir <s3-uri>
+```
+
+**Training & Batch Processing:**
+```bash
+easy_sm cloud train --app-name myapp --input-s3-dir <s3-uri> --output-s3-dir <s3-uri> --ec2-type ml.m5.large
+easy_sm cloud batch-transform --app-name myapp --s3-model-location <s3-uri> --s3-input-location <s3-uri> --s3-output-location <s3-uri> --ec2-type ml.m5.large --num-instances 1
+```
+
+**Deployment:**
+```bash
+# Provisioned endpoint
+easy_sm cloud deploy --app-name myapp --s3-model-location <s3-uri> --instance-type ml.m5.large --endpoint-name myendpoint
+
+# Serverless endpoint
+easy_sm cloud deploy-serverless --app-name myapp --s3-model-location <s3-uri> --memory-size-in-mb 1024 --endpoint-name myendpoint [--max-concurrency 5]
+```
+
+**Processing:**
+```bash
+easy_sm cloud process --app-name myapp --file <filename> --ec2-type ml.m5.large
+easy_sm cloud make --app-name myapp --target <target> --ec2-type ml.m5.large
+```
+
+**Endpoint Management:**
+```bash
+# List all endpoints
+easy_sm cloud list-endpoints --app-name myapp
+
+# Delete endpoint (config preserved)
+easy_sm cloud delete-endpoint --app-name myapp --endpoint-name myendpoint
+
+# Delete endpoint and config
+easy_sm cloud delete-endpoint --app-name myapp --endpoint-name myendpoint --delete-config
+```
+
+**Training Job Management:**
+```bash
+# List latest 5 training jobs
+easy_sm cloud list-training-jobs --app-name myapp
+
+# List latest 10 training jobs
+easy_sm cloud list-training-jobs --app-name myapp --max-results 10
+
+# List training jobs matching a base job name
+easy_sm cloud list-training-jobs --app-name myapp --base-job-name my-model
+
+# Combine filters
+easy_sm cloud list-training-jobs --app-name myapp --max-results 20 --base-job-name my-model
 ```
 
 ### push
-Push your Docker image to a registry.
+Push your Docker image to a container registry.
 
 ```bash
-easy_sm push --app-name myapp --registry-url <url>
+easy_sm push --app-name myapp --registry-url <ecr-url>
 ```
 
 ### Global Options
 
-- `--docker-tag` (default: `latest`): Specify the Docker image tag to use
+- `--docker-tag` (default: `latest`): Specify the Docker image tag to use for commands that require it
 
 ## Project Structure
 
