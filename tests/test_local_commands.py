@@ -97,7 +97,7 @@ class TestLocalTrain:
             # Verify config has expected values
             assert config.image_name == "esm"
             assert config.easy_sm_module_dir == "."
-            assert config.requirements_file_name == "requirements.txt"
+            assert config.requirements_dir == "easy_sm_base"
         finally:
             os.chdir(original_cwd)
 
@@ -392,7 +392,7 @@ class TestLocalTrainAndDeployIntegration:
             "aws_region",
             "python_version",
             "easy_sm_module_dir",
-            "requirements_file_name",
+            "requirements_dir",
         ]
         for field in required_fields:
             assert (

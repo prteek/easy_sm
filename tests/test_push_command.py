@@ -46,7 +46,7 @@ class TestPushCommand:
             aws_region="us-east-1",
             python_version="3.14",
             easy_sm_module_dir=easy_sm_module_dir,
-            requirements_file_name="requirements.txt",
+            requirements_dir="requirements.txt",
         )
         config_manager = ConfigManager(f"{app_name}.json")
         config_manager.set_config(config)
@@ -293,7 +293,7 @@ class TestPushCommand:
             aws_region=config_aws_region,
             python_version="3.14",
             easy_sm_module_dir=app_name,
-            requirements_file_name="requirements.txt",
+            requirements_dir="requirements.txt",
         )
         config_manager = ConfigManager(f"{app_name}.json")
         config_manager.set_config(config)

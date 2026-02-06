@@ -27,7 +27,7 @@ class TestConfig:
             aws_region="us-east-1",
             python_version="3.14",
             easy_sm_module_dir="./app",
-            requirements_file_name="requirements.txt",
+            requirements_dir="requirements.txt",
         )
 
         assert config.image_name == "test-image"
@@ -35,7 +35,7 @@ class TestConfig:
         assert config.aws_region == "us-east-1"
         assert config.python_version == "3.14"
         assert config.easy_sm_module_dir == "./app"
-        assert config.requirements_file_name == "requirements.txt"
+        assert config.requirements_dir == "requirements.txt"
 
     def test_config_to_dict(self) -> None:
         """Test Config.to_dict() serialization."""
@@ -45,7 +45,7 @@ class TestConfig:
             aws_region="eu-west-1",
             python_version="3.11",
             easy_sm_module_dir="src",
-            requirements_file_name="config/reqs.txt",
+            requirements_dir="config/reqs.txt",
         )
 
         config_dict = config.to_dict()
@@ -55,7 +55,7 @@ class TestConfig:
         assert config_dict["aws_region"] == "eu-west-1"
         assert config_dict["python_version"] == "3.11"
         assert config_dict["easy_sm_module_dir"] == "src"
-        assert config_dict["requirements_file_name"] == "config/reqs.txt"
+        assert config_dict["requirements_dir"] == "config/reqs.txt"
 
     def test_config_from_dict(self) -> None:
         """Test Config.from_dict() deserialization."""
@@ -65,7 +65,7 @@ class TestConfig:
             "aws_region": "us-west-2",
             "python_version": "3.10",
             "easy_sm_module_dir": "/path/to/app",
-            "requirements_file_name": "/path/to/requirements.txt",
+            "requirements_dir": "/path/to/requirements.txt",
         }
 
         config = Config.from_dict(input_dict)
@@ -75,7 +75,7 @@ class TestConfig:
         assert config.aws_region == "us-west-2"
         assert config.python_version == "3.10"
         assert config.easy_sm_module_dir == "/path/to/app"
-        assert config.requirements_file_name == "/path/to/requirements.txt"
+        assert config.requirements_dir == "/path/to/requirements.txt"
 
     def test_config_roundtrip_serialization(self) -> None:
         """Test Config serialization and deserialization roundtrip."""
@@ -85,7 +85,7 @@ class TestConfig:
             aws_region="ap-southeast-1",
             python_version="3.14",
             easy_sm_module_dir="./module",
-            requirements_file_name="requirements/prod.txt",
+            requirements_dir="requirements/prod.txt",
         )
 
         # Serialize to dict
@@ -100,7 +100,7 @@ class TestConfig:
         assert restored_config.aws_region == original_config.aws_region
         assert restored_config.python_version == original_config.python_version
         assert restored_config.easy_sm_module_dir == original_config.easy_sm_module_dir
-        assert restored_config.requirements_file_name == original_config.requirements_file_name
+        assert restored_config.requirements_dir == original_config.requirements_dir
 
     def test_config_with_special_characters(self) -> None:
         """Test Config with special characters in values."""
@@ -110,7 +110,7 @@ class TestConfig:
             aws_region="us-east-1",
             python_version="3.14",
             easy_sm_module_dir="./my-app/src",
-            requirements_file_name="requirements/prod-requirements.txt",
+            requirements_dir="requirements/prod-requirements.txt",
         )
 
         config_dict = config.to_dict()
@@ -152,7 +152,7 @@ class TestConfigManager:
             aws_region="us-east-1",
             python_version="3.14",
             easy_sm_module_dir=".",
-            requirements_file_name="requirements.txt",
+            requirements_dir="requirements.txt",
         )
 
         config_manager = ConfigManager(config_file)
@@ -174,7 +174,7 @@ class TestConfigManager:
             aws_region="us-east-1",
             python_version="3.14",
             easy_sm_module_dir=".",
-            requirements_file_name="requirements.txt",
+            requirements_dir="requirements.txt",
         )
 
         config_manager = ConfigManager(config_file)
@@ -197,7 +197,7 @@ class TestConfigManager:
             aws_region="eu-west-1",
             python_version="3.11",
             easy_sm_module_dir="src",
-            requirements_file_name="config/requirements.txt",
+            requirements_dir="config/requirements.txt",
         )
 
         config_manager = ConfigManager(config_file)
@@ -212,7 +212,7 @@ class TestConfigManager:
         assert raw_json["aws_region"] == "eu-west-1"
         assert raw_json["python_version"] == "3.11"
         assert raw_json["easy_sm_module_dir"] == "src"
-        assert raw_json["requirements_file_name"] == "config/requirements.txt"
+        assert raw_json["requirements_dir"] == "config/requirements.txt"
 
     def test_config_manager_with_nonexistent_file(self, temp_dir: str) -> None:
         """Test ConfigManager with nonexistent file creates default config."""
@@ -244,7 +244,7 @@ class TestConfigManager:
             aws_region="us-east-1",
             python_version="3.14",
             easy_sm_module_dir=".",
-            requirements_file_name="requirements.txt",
+            requirements_dir="requirements.txt",
         )
         manager1 = ConfigManager(config_file)
         manager1.set_config(config1)
@@ -267,7 +267,7 @@ class TestConfigManager:
             aws_region="us-east-1",
             python_version="3.14",
             easy_sm_module_dir=".",
-            requirements_file_name="requirements.txt",
+            requirements_dir="requirements.txt",
         )
         manager = ConfigManager(config_file)
         manager.set_config(initial_config)
@@ -279,7 +279,7 @@ class TestConfigManager:
             aws_region="eu-west-1",
             python_version="3.11",
             easy_sm_module_dir="src",
-            requirements_file_name="config/requirements.txt",
+            requirements_dir="config/requirements.txt",
         )
         manager.set_config(updated_config)
 
@@ -298,7 +298,7 @@ class TestConfigManager:
             aws_region="us-east-1",
             python_version="3.14",
             easy_sm_module_dir=".",
-            requirements_file_name="requirements.txt",
+            requirements_dir="requirements.txt",
         )
 
         config_manager = ConfigManager(config_file)
@@ -326,7 +326,7 @@ class TestConfigManager:
         assert config.aws_region == ""
         assert config.python_version == ""
         assert config.easy_sm_module_dir == ""
-        assert config.requirements_file_name == ""
+        assert config.requirements_dir == ""
 
     def test_config_manager_corrupted_json(self, temp_dir: str) -> None:
         """Test ConfigManager with corrupted JSON file."""
@@ -350,7 +350,7 @@ class TestConfigManager:
             aws_region="us-east-1",
             python_version="3.14",
             easy_sm_module_dir=".",
-            requirements_file_name="requirements.txt",
+            requirements_dir="requirements.txt",
         )
 
         config_manager = ConfigManager(config_file)

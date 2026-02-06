@@ -19,7 +19,7 @@ def _template_creation(
     aws_region: str,
     python_version: str,
     output_dir: str,
-    requirements_file_name: str,
+    requirements_dir: str,
     is_new_project: bool
 ) -> None:
     easy_sm_module_name = "easy_sm_base"
@@ -53,7 +53,7 @@ def _template_creation(
     config.aws_profile = aws_profile
     config.easy_sm_module_dir = output_dir
     config.python_version = python_version
-    config.requirements_file_name = requirements_file_name
+    config.requirements_dir = requirements_dir
     config_manager.set_config(config)
 
 
@@ -167,11 +167,11 @@ def ask_for_aws_details() -> Tuple[str, str]:
     return chosen_profile, chosen_region
 
 
-def ask_for_requirements_file_name() -> str:
+def ask_for_requirements_dir() -> str:
     return click.prompt(
-        text="Type in the requirements file name. Example: requirements.txt",
+        text="Type in the path to requirements.txt. Example: requirements.txt",
         type=str,
-    ).strip()
+    ).strip("/")
 
 
 @click.command()
@@ -191,14 +191,14 @@ def init() -> None:
 
     aws_profile, aws_region = ask_for_aws_details()
 
-    requirements_file_name = ask_for_requirements_file_name()
+    requirements_dir = ask_for_requirements_dir()
     _template_creation(
         app_name=easy_sm_app_name,
         aws_profile=aws_profile,
         aws_region=aws_region,
         python_version=python_version,
         output_dir=root_dir if root_dir else easy_sm_app_name,
-        requirements_file_name=requirements_file_name,
+        requirements_dir=requirements_dir,
         is_new_project=is_new_project
     )
 

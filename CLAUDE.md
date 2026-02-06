@@ -85,7 +85,7 @@ All tests use mocked external dependencies (subprocess, boto3, SageMaker SDK) fo
 ### Core Modules
 
 **Config System** (`easy_sm/config/config.py`):
-- `Config`: Data class holding configuration (image_name, aws_profile, aws_region, python_version, easy_sm_module_dir, requirements_file_name)
+- `Config`: Data class holding configuration (image_name, aws_profile, aws_region, python_version, easy_sm_module_dir, requirements_dir)
 - `ConfigManager`: Loads/saves config from JSON file (`{app_name}.json`). Creates default config if file doesn't exist.
 - Pattern: Commands load config via `ConfigManager(f"{app_name}.json").get_config()`
 
