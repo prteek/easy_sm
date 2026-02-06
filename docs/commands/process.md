@@ -569,6 +569,6 @@ easy_sm process \
 
 ## See Also
 
-- [Processing Guide](../user-guide/processing.md)
-- [Data Preparation](../user-guide/data-preparation.md)
+- [Processing Guide](../user-guide/cloud-deployment.md)
+- [Data Preparation](../user-guide/cloud-deployment.md)
 - [SageMaker Processing Documentation](https://docs.aws.amazon.com/sagemaker/latest/dg/processing-job.html)

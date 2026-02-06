@@ -574,6 +574,6 @@ echo "Pipeline completed successfully!"
 
 ## See Also
 
-- [Batch Inference Guide](../user-guide/batch-inference.md)
+- [Batch Inference Guide](../user-guide/cloud-deployment.md)
 - [SageMaker Batch Transform Documentation](https://docs.aws.amazon.com/sagemaker/latest/dg/batch-transform.html)
-- [Cost Optimization Guide](../user-guide/cost-optimization.md)
+- [Cost Optimization Guide](../user-guide/cloud-deployment.md)

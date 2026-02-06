@@ -190,6 +190,6 @@ my-ml-app
 
 ## See Also
 
-- [Quick Start Guide](../getting-started/quickstart.md)
-- [Project Structure](../user-guide/project-structure.md)
-- [Configuration Reference](../user-guide/configuration.md)
+- [Quick Start Guide](../getting-started/quick-start.md)
+- [Project Structure](../getting-started/configuration.md)
+- [Configuration Reference](../getting-started/configuration.md)

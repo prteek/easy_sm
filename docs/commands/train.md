@@ -628,6 +628,6 @@ echo "Deployed $VERSION to production-endpoint"
 
 ## See Also
 
-- [Training Guide](../user-guide/training.md)
+- [Training Guide](../user-guide/cloud-deployment.md)
 - [SageMaker Training Jobs](https://docs.aws.amazon.com/sagemaker/latest/dg/how-it-works-training.html)
 - [Instance Types and Pricing](https://aws.amazon.com/sagemaker/pricing/)

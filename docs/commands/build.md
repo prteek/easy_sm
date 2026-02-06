@@ -291,5 +291,5 @@ Or use Docker's `--no-cache` by modifying the build script temporarily.
 ## See Also
 
 - [Local Development Guide](../user-guide/local-development.md)
-- [Docker Customization](../user-guide/docker-customization.md)
-- [Project Structure](../user-guide/project-structure.md)
+- [Docker Customization](../getting-started/configuration.md)
+- [Project Structure](../getting-started/configuration.md)

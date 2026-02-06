@@ -609,6 +609,6 @@ Run periodically via cron:
 
 ## See Also
 
-- [Endpoint Management Guide](../user-guide/endpoint-management.md)
-- [Monitoring and Logging](../user-guide/monitoring.md)
+- [Endpoint Management Guide](../user-guide/cloud-deployment.md)
+- [Monitoring and Logging](../user-guide/cloud-deployment.md)
 - [SageMaker Endpoints Documentation](https://docs.aws.amazon.com/sagemaker/latest/dg/deploy-model.html)

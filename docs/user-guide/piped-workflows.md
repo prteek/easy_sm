@@ -754,4 +754,4 @@ grep "prod-" $JOBS_CACHE | head -5
 - **Cloud Deployment**: See [Cloud Deployment Guide](cloud-deployment.md)
 - **AWS Setup**: See [AWS Setup Guide](aws-setup.md)
 
-For more examples, see the [main README](../../.github/README.md).
+For more examples, see the [main README](../getting-started/quick-start.md).

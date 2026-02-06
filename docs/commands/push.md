@@ -382,4 +382,4 @@ This URI is used internally by easy_sm commands that reference the image.
 
 - [AWS ECR Documentation](https://docs.aws.amazon.com/ecr/)
 - [Cloud Deployment Guide](../user-guide/cloud-deployment.md)
-- [Authentication Setup](../getting-started/aws-setup.md)
+- [Authentication Setup](../user-guide/aws-setup.md)

@@ -489,7 +489,7 @@ Entry point executor for training/serving containers.
 
 ## See Also
 
-- [Security Best Practices](../user-guide/security.md)
-- [Project Structure](../user-guide/project-structure.md)
+- [Security Best Practices](../user-guide/aws-setup.md)
+- [Project Structure](../getting-started/configuration.md)
 - [Release Notes](https://github.com/prteek/easy_sm/releases)
 - [Contributing Guide](../developer-guide/contributing.md)

@@ -583,6 +583,6 @@ Local commands simulate the SageMaker container environment:
 ## See Also
 
 - [Local Development Guide](../user-guide/local-development.md)
-- [Training Guide](../user-guide/training.md)
-- [Inference Guide](../user-guide/inference.md)
-- [Processing Guide](../user-guide/processing.md)
+- [Training Guide](../user-guide/cloud-deployment.md)
+- [Inference Guide](../user-guide/cloud-deployment.md)
+- [Processing Guide](../user-guide/cloud-deployment.md)

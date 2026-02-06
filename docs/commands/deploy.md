@@ -686,7 +686,7 @@ easy_sm delete-endpoint -n prod-endpoint
 
 ## See Also
 
-- [Inference Guide](../user-guide/inference.md)
-- [Endpoint Management](../user-guide/endpoint-management.md)
+- [Inference Guide](../user-guide/cloud-deployment.md)
+- [Endpoint Management](../user-guide/cloud-deployment.md)
 - [SageMaker Endpoints Documentation](https://docs.aws.amazon.com/sagemaker/latest/dg/deploy-model.html)
 - [Serverless Inference](https://docs.aws.amazon.com/sagemaker/latest/dg/serverless-endpoints.html)
