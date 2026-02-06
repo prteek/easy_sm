@@ -55,13 +55,13 @@ ruff format easy_sm/
 
 ### Test Suite Overview
 
-**Total: 98 tests** covering all commands and core modules.
+**Total: 112 tests** covering all commands and core modules.
 
 #### Command Tests
 - **test_init_command.py** (7 tests): Project initialization with various configurations
 - **test_build_command.py** (13 tests): Docker image building with parameter variations and error scenarios
-- **test_local_commands.py** (16 tests): Local training and deployment with Docker simulation
-- **test_cloud_commands.py** (20 tests): SageMaker operations (train, deploy, batch-transform, process, etc.)
+- **test_local_commands.py** (23 tests): Local training, deployment, processing, and stop commands
+- **test_cloud_commands.py** (27 tests): SageMaker operations (train, deploy, batch-transform, process, list-endpoints, list-training-jobs, delete-endpoint)
 - **test_push_command.py** (9 tests): ECR image push with IAM/profile authentication
 
 #### Module Tests
@@ -73,14 +73,13 @@ All tests use mocked external dependencies (subprocess, boto3, SageMaker SDK) fo
 ## Architecture
 
 ### Command Structure
-- **Entry point**: `easy_sm/__main__.py` - Defines the main CLI group with `--docker-tag` option and registers all command groups
+- **Entry point**: `easy_sm/__main__.py` - Defines the main Typer app with `--docker-tag` option and registers all command groups
 - **Command groups**:
   - `init`: Initialize new easy_sm projects
   - `build`: Build Docker images
-  - `local`: Local training/deployment/processing (commands: `train`, `deploy`, `process`)
-  - `cloud`: Cloud training/deployment/processing on SageMaker (commands: `train`, `deploy`, `process`)
-  - `push`: Push Docker images to registry
-  - `deploy`: Deploy to SageMaker endpoints
+  - `local`: Local operations (commands: `train`, `deploy`, `process`, `make`, `stop`)
+  - `cloud`: Cloud SageMaker operations (commands: `train`, `deploy`, `deploy-serverless`, `batch-transform`, `process`, `make`, `upload-data`, `list-endpoints`, `list-training-jobs`, `delete-endpoint`)
+  - `push`: Push Docker images to ECR
 
 ### Core Modules
 
@@ -110,7 +109,7 @@ All tests use mocked external dependencies (subprocess, boto3, SageMaker SDK) fo
 4. Commands use config to build images, run jobs, or deploy endpoints
 
 ### Docker Context
-- Docker tag passed via CLI flag `--docker-tag` (default: "latest"), accessible as `ctx.obj['docker_tag']`
+- Docker tag passed via CLI flag `--docker-tag` (default: "latest"), accessible as `helpers.docker_tag`
 - Full image name: `{config.image_name}:{docker_tag}`
 - Source code is mounted/copied into Docker containers for training/processing
 
@@ -199,43 +198,6 @@ The refresh skill performs:
 
 Invoke with: `/refresh`
 
-## External Integrations
-
-### OpenCode Integration
-**Location**: `.opencode/`
-
-Provides external validation and code review capabilities:
-
-#### Code Reviewer Agent
-**Location**: `.opencode/agents/code-reviewer.md`
-
-- **Purpose**: Reviews code for quality and best practices
-- **Model**: OpenCode Qwen3-Coder
-- **Capabilities**:
-  - Code quality analysis
-  - Best practices validation
-  - Potential bugs and edge case detection
-  - Performance implications assessment
-  - Security considerations review
-- **Mode**: Read-only (no direct code modifications)
-
-#### Validate Command
-**Location**: `.opencode/commands/validate.md`
-
-- **Purpose**: Validates easy_sm CLI changes using the sample app
-- **Sample App**: Located in `app/` directory (not committed to git)
-- **Testing Flow**:
-  1. Uses existing sample app with `mpg.csv` dataset
-  2. Sample training/serving files already configured
-  3. Install changes locally: `pip install -e .`
-  4. Run easy_sm commands to validate functionality
-  5. Supports testing of: local train, local deploy, cloud train, cloud deploy
-- **AWS Resources** (for cloud testing):
-  - Training data: `s3://easy-sm/train/data`
-  - Sample model: `s3://easy-sm/train/job-artefacts/mpg-2024-07-16-21-23-11-417/output/model.tar.gz`
-  - Model outputs: `s3://easy-sm/train/job-artefacts`
-- **Environment Variables**: `SAGEMAKER_EXECUTION_ROLE`
-
 ## Claude Code Permissions
 
 **Location**: `.claude/settings.local.json`
@@ -270,26 +232,25 @@ easy_sm/
 │       └── refresh/          # Documentation refresh skill
 │           └── SKILL.md      # Refresh skill documentation
 ├── easy_sm/
-│   ├── __main__.py           # CLI entry point, registers commands
+│   ├── __main__.py           # CLI entry point (Typer app), registers commands
 │   ├── commands/             # Command implementations
 │   │   ├── build.py          # Build Docker image
-│   │   ├── cloud.py          # Cloud training/deployment/processing
+│   │   ├── cloud.py          # Cloud training/deployment/processing/endpoint management
 │   │   ├── local.py          # Local training/deployment/processing
 │   │   ├── initialize.py     # Initialize projects
-│   │   ├── push.py           # Push images to registry
-│   │   ├── deploy.py         # Deploy to SageMaker
-│   │   └── helpers.py        # Subprocess utilities
+│   │   ├── push.py           # Push images to ECR
+│   │   └── helpers.py        # Subprocess utilities and shared state
 │   ├── config/
 │   │   └── config.py         # Config and ConfigManager classes
 │   ├── sagemaker/
 │   │   └── sagemaker.py      # SageMakerClient wrapper
 │   └── template/
 │       └── easy_sm_base/     # Docker template and entry points
-├── tests/                    # Test suite (uses pytest) - 98 tests total
+├── tests/                    # Test suite (uses pytest) - 112 tests total
 │   ├── test_build_command.py         # Tests for build command (13 tests)
 │   ├── test_init_command.py          # Tests for init command (7 tests)
-│   ├── test_local_commands.py        # Tests for local training/deployment/processing (16 tests)
-│   ├── test_cloud_commands.py        # Tests for cloud SageMaker operations (20 tests)
+│   ├── test_local_commands.py        # Tests for local commands (23 tests)
+│   ├── test_cloud_commands.py        # Tests for cloud SageMaker operations (27 tests)
 │   ├── test_push_command.py          # Tests for ECR push command (9 tests)
 │   ├── test_config.py                # Tests for Config/ConfigManager (16 tests)
 │   ├── test_helpers.py               # Tests for subprocess utilities (17 tests)
@@ -297,11 +258,6 @@ easy_sm/
 ├── .github/
 │   ├── README.md              # Usage guide and command examples
 │   └── workflows/             # CI/CD workflows
-├── .opencode/                 # OpenCode integration (external validators)
-│   ├── agents/
-│   │   └── code-reviewer.md   # Code review agent configuration
-│   └── commands/
-│       └── validate.md        # Validation command using sample app
 ├── setup.py                   # Package metadata and dependencies
 ├── base-requirements.txt      # Development dependencies (pytest, mypy, ruff, etc)
 ├── CLAUDE.md                  # Claude Code guidance (this file)
@@ -312,8 +268,8 @@ easy_sm/
 ## Adding New Commands
 
 1. Create `{command_name}.py` in `easy_sm/commands/`
-2. Define Click command/group with appropriate decorators
-3. Import and register in `easy_sm/__main__.py` via `cli.add_command()`
+2. Define Typer command using `@app.command()` decorator with `Annotated` type hints
+3. Import and register in `easy_sm/__main__.py` via `app.command()` or `app.add_typer()`
 4. Follow existing patterns for config loading and subprocess calls
 
 ## Key Implementation Details

@@ -88,10 +88,10 @@ Submits a training job to AWS SageMaker.
 ## Commands
 
 ### init
-Initialize a new easy_sm project with configuration file.
+Initialize a new easy_sm project with configuration file (interactive).
 
 ```bash
-easy_sm init --app-name myapp
+easy_sm init
 ```
 
 ### build
