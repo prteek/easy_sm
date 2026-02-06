@@ -130,10 +130,9 @@ easy_sm deploy -n endpoint-name -e ml.m5.large \
 | Parameter | Flag | Required | Description |
 |-----------|------|----------|-------------|
 | Endpoint Name | `-n, --endpoint-name` | Yes | Unique name for endpoint |
-| Instance Type | `-e, --ec2-type` | Yes | EC2 instance type |
+| Instance Type | `-e, --instance-type` | Yes | EC2 instance type |
 | Model Path | `-m, --s3-model-location` | Yes | S3 path to model.tar.gz |
-| Instance Count | `--num-instances` | No | Number of instances (default: 1) |
-| Tags | `--tags` | No | JSON string of resource tags |
+| Instance Count | `-c, --instance-count` | No | Number of instances (default: 1) |
 | App Name | `-a, --app-name` | No | Override auto-detected app name |
 | IAM Role | `-r, --iam-role-arn` | No | Override SAGEMAKER_ROLE env var |
 
@@ -143,7 +142,7 @@ easy_sm deploy -n endpoint-name -e ml.m5.large \
 # Deploy with 3 instances for high availability
 easy_sm deploy -n prod-endpoint -e ml.m5.xlarge \
   -m s3://bucket/models/model.tar.gz \
-  --num-instances 3
+  -c 3
 ```
 
 #### Instance Type Selection
@@ -190,10 +189,9 @@ easy_sm deploy-serverless -n endpoint-name -s 2048 \
 | Parameter | Flag | Required | Description |
 |-----------|------|----------|-------------|
 | Endpoint Name | `-n, --endpoint-name` | Yes | Unique name for endpoint |
-| Memory Size | `-s, --memory-size` | Yes | Memory in MB (1024, 2048, 3072, 4096, 5120, 6144) |
+| Memory Size | `-s, --memory-size-in-mb` | Yes | Memory in MB (1024, 2048, 3072, 4096, 5120, 6144) |
 | Model Path | `-m, --s3-model-location` | Yes | S3 path to model.tar.gz |
-| Max Concurrency | `-c, --max-concurrency` | No | Max concurrent invocations (default: 50) |
-| Tags | `--tags` | No | JSON string of resource tags |
+| Max Concurrency | `-mc, --max-concurrency` | No | Max concurrent invocations (default: 5) |
 | App Name | `-a, --app-name` | No | Override auto-detected app name |
 | IAM Role | `-r, --iam-role-arn` | No | Override SAGEMAKER_ROLE env var |
 
@@ -329,8 +327,8 @@ easy_sm batch-transform -e ml.m5.large --num-instances 1 \
 | Model Path | `-m, --s3-model-location` | Yes | S3 path to model.tar.gz |
 | Input Path | `-i, --s3-input-location` | Yes | S3 path to input data |
 | Output Path | `-o, --s3-output-location` | Yes | S3 path for predictions |
-| Content Type | `-c, --content-type` | No | Input content type (default: text/csv) |
-| Tags | `--tags` | No | JSON string of resource tags |
+| Wait | `-w, --wait` | No | Wait until job completes (default: false) |
+| Job Name | `-n, --job-name` | No | Custom job name (auto-generated if not provided) |
 | App Name | `-a, --app-name` | No | Override auto-detected app name |
 | IAM Role | `-r, --iam-role-arn` | No | Override SAGEMAKER_ROLE env var |
 
@@ -341,8 +339,7 @@ easy_sm batch-transform -e ml.m5.large --num-instances 1 \
 easy_sm batch-transform -e ml.m5.xlarge --num-instances 5 \
   -m s3://bucket/models/model.tar.gz \
   -i s3://bucket/batch-data \
-  -o s3://bucket/batch-predictions \
-  -c application/json
+  -o s3://bucket/batch-predictions
 ```
 
 ### When to Use Batch Transform
@@ -561,18 +558,18 @@ aws sagemaker-runtime invoke-endpoint \
 - Set up cost alerts in CloudWatch
 
 **Cost optimization tips:**
-1. **Use spot instances for training** - Up to 70% savings
-2. **Serverless for low traffic** - No idle costs
-3. **Right-size instances** - Don't over-provision
-4. **Delete unused endpoints** - Provisioned endpoints charge 24/7
-5. **Use batch transform** - More cost-effective than endpoints for batch workloads
+1. **Serverless for low traffic** - No idle costs
+2. **Right-size instances** - Don't over-provision
+3. **Delete unused endpoints** - Provisioned endpoints charge 24/7
+4. **Use batch transform** - More cost-effective than endpoints for batch workloads
+5. **Multi-instance training** - Faster training reduces billable time
 
 ### Performance Optimization
 
 **Training:**
 - Use larger instances for faster training
-- Enable spot training for cost savings
-- Use distributed training for large datasets
+- Use distributed training (`-c` flag) for large datasets
+- Use GPU instances (ml.p3.x) for deep learning
 
 **Endpoints:**
 - Add more instances for higher throughput
