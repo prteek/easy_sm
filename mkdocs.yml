@@ -1,0 +1,162 @@
+site_name: easy_sm
+site_description: Simplify AWS SageMaker workflows with rapid local prototyping
+site_author: Prateek
+site_url: https://prteek.github.io/easy_sm/
+repo_url: https://github.com/prteek/easy_sm
+repo_name: prteek/easy_sm
+copyright: Copyright &copy; 2025 Prateek
+
+theme:
+  name: material
+  palette:
+    # Light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.instant.progress
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.path
+    - navigation.top
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - toc.follow
+  icon:
+    repo: fontawesome/brands/github
+    admonition:
+      note: octicons/tag-16
+      abstract: octicons/checklist-16
+      info: octicons/info-16
+      tip: octicons/light-bulb-16
+      success: octicons/check-16
+      question: octicons/question-16
+      warning: octicons/alert-16
+      failure: octicons/x-circle-16
+      danger: octicons/zap-16
+      bug: octicons/bug-16
+      example: octicons/beaker-16
+      quote: octicons/quote-16
+
+plugins:
+  - search:
+      separator: '[\s\-,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
+  - minify:
+      minify_html: true
+  - git-revision-date-localized:
+      enable_creation_date: true
+      type: timeago
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+      toc_depth: 3
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.snippets:
+      auto_append:
+        - includes/abbreviations.md
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+extra:
+  version: 1.0.0
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/prteek/easy_sm
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/easy-sm/
+
+extra_css:
+  - stylesheets/extra.css
+
+extra_javascript:
+  - javascripts/extra.js
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Installation: getting-started/installation.md
+      - Quick Start: getting-started/quick-start.md
+      - Configuration: getting-started/configuration.md
+  - User Guide:
+      - Overview: user-guide/overview.md
+      - Local Development: user-guide/local-development.md
+      - Cloud Deployment: user-guide/cloud-deployment.md
+      - AWS Setup: user-guide/aws-setup.md
+      - Piped Workflows: user-guide/piped-workflows.md
+  - Command Reference:
+      - Overview: commands/index.md
+      - init: commands/init.md
+      - build: commands/build.md
+      - push: commands/push.md
+      - local: commands/local.md
+      - train: commands/train.md
+      - deploy: commands/deploy.md
+      - process: commands/process.md
+      - batch-transform: commands/batch-transform.md
+      - endpoints: commands/endpoints.md
+      - update-scripts: commands/update-scripts.md
+  - Examples:
+      - Training Workflow: examples/training-example.md
+      - Deployment Workflow: examples/deployment-example.md
+      - Advanced Workflows: examples/advanced-workflows.md
+  - Developer Guide:
+      - Architecture: developer-guide/architecture.md
+      - Testing: developer-guide/testing.md
+      - Contributing: developer-guide/contributing.md
+      - Code Style: developer-guide/code-style.md
+  - About:
+      - License: about/license.md
+      - Credits: about/credits.md

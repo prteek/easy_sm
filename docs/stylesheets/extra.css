@@ -1,0 +1,52 @@
+:root {
+  --md-primary-fg-color: #3f51b5;
+  --md-primary-fg-color--light: #5c6bc0;
+  --md-primary-fg-color--dark: #303f9f;
+  --md-accent-fg-color: #3f51b5;
+}
+
+/* Code block styling */
+.highlight {
+  border-radius: 0.2rem;
+}
+
+.highlight pre {
+  padding: 1rem;
+}
+
+/* Admonition borders */
+.admonition {
+  border-left: 0.2rem solid var(--md-accent-fg-color);
+}
+
+/* Table styling */
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+table th {
+  background-color: var(--md-primary-fg-color);
+  color: white;
+  font-weight: bold;
+}
+
+/* Command synopsis styling */
+.command-synopsis {
+  background-color: rgba(63, 81, 181, 0.1);
+  border-left: 4px solid var(--md-primary-fg-color);
+  padding: 1rem;
+  margin: 1rem 0;
+  font-family: monospace;
+}
+
+/* Copy button feedback */
+.md-clipboard:after {
+  content: "Copied!";
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.md-clipboard.copied:after {
+  opacity: 1;
+}
