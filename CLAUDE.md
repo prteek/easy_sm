@@ -395,3 +395,87 @@ Never generate code I can't explain
 If I ask for something complex, suggest simpler alternatives
 Treat every session as a teaching opportunity
 Be direct. Tell me when I'm doing something wrong
+
+## Documentation Agent Workflow
+
+**When working on documentation**, always follow this process:
+
+1. **Before Editing**:
+   - Understand what docs need changes
+   - Plan the changes clearly
+   - Consider impact on other docs
+
+2. **While Editing**:
+   - Update all related sections
+   - Keep terminology consistent
+   - Cross-reference related docs
+
+3. **After Editing** (MANDATORY):
+   - Run validation: `/validate-docs`
+   - Fix any issues found
+   - Verify all parameters match code
+   - Check for deprecated feature references
+   - Never commit docs without passing validation
+
+4. **Validation Checks**:
+   - Are all documented flags in the actual code?
+   - Are deprecated features removed?
+   - Do parameter names match implementation?
+   - Are examples correct and tested?
+
+### Documentation Validation Tool
+
+Location: `scripts/validate_docs.py`
+
+Run manually:
+```bash
+python3 scripts/validate_docs.py
+```
+
+Automatic (on commit):
+- Pre-commit hook validates docs files automatically
+- Blocks commit if validation fails
+- Shows specific issues found
+
+### Common Documentation Issues
+
+**Types of issues caught**:
+1. Flags documented but not implemented (e.g., `--tags`, `--spot-instances`)
+2. Wrong parameter names (e.g., `--num-instances` vs `-c, --instance-count`)
+3. Unsupported features mentioned (hyperparameters, spot instances, etc.)
+4. Incorrect defaults or option values
+5. Missing required options
+
+**Example**: If docs say `--tags` but code doesn't have it → validation fails
+
+### Documentation Files to Validate
+
+- `docs/commands/*.md` - Command reference pages
+- `docs/user-guide/*.md` - User guides
+- `docs/examples/*.md` - Examples and workflows
+- Against: `easy_sm/commands/*.py` - Actual implementation
+
+### When Adding New Parameters
+
+1. Add parameter to command code
+2. Document in relevant markdown files
+3. Run validation to confirm match
+4. Commit only after validation passes
+
+### Agent Instructions for Docs Work
+
+When Claude is assigned documentation work:
+
+**ALWAYS**:
+✅ Run `/validate-docs` after making any doc changes
+✅ Fix all validation issues before committing
+✅ Test examples against actual code
+✅ Update all related documentation sections
+✅ Cross-check against implementation files
+
+**NEVER**:
+❌ Commit docs without validation
+❌ Document features that don't exist in code
+❌ Use outdated parameter names
+❌ Reference removed/unsupported features
+❌ Skip the validation check

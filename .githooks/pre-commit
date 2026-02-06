@@ -1,0 +1,24 @@
+#!/bin/bash
+# Pre-commit hook: Validate documentation on commit
+
+# Check if docs files are being committed
+DOCS_CHANGED=$(git diff --cached --name-only | grep -E '^docs/|^CLAUDE\.md|^README\.md' || true)
+
+if [ -z "$DOCS_CHANGED" ]; then
+    exit 0
+fi
+
+echo "🔍 Validating documentation..."
+
+# Run the validation script
+python3 scripts/validate_docs.py
+
+if [ $? -ne 0 ]; then
+    echo ""
+    echo "❌ Documentation validation failed. Fix issues and try again."
+    echo "   Run: python3 scripts/validate_docs.py"
+    exit 1
+fi
+
+echo ""
+exit 0
