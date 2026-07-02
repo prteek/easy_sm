@@ -12,6 +12,7 @@ misc/
 *.tar.gz
 app.json
 *__pycache__/
+.venv
 
 # Documentation build
 site/
