@@ -13,6 +13,7 @@ misc/
 app.json
 *__pycache__/
 .venv
+*.env
 
 # Documentation build
 site/
