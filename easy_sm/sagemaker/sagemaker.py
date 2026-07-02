@@ -78,7 +78,9 @@ class SageMakerClient:
             ResourceConfig={
                 "InstanceType": train_instance_type,
                 "InstanceCount": instance_count,
+                "VolumeSizeInGB": 30,
             },
+            StoppingCondition={"MaxRuntimeInSeconds": 86400},
         )
         return f"{output_path}/{base_job_name}/output/model.tar.gz"
 
