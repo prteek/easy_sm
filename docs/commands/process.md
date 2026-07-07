@@ -27,6 +27,7 @@ Processing jobs run in the same Docker container as training but execute custom 
 | `--s3-input-location` | `-i` | string | No | None | S3 location for input data |
 | `--s3-output-location` | `-o` | string | No | None | S3 location to save output |
 | `--input-sharded` | `-is` | boolean | No | `false` | Shard input data across instances |
+| `--env` | | string | No | None | Environment variables in `KEY=VALUE` format (repeatable) |
 | `--docker-tag` | `-t` | string | No | `latest` | Docker image tag (global option) |
 
 ## Examples
@@ -45,6 +46,35 @@ easy_sm process \
 Output:
 ```
 data-preprocessing
+```
+
+### Processing with environment variables
+
+Pass configuration to processing scripts without code changes:
+
+```bash
+easy_sm process \
+  -f preprocess.py \
+  -n data-preprocessing \
+  -e ml.m5.large \
+  --env DEBUG=true \
+  --env LOG_LEVEL=info \
+  --env API_KEY=my-secret-key
+```
+
+Environment variables are available in your processing script via `os.environ`:
+
+```python
+# processing/preprocess.py
+import os
+
+def process():
+    debug = os.environ.get('DEBUG', 'false') == 'true'
+    log_level = os.environ.get('LOG_LEVEL', 'warning')
+    api_key = os.environ.get('API_KEY', '')
+    
+    if debug:
+        print(f"Debug mode enabled, log level: {log_level}")
 ```
 
 ### Processing with input and output

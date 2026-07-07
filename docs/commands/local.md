@@ -353,6 +353,7 @@ Executes a Python file as a processing job in a Docker container. This is useful
 |--------|-------|------|----------|---------|-------------|
 | `--file` | `-f` | string | **Yes** | - | Python file name to run (relative to `processing/` directory) |
 | `--app-name` | `-a` | string | No | Auto-detected | App name for configuration |
+| `--env` | | string | No | None | Environment variables in `KEY=VALUE` format (repeatable) |
 | `--docker-tag` | `-t` | string | No | `latest` | Docker image tag (global option) |
 
 ### Examples
@@ -367,6 +368,14 @@ easy_sm local process -f preprocess.py
 
 ```bash
 easy_sm -t v1.0.0 local process -f feature_engineering.py -a my-ml-app
+```
+
+#### Process with environment variables
+
+```bash
+easy_sm local process -f preprocess.py \
+  --env DEBUG=true \
+  --env LOG_LEVEL=info
 ```
 
 ### Output
