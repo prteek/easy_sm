@@ -20,6 +20,7 @@ A Python CLI tool that simplifies AWS SageMaker workflows by enabling rapid loca
 - **Docker Integration**: Automatically build and manage Docker images
 - **Endpoint Management**: Deploy and manage SageMaker endpoints (provisioned and serverless)
 - **Job Monitoring**: List and filter training jobs
+- **Environment Variables**: Pass environment variables to processing jobs (both local and cloud)
 
 ## Requirements
 
@@ -137,6 +138,9 @@ easy_sm local train
 # Run processing job
 easy_sm local process -f script.py
 
+# Run processing job with environment variables
+easy_sm local process -f script.py --env DEBUG=true --env LOG_LEVEL=info
+
 # Deploy locally (starts server on port 8080)
 easy_sm local deploy
 
@@ -168,6 +172,10 @@ easy_sm batch-transform -e ml.m5.large --num-instances 1 \
 
 # Run processing job
 easy_sm process -f script.py -e ml.m5.large -n job-name
+
+# Run processing job with environment variables
+easy_sm process -f script.py -e ml.m5.large -n job-name \
+  --env DEBUG=true --env LOG_LEVEL=info
 
 # List endpoints
 easy_sm list-endpoints

@@ -172,6 +172,26 @@ easy_sm deploy -n my-endpoint -e ml.m5.large \
 - **Shell script quoting**: All variables properly quoted to prevent injection
 - **File permissions**: Scripts set to 0o755 (not world-writable)
 
+### Environment Variables for Processing Jobs
+
+Both cloud and local processing jobs support passing environment variables via the `--env` flag (repeatable):
+
+```bash
+# Cloud processing with env vars
+easy_sm process -f script.py -e ml.m5.large -n job \
+  --env DEBUG=true --env LOG_LEVEL=info --env API_KEY=secret123
+
+# Local processing with env vars
+easy_sm local process -f script.py -a myapp \
+  --env DEBUG=true --env LOG_LEVEL=info
+```
+
+**Implementation Details:**
+- **Cloud**: Environment variables passed to `Processor` constructor (sagemaker SDK)
+- **Local**: Environment variables serialized as comma-separated pairs and passed to shell script, which converts them to Docker `-e` flags
+- **Validation**: `KEY=VALUE` format enforced; values can contain `=` (e.g., `API_KEY=sk-1234=5678`)
+- **Empty values**: Allowed (e.g., `--env EMPTY_VAR=`)
+
 ## Code Style Guidelines
 
 ### Naming Conventions
@@ -378,7 +398,7 @@ Configured to allow specific bash commands for development:
 ### Runtime Dependencies (from setup.py)
 - **typer** (>=0.9.0): CLI framework (built on Click)
 - **docker** (>=7.1.0): Docker SDK for building/pushing images
-- **sagemaker** (>=2.243.0): AWS SageMaker SDK
+- **sagemaker** (==2.257.3): AWS SageMaker SDK (pinned exact version for stability)
 - **boto3** (>=1.26.0): AWS SDK
 
 ### Development Dependencies (from base-requirements.txt)
