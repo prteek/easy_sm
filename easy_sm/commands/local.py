@@ -1,5 +1,5 @@
 import os
-from typing import Annotated
+from typing import Annotated, Optional
 
 import typer
 
@@ -42,6 +42,7 @@ def train(
 def process(
     file: Annotated[str, typer.Option("--file", "-f", help="Python file name to run as processing job")],
     app_name: Annotated[str, typer.Option("--app-name", "-a", help="App name for configuration")],
+    env: Annotated[Optional[list[str]], typer.Option("--env", help="Environment variables in KEY=VALUE format")] = None,
 ) -> None:
     """Run python files locally as processing job."""
     config = load_config(app_name)
@@ -50,6 +51,15 @@ def process(
     job_file = os.path.join(base_path, "processing", file)
     if not os.path.isfile(job_file):
         raise ValueError(f"Processing file not found: {job_file}")
+
+    # Parse and validate environment variables
+    env_vars = {}
+    if env:
+        for env_var in env:
+            if "=" not in env_var:
+                raise ValueError(f"Invalid environment variable format: {env_var}. Use KEY=VALUE")
+            key, value = env_var.split("=", 1)
+            env_vars[key] = value
 
     safe_run_subprocess(
         [
@@ -60,6 +70,7 @@ def process(
             file,
             config.aws_profile,
             config.aws_region,
+            helpers.serialize_env_vars(env_vars),
         ],
         success_message="Local processing completed",
     )

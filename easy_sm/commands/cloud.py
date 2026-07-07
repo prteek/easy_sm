@@ -216,10 +216,20 @@ def process(
     s3_input_location: Annotated[Optional[str], typer.Option("--s3-input-location", "-i", help="S3 input data location")] = None,
     s3_output_location: Annotated[Optional[str], typer.Option("--s3-output-location", "-o", help="S3 location to save output")] = None,
     input_sharded: Annotated[bool, typer.Option("--input-sharded", "-is", help="Shard input data across machines")] = False,
+    env: Annotated[Optional[list[str]], typer.Option("--env", help="Environment variables in KEY=VALUE format")] = None,
 ) -> None:
     """Run python file as processing job on SageMaker."""
     client = _get_client(app_name, iam_role_arn)
     image = _get_image(app_name)
+
+    # Parse environment variables from KEY=VALUE strings into dict
+    env_vars = {}
+    if env:
+        for env_var in env:
+            if "=" not in env_var:
+                raise ValueError(f"Invalid environment variable format: {env_var}. Use KEY=VALUE")
+            key, value = env_var.split("=", 1)
+            env_vars[key] = value
 
     client.process(
         image_name=image,
@@ -230,5 +240,6 @@ def process(
         input_sharded=input_sharded,
         s3_output_location=s3_output_location,
         base_job_name=base_job_name,
+        environment=env_vars,
     )
     print(base_job_name)

@@ -3,8 +3,8 @@ import os
 from urllib.parse import urlparse
 
 import boto3
-from sagemaker.core.helper.session_helper import Session, get_execution_role
-from sagemaker.core.processing import Processor, ProcessingInput, ProcessingOutput
+from sagemaker import Session, get_execution_role
+from sagemaker.processing import Processor, ProcessingInput, ProcessingOutput
 
 # Suppress verbose SageMaker SDK logging
 logging.getLogger("sagemaker.config").setLevel(logging.WARNING)
@@ -303,6 +303,7 @@ class SageMakerClient:
         input_sharded: bool,
         s3_output_location: str | None,
         base_job_name: str,
+        environment: dict[str, str] | None = None,
     ) -> None:
         """Process python file on SageMaker."""
         self._run_processing(
@@ -314,6 +315,7 @@ class SageMakerClient:
             input_sharded,
             s3_output_location,
             base_job_name,
+            environment,
         )
 
     def _run_processing(
@@ -326,6 +328,7 @@ class SageMakerClient:
         input_sharded: bool,
         s3_output_location: str | None,
         base_job_name: str,
+        environment: dict[str, str] | None = None,
     ) -> None:
         """Run processing job with given arguments."""
         image = self._construct_image_location(image_name)
@@ -336,6 +339,7 @@ class SageMakerClient:
             instance_type=processing_instance_type,
             base_job_name=base_job_name,
             sagemaker_session=self.sagemaker_session,
+            env=environment,
         )
 
         proc_in = None

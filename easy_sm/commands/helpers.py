@@ -127,3 +127,37 @@ def load_config(app_name: str | None = None) -> Config:
         raise ValueError(f"Config file not found: {config_file}")
 
     return ConfigManager(config_file).get_config()
+
+
+def serialize_env_vars(env_vars: dict[str, str]) -> str:
+    """Serialize environment variables dict to a shell-friendly string.
+
+    Args:
+        env_vars: Dictionary of environment variables
+
+    Returns:
+        Comma-separated KEY=VALUE pairs (or empty string if no vars)
+
+    Example:
+        {"DEBUG": "true", "LOG_LEVEL": "info"} -> "DEBUG=true,LOG_LEVEL=info"
+    """
+    if not env_vars:
+        return ""
+    return ",".join(f"{k}={v}" for k, v in env_vars.items())
+
+
+def deserialize_env_vars(env_string: str) -> dict[str, str]:
+    """Deserialize environment variables from shell-friendly string.
+
+    Args:
+        env_string: Comma-separated KEY=VALUE pairs (or empty string)
+
+    Returns:
+        Dictionary of environment variables
+
+    Example:
+        "DEBUG=true,LOG_LEVEL=info" -> {"DEBUG": "true", "LOG_LEVEL": "info"}
+    """
+    if not env_string:
+        return {}
+    return dict(pair.split("=", 1) for pair in env_string.split(","))
