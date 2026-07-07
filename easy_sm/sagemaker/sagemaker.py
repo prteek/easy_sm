@@ -5,6 +5,7 @@ from urllib.parse import urlparse
 import boto3
 from sagemaker import Session, get_execution_role
 from sagemaker.processing import Processor, ProcessingInput, ProcessingOutput
+from sagemaker.workflow.entities import PipelineVariable
 
 # Suppress verbose SageMaker SDK logging
 logging.getLogger("sagemaker.config").setLevel(logging.WARNING)
@@ -303,7 +304,7 @@ class SageMakerClient:
         input_sharded: bool,
         s3_output_location: str | None,
         base_job_name: str,
-        environment: dict[str, str] | None = None,
+        environment: dict[str, str | PipelineVariable] | None = None,
     ) -> None:
         """Process python file on SageMaker."""
         self._run_processing(
@@ -328,7 +329,7 @@ class SageMakerClient:
         input_sharded: bool,
         s3_output_location: str | None,
         base_job_name: str,
-        environment: dict[str, str] | None = None,
+        environment: dict[str, str | PipelineVariable] | None = None,
     ) -> None:
         """Run processing job with given arguments."""
         image = self._construct_image_location(image_name)

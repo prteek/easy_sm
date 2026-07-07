@@ -240,6 +240,6 @@ def process(
         input_sharded=input_sharded,
         s3_output_location=s3_output_location,
         base_job_name=base_job_name,
-        environment=env_vars,
+        environment=env_vars or None,  # type: ignore[arg-type]
     )
     print(base_job_name)
