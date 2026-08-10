@@ -12,6 +12,7 @@ class Config:
     python_version: str
     easy_sm_module_dir: str
     requirements_dir: str
+    docker_tag: str = "latest"
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

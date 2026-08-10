@@ -82,11 +82,22 @@ class TestBuildCommand:
 
     @patch("easy_sm.commands.helpers.subprocess.Popen")
     def test_build_with_custom_docker_tag(self, mock_popen: MagicMock, runner: CliRunner, temp_dir: str) -> None:
-        """Test build with custom docker tag via CLI option"""
+        """Test build with custom docker tag from config"""
         app_name = "my-app"
         docker_tag = "v1.2.3"
 
-        self._create_config(app_name)
+        # Create config with custom docker_tag
+        config = Config(
+            image_name=app_name,
+            aws_profile="test-profile",
+            aws_region="us-east-1",
+            python_version="3.13",
+            easy_sm_module_dir=app_name,
+            requirements_dir="requirements.txt",
+            docker_tag=docker_tag,
+        )
+        config_manager = ConfigManager(f"{app_name}.json")
+        config_manager.set_config(config)
         self._create_easy_sm_structure(app_name)
 
         mock_process = MagicMock()
@@ -94,12 +105,10 @@ class TestBuildCommand:
         mock_process.wait.return_value = 0
         mock_popen.return_value = mock_process
 
-        result = runner.invoke(
-            app, ["--docker-tag", docker_tag, "build", "-a", app_name]
-        )
+        result = runner.invoke(app, ["build", "-a", app_name])
 
         assert result.exit_code == 0
-        # Verify the subprocess was called with correct tag
+        # Verify the subprocess was called with correct tag from config
         mock_popen.assert_called_once()
         call_args = mock_popen.call_args[0][0]
         assert docker_tag in call_args
@@ -242,7 +251,18 @@ class TestBuildCommand:
         docker_tag = "test-tag"
         python_version = "3.13"
 
-        self._create_config(app_name)
+        # Create config with custom docker_tag
+        config = Config(
+            image_name=app_name,
+            aws_profile="test-profile",
+            aws_region="us-east-1",
+            python_version=python_version,
+            easy_sm_module_dir=app_name,
+            requirements_dir="requirements.txt",
+            docker_tag=docker_tag,
+        )
+        config_manager = ConfigManager(f"{app_name}.json")
+        config_manager.set_config(config)
         self._create_easy_sm_structure(app_name)
 
         mock_process = MagicMock()
@@ -250,9 +270,7 @@ class TestBuildCommand:
         mock_process.wait.return_value = 0
         mock_popen.return_value = mock_process
 
-        result = runner.invoke(
-            app, ["--docker-tag", docker_tag, "build", "-a", app_name]
-        )
+        result = runner.invoke(app, ["build", "-a", app_name])
 
         assert result.exit_code == 0
         mock_popen.assert_called_once()

@@ -1,7 +1,6 @@
 
 import typer
 
-from easy_sm.commands import helpers
 from easy_sm.commands.build import build
 from easy_sm.commands.cloud import (
     batch_transform,
@@ -23,26 +22,6 @@ from easy_sm.commands.update import update_scripts
 app = typer.Typer(
     help="easy_sm enables training and deploying machine learning models on AWS SageMaker in a few minutes!"
 )
-
-
-def docker_tag_callback(tag: str) -> str:
-    """Set global docker_tag when provided."""
-    helpers.docker_tag = tag
-    return tag
-
-
-@app.callback()
-def main(
-    docker_tag: str = typer.Option(
-        "latest",
-        "--docker-tag",
-        "-t",
-        help="Specify tag for Docker image",
-        callback=docker_tag_callback,
-    ),
-) -> None:
-    """easy_sm CLI - Train and deploy ML models on AWS SageMaker."""
-    pass
 
 
 # Register commands

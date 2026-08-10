@@ -44,7 +44,8 @@ class TestLocalTrain:
             "aws_region": "us-east-1",
             "python_version": "3.13",
             "easy_sm_module_dir": ".",
-            "requirements_dir": "easy_sm_base"
+            "requirements_dir": "easy_sm_base",
+            "docker_tag": "latest"
         }
         with open(os.path.join(temp_dir, "app.json"), "w") as f:
             json.dump(config_data, f)
@@ -124,7 +125,14 @@ class TestLocalTrain:
     def test_local_train_custom_docker_tag(
         self, runner: CliRunner, mock_app_dir: str
     ) -> None:
-        """Test local train command with custom Docker tag."""
+        """Test local train command with custom Docker tag from config."""
+        # Update config with custom docker_tag
+        with open(os.path.join(mock_app_dir, "app.json"), "r") as f:
+            config_data = json.load(f)
+        config_data["docker_tag"] = "v1.0.0"
+        with open(os.path.join(mock_app_dir, "app.json"), "w") as f:
+            json.dump(config_data, f)
+
         with patch("easy_sm.commands.helpers.subprocess.Popen") as mock_popen:
             mock_process = MagicMock()
             mock_process.stdout = []
@@ -132,7 +140,7 @@ class TestLocalTrain:
             mock_popen.return_value = mock_process
 
             result = runner.invoke(
-                app, ["--docker-tag", "v1.0.0", "local", "train", "-a", "app"]
+                app, ["local", "train", "-a", "app"]
             )
 
             assert result.exit_code == 0
@@ -188,7 +196,8 @@ class TestLocalDeploy:
             "aws_region": "us-east-1",
             "python_version": "3.13",
             "easy_sm_module_dir": ".",
-            "requirements_dir": "easy_sm_base"
+            "requirements_dir": "easy_sm_base",
+            "docker_tag": "latest"
         }
         with open(os.path.join(temp_dir, "app.json"), "w") as f:
             json.dump(config_data, f)
@@ -265,7 +274,14 @@ class TestLocalDeploy:
     def test_local_deploy_custom_docker_tag(
         self, runner: CliRunner, mock_app_dir: str
     ) -> None:
-        """Test local deploy command with custom Docker tag."""
+        """Test local deploy command with custom Docker tag from config."""
+        # Update config with custom docker_tag
+        with open(os.path.join(mock_app_dir, "app.json"), "r") as f:
+            config_data = json.load(f)
+        config_data["docker_tag"] = "v2.0.0"
+        with open(os.path.join(mock_app_dir, "app.json"), "w") as f:
+            json.dump(config_data, f)
+
         with patch("easy_sm.commands.helpers.subprocess.Popen") as mock_popen:
             mock_process = MagicMock()
             mock_process.stdout = []
@@ -273,13 +289,13 @@ class TestLocalDeploy:
             mock_popen.return_value = mock_process
 
             result = runner.invoke(
-                app, ["--docker-tag", "latest", "local", "deploy", "-a", "app"]
+                app, ["local", "deploy", "-a", "app"]
             )
 
             assert result.exit_code == 0
             # Verify tag was used
             call_args = mock_popen.call_args[0][0]
-            assert "latest" in " ".join(call_args)
+            assert "v2.0.0" in " ".join(call_args)
 
     def test_local_deploy_custom_port(
         self, runner: CliRunner, mock_app_dir: str
@@ -371,7 +387,8 @@ class TestLocalStop:
             "aws_region": "us-east-1",
             "python_version": "3.13",
             "easy_sm_module_dir": ".",
-            "requirements_dir": "easy_sm_base"
+            "requirements_dir": "easy_sm_base",
+            "docker_tag": "latest"
         }
         with open(os.path.join(temp_dir, "app.json"), "w") as f:
             json.dump(config_data, f)
@@ -520,7 +537,8 @@ class TestLocalTrainAndDeployIntegration:
             "aws_region": "us-east-1",
             "python_version": "3.13",
             "easy_sm_module_dir": ".",
-            "requirements_dir": "easy_sm_base"
+            "requirements_dir": "easy_sm_base",
+            "docker_tag": "latest"
         }
         with open(os.path.join(temp_dir, "app.json"), "w") as f:
             json.dump(config_data, f)
@@ -578,8 +596,15 @@ class TestLocalTrainAndDeployIntegration:
             assert mock_popen.call_count >= 2
 
     def test_docker_tag_consistency(self, runner: CliRunner, mock_app_dir: str) -> None:
-        """Test that the same Docker tag is used for train and deploy."""
+        """Test that the same Docker tag is used for train and deploy from config."""
         docker_tag = "test-v1.2.3"
+
+        # Update config with custom docker_tag
+        with open(os.path.join(mock_app_dir, "app.json"), "r") as f:
+            config_data = json.load(f)
+        config_data["docker_tag"] = docker_tag
+        with open(os.path.join(mock_app_dir, "app.json"), "w") as f:
+            json.dump(config_data, f)
 
         with patch("easy_sm.commands.helpers.subprocess.Popen") as mock_popen:
             mock_process = MagicMock()
@@ -587,18 +612,18 @@ class TestLocalTrainAndDeployIntegration:
             mock_process.wait.return_value = 0
             mock_popen.return_value = mock_process
 
-            # Train with custom tag
-            runner.invoke(
-                app, ["--docker-tag", docker_tag, "local", "train", "-a", "app"]
-            )
+            # Train with tag from config
+            runner.invoke(app, ["local", "train", "-a", "app"])
 
-            # Deploy with same tag
-            runner.invoke(
-                app, ["--docker-tag", docker_tag, "local", "deploy", "-a", "app"]
-            )
+            # Deploy with same tag from config
+            runner.invoke(app, ["local", "deploy", "-a", "app"])
 
-            # Verify both calls used the same tag
+            # Verify both calls used the same tag from config
             assert mock_popen.call_count == 2
+            # Verify both calls contain the custom tag
+            for call in mock_popen.call_args_list:
+                call_args = call[0][0]
+                assert docker_tag in " ".join(call_args)
             for call in mock_popen.call_args_list:
                 call_args = call[0][0]
                 assert docker_tag in " ".join(call_args)

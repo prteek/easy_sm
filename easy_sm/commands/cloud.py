@@ -4,7 +4,6 @@ from typing import Annotated, Optional
 
 import typer
 
-from easy_sm.commands import helpers
 from easy_sm.commands.helpers import get_app_name, get_iam_role, load_config
 from easy_sm.sagemaker.sagemaker import SageMakerClient
 
@@ -23,7 +22,7 @@ def _get_image(app_name: str | None) -> str:
     """Get full image name with tag from app config."""
     app_name = get_app_name(app_name)
     config = load_config(app_name)
-    return f"{config.image_name}:{helpers.docker_tag}"
+    return f"{config.image_name}:{config.docker_tag}"
 
 
 @cloud_app.command(name="upload-data")
@@ -229,6 +228,18 @@ def process(
             if "=" not in env_var:
                 raise ValueError(f"Invalid environment variable format: {env_var}. Use KEY=VALUE")
             key, value = env_var.split("=", 1)
+
+            # SageMaker enforces a 256 character limit per environment variable value
+            if len(value) > 256:
+                raise ValueError(
+                    f"Environment variable '{key}' value exceeds 256 character limit. "
+                    f"Current length: {len(value)} characters.\n"
+                    f"For long values (tokens, API keys, etc.), consider:\n"
+                    f"  1. Using AWS Secrets Manager and retrieving in your script\n"
+                    f"  2. Using S3 to store the value and retrieving it in your script\n"
+                    f"  3. Shortening or splitting the value"
+                )
+
             env_vars[key] = value
 
     client.process(

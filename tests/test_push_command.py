@@ -78,8 +78,6 @@ class TestPushCommand:
         result = runner.invoke(
             app,
             [
-                "--docker-tag",
-                "v1.0.0",
                 "push",
                 "-a",
                 app_name,
@@ -167,10 +165,22 @@ class TestPushCommand:
     def test_push_with_custom_docker_tag(
         self, mock_popen: MagicMock, runner: CliRunner, temp_dir: str
     ) -> None:
-        """Test push command with custom Docker tag."""
+        """Test push command with custom Docker tag from config."""
         app_name = "test-app"
         docker_tag = "custom-tag-123"
-        self._create_config(app_name)
+
+        # Create config with custom docker_tag
+        config = Config(
+            image_name=app_name,
+            aws_profile="test-profile",
+            aws_region="us-east-1",
+            python_version="3.13",
+            easy_sm_module_dir=app_name,
+            requirements_dir="requirements.txt",
+            docker_tag=docker_tag,
+        )
+        config_manager = ConfigManager(f"{app_name}.json")
+        config_manager.set_config(config)
         self._create_easy_sm_structure(app_name)
 
         mock_process = MagicMock()
@@ -181,8 +191,6 @@ class TestPushCommand:
         result = runner.invoke(
             app,
             [
-                "--docker-tag",
-                docker_tag,
                 "push",
                 "-a",
                 app_name,

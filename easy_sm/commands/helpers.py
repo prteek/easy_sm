@@ -5,9 +5,6 @@ import subprocess
 
 from easy_sm.config.config import Config, ConfigManager
 
-# Global state for docker_tag (set by main CLI callback)
-docker_tag: str = "latest"
-
 # Pattern for valid app names: alphanumeric, hyphens, underscores only
 APP_NAME_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
 

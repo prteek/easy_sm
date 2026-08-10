@@ -311,7 +311,7 @@ class TestConfigManager:
         # Verify it's properly formatted with indentation
         assert "    " in content  # Should have indentation
         data = json.loads(content)
-        assert len(data) == 6  # Should have all 6 fields
+        assert len(data) == 7  # Should have all 7 fields
 
     def test_config_manager_get_nonexistent_file_after_init(self, temp_dir: str) -> None:
         """Test getting config from file initialized with defaults."""

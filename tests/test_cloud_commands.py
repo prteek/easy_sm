@@ -224,10 +224,21 @@ class TestCloudTrain:
     def test_train_with_custom_docker_tag(
         self, mock_sagemaker_client: MagicMock, runner: CliRunner, temp_dir: str
     ) -> None:
-        """Test cloud train with custom Docker tag."""
+        """Test cloud train with custom Docker tag from config."""
         app_name = "test-app"
         docker_tag = "v1.2.3"
-        self._create_config(app_name)
+        # Create config with custom docker_tag
+        config = Config(
+            image_name=app_name,
+            aws_profile="test-profile",
+            aws_region="us-east-1",
+            python_version="3.13",
+            easy_sm_module_dir=app_name,
+            requirements_dir="requirements.txt",
+            docker_tag=docker_tag,
+        )
+        config_manager = ConfigManager(f"{app_name}.json")
+        config_manager.set_config(config)
 
         mock_client = MagicMock()
         mock_client.train.return_value = "s3://bucket/model.tar.gz"
@@ -236,9 +247,7 @@ class TestCloudTrain:
         result = runner.invoke(
             app,
             [
-                "--docker-tag",
-                docker_tag,
-                                "train",
+                "train",
                 "-a",
                 app_name,
                 "-i",

@@ -3,8 +3,7 @@ from typing import Annotated, Optional
 
 import typer
 
-from easy_sm.commands import helpers
-from easy_sm.commands.helpers import load_config, safe_run_subprocess
+from easy_sm.commands.helpers import load_config, safe_run_subprocess, serialize_env_vars
 
 local_app = typer.Typer(help="Commands for local operations: train and deploy")
 
@@ -31,7 +30,7 @@ def train(
         [
             os.path.join(base_path, "local_test", "train_local.sh"),
             os.path.abspath(test_path),
-            helpers.docker_tag,
+            config.docker_tag,
             config.image_name,
         ],
         success_message="Local training completed",
@@ -65,12 +64,12 @@ def process(
         [
             os.path.join(base_path, "local_test", "process_local.sh"),
             os.path.abspath(test_path),
-            helpers.docker_tag,
+            config.docker_tag,
             config.image_name,
             file,
             config.aws_profile,
             config.aws_region,
-            helpers.serialize_env_vars(env_vars),
+            serialize_env_vars(env_vars),
         ],
         success_message="Local processing completed",
     )
@@ -89,7 +88,7 @@ def deploy(
     safe_run_subprocess([
         os.path.join(base_path, "local_test", "deploy_local.sh"),
         os.path.abspath(test_path),
-        helpers.docker_tag,
+        config.docker_tag,
         config.image_name,
         str(port),
     ])

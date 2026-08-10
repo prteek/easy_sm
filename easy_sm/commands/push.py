@@ -4,7 +4,6 @@ from typing import Annotated, Optional
 
 import typer
 
-from easy_sm.commands import helpers
 from easy_sm.commands.helpers import load_config, safe_run_subprocess
 
 
@@ -66,7 +65,7 @@ def push(
 
     _push(
         dir=config.easy_sm_module_dir,
-        docker_tag=helpers.docker_tag,
+        docker_tag=config.docker_tag,
         aws_region=aws_region,
         iam_role_arn=iam_role_arn,
         aws_profile=aws_profile,

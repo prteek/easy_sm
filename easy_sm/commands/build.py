@@ -3,7 +3,6 @@ from typing import Annotated
 
 import typer
 
-from easy_sm.commands import helpers
 from easy_sm.commands.helpers import load_config, safe_run_subprocess
 
 
@@ -59,7 +58,7 @@ def build(
     _build(
         source_dir=config.easy_sm_module_dir,
         requirements_dir=config.requirements_dir,
-        docker_tag=helpers.docker_tag,
+        docker_tag=config.docker_tag,
         image_name=config.image_name,
         python_version=config.python_version,
     )
