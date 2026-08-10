@@ -15,7 +15,8 @@ Each project has a JSON configuration file named `{app-name}.json` in the projec
     "aws_region": "eu-west-1",
     "python_version": "3.13",
     "easy_sm_module_dir": "my-ml-app",
-    "requirements_dir": "requirements.txt"
+    "requirements_dir": "requirements.txt",
+    "docker_tag": "latest"
 }
 ```
 
@@ -29,6 +30,7 @@ Each project has a JSON configuration file named `{app-name}.json` in the projec
 | `python_version` | Python version for Docker image | `3.13`, `3.12` |
 | `easy_sm_module_dir` | Directory containing `easy_sm_base/` | `my-ml-app` |
 | `requirements_dir` | Path to requirements file | `requirements.txt` |
+| `docker_tag` | Docker image tag for versioning | `latest`, `v1.0.0`, `prod` |
 
 ### Auto-Detection
 
@@ -167,27 +169,48 @@ numpy>=1.24.0
 
 ## Docker Tags
 
-Control Docker image versions with the `--docker-tag` flag:
+Control Docker image versions by setting the `docker_tag` field in your configuration file:
 
-```bash
-# Build with custom tag
-easy_sm --docker-tag v1.0 build
-
-# Use tagged image for training
-easy_sm --docker-tag v1.0 local train
-
-# Push tagged image
-easy_sm --docker-tag v1.0 push
+```json
+{
+    "image_name": "my-ml-app",
+    "aws_profile": "dev",
+    "aws_region": "eu-west-1",
+    "python_version": "3.13",
+    "easy_sm_module_dir": "my-ml-app",
+    "requirements_dir": "requirements.txt",
+    "docker_tag": "v1.0.0"
+}
 ```
 
-Default tag is `latest`.
+The default tag is `latest`. All commands will use the configured tag:
+
+```bash
+# Build uses the tag from config
+easy_sm build
+
+# Training uses the tag from config
+easy_sm local train
+easy_sm train -n job-name -e ml.m5.large -i s3://... -o s3://...
+
+# Push uses the tag from config
+easy_sm push
+```
 
 !!! tip "Versioning Strategy"
-    Use semantic versioning for production:
-    ```bash
-    easy_sm --docker-tag v1.0.0 build
-    easy_sm --docker-tag v1.0.0 push
-    easy_sm --docker-tag v1.0.0 train -n prod-job-v1.0.0 ...
+    Use semantic versioning for production environments:
+    ```json
+    {
+        "image_name": "my-ml-app",
+        "docker_tag": "v1.0.0"
+    }
+    ```
+    
+    For different environments, use separate config files:
+    ```
+    my-app-dev.json      (docker_tag: "dev")
+    my-app-staging.json  (docker_tag: "staging")
+    my-app-prod.json     (docker_tag: "v1.0.0")
     ```
 
 ## Multiple Environments

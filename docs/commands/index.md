@@ -7,16 +7,15 @@ Complete reference for all easy_sm CLI commands.
 Cloud commands are at the top level for simplicity. Local operations are under the `local` sub-command.
 
 ```text
-easy_sm [--docker-tag TAG] COMMAND [OPTIONS]
+easy_sm COMMAND [OPTIONS]
 ```
 
 ### Global Options
 
-| Option | Description | Default |
-|--------|-------------|---------|
-| `--docker-tag`, `-t` | Docker image tag | `latest` |
-| `--help` | Show help message | - |
-| `--version` | Show version | - |
+| Option | Description |
+|--------|-------------|
+| `--help` | Show help message |
+| `--version` | Show version |
 
 ## Commands by Category
 
@@ -144,13 +143,23 @@ easy_sm train -a my-app -r arn:aws:iam::123456789012:role/OtherRole ...
 
 ### Docker Tags
 
-Use versioned Docker tags:
+Configure Docker tags in your `app.json` config file:
+
+```json
+{
+    "docker_tag": "v1.0"
+}
+```
+
+All commands will use the configured tag:
 
 ```bash
-easy_sm --docker-tag v1.0 build
-easy_sm --docker-tag v1.0 push
-easy_sm --docker-tag v1.0 train ...
+easy_sm build
+easy_sm push
+easy_sm train ...
 ```
+
+See [Configuration](../getting-started/configuration.md#docker-tags) for more details.
 
 ### Piped Workflows
 

@@ -5,7 +5,7 @@ Build a Docker image for SageMaker training and deployment.
 ## Synopsis
 
 ```bash
-easy_sm [--docker-tag TAG] build [--app-name APP_NAME]
+easy_sm build [--app-name APP_NAME]
 ```
 
 ## Description
@@ -24,7 +24,6 @@ The build process:
 | Option | Short | Type | Required | Default | Description |
 |--------|-------|------|----------|---------|-------------|
 | `--app-name` | `-a` | string | No | Auto-detected | App name for configuration. If not specified, auto-detects from `*.json` file in current directory |
-| `--docker-tag` | `-t` | string | No | `latest` | Tag for the Docker image. This is a global option that must come before the command |
 
 ## Examples
 
@@ -46,35 +45,47 @@ easy_sm build -a my-ml-app
 
 ### Build with custom Docker tag
 
-Use a specific version tag:
+Configure the Docker tag in your `my-ml-app.json`:
 
-```bash
-easy_sm -t v1.2.0 build
+```json
+{
+    "image_name": "my-ml-app",
+    "docker_tag": "v1.2.0"
+}
 ```
 
-Or:
+Then build:
 
 ```bash
-easy_sm --docker-tag v1.2.0 build
-```
-
-### Build with custom tag and app name
-
-```bash
-easy_sm -t v1.2.0 build -a my-ml-app
+easy_sm build
 ```
 
 ### Build for different environments
 
+Create separate config files for each environment:
+
+**my-ml-app-dev.json**:
+```json
+{
+    "docker_tag": "dev"
+}
+```
+
+**my-ml-app-prod.json**:
+```json
+{
+    "docker_tag": "v1.0.0"
+}
+```
+
+Then build for each environment:
+
 ```bash
 # Development
-easy_sm -t dev build
-
-# Staging
-easy_sm -t staging build
+easy_sm build -a my-ml-app-dev
 
 # Production
-easy_sm -t v1.0.0 build
+easy_sm build -a my-ml-app-prod
 ```
 
 ## Output

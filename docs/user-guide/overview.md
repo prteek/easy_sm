@@ -84,17 +84,26 @@ No need to push to cloud for each code change.
 
 ### Production Deployment
 
-For production pipelines:
+For production pipelines, configure a versioned tag in your config:
+
+```json
+{
+    "image_name": "my-ml-app",
+    "docker_tag": "v1.0.0"
+}
+```
+
+Then run:
 
 ```bash
 # Build versioned image
-easy_sm --docker-tag v1.0.0 build
+easy_sm build
 
 # Push to ECR
-easy_sm --docker-tag v1.0.0 push
+easy_sm push
 
 # Train with tagged image
-easy_sm --docker-tag v1.0.0 train -n prod-job-v1.0.0 \
+easy_sm train -n prod-job-v1.0.0 \
   -e ml.m5.xlarge -i s3://... -o s3://...
 
 # Deploy latest model

@@ -340,7 +340,8 @@ Projects use a JSON config file (`app-name.json`):
     "aws_region": "eu-west-1",
     "python_version": "3.13",
     "easy_sm_module_dir": "my-app",
-    "requirements_dir": "requirements.txt"
+    "requirements_dir": "requirements.txt",
+    "docker_tag": "latest"
 }
 ```
 
@@ -395,7 +396,7 @@ easy_sm list-training-jobs -n -m 10 | grep "prod-" | head -1 | xargs -I {} easy_
 
 - **Save training output**: `easy_sm train ... | tee train_output.txt`
 - **Custom Docker**: Modify `app-name/easy_sm_base/Dockerfile`
-- **Docker tags**: Use `-t` flag: `easy_sm build -t v1.0`
+- **Docker tags**: Configure in `app-name.json` with `"docker_tag": "v1.0"` (default: `latest`)
 - **Override auto-detection**: Use `-a app-name` or `-r $ROLE` flags when needed
 
 ## License

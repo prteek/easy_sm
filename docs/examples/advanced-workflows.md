@@ -315,11 +315,23 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Configure Docker tag
+        run: |
+          # Update config with current commit SHA
+          python3 - <<EOF
+          import json
+          with open('my-app.json', 'r') as f:
+              config = json.load(f)
+          config['docker_tag'] = '${{ github.sha }}'
+          with open('my-app.json', 'w') as f:
+              json.dump(config, f, indent=2)
+          EOF
+
       - name: Build Docker image
-        run: easy_sm --docker-tag ${{ github.sha }} build
+        run: easy_sm build
 
       - name: Push to ECR
-        run: easy_sm --docker-tag ${{ github.sha }} push
+        run: easy_sm push
 
   train:
     needs: build
@@ -339,10 +351,21 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Configure Docker tag
+        run: |
+          python3 - <<EOF
+          import json
+          with open('my-app.json', 'r') as f:
+              config = json.load(f)
+          config['docker_tag'] = '${{ github.sha }}'
+          with open('my-app.json', 'w') as f:
+              json.dump(config, f, indent=2)
+          EOF
+
       - name: Train model
         id: train
         run: |
-          MODEL=$(easy_sm --docker-tag ${{ github.sha }} train \
+          MODEL=$(easy_sm train \
             -n training-job-${{ github.run_number }} \
             -e ml.m5.large \
             -i s3://my-bucket/training-data \
@@ -403,8 +426,17 @@ build:
   before_script:
     - pip install easy-sm
   script:
-    - easy_sm --docker-tag $CI_COMMIT_SHA build
-    - easy_sm --docker-tag $CI_COMMIT_SHA push
+    - |
+      python3 - <<EOF
+      import json
+      with open('my-app.json', 'r') as f:
+          config = json.load(f)
+      config['docker_tag'] = '$CI_COMMIT_SHA'
+      with open('my-app.json', 'w') as f:
+          json.dump(config, f, indent=2)
+      EOF
+    - easy_sm build
+    - easy_sm push
 
 train:
   stage: train
@@ -412,7 +444,16 @@ train:
   before_script:
     - pip install easy-sm
   script:
-    - MODEL=$(easy_sm --docker-tag $CI_COMMIT_SHA train
+    - |
+      python3 - <<EOF
+      import json
+      with open('my-app.json', 'r') as f:
+          config = json.load(f)
+      config['docker_tag'] = '$CI_COMMIT_SHA'
+      with open('my-app.json', 'w') as f:
+          json.dump(config, f, indent=2)
+      EOF
+    - MODEL=$(easy_sm train
         -n training-job-$CI_PIPELINE_ID
         -e ml.m5.large
         -i s3://bucket/training-data
