@@ -57,6 +57,7 @@ class SageMakerClient:
         instance_count: int,
         output_path: str,
         base_job_name: str,
+        wait: bool = True,
     ) -> str:
         """Train model on SageMaker."""
         image = self._construct_image_location(image_name)
@@ -83,6 +84,20 @@ class SageMakerClient:
             },
             StoppingCondition={"MaxRuntimeInSeconds": 86400},
         )
+
+        if wait:
+            waiter = self.sagemaker_client.get_waiter(
+                "training_job_completed_or_stopped"
+            )
+            waiter.wait(TrainingJobName=base_job_name)
+            status = self.sagemaker_client.describe_training_job(
+                TrainingJobName=base_job_name
+            )["TrainingJobStatus"]
+            if status != "Completed":
+                raise RuntimeError(
+                    f"Training job '{base_job_name}' did not complete successfully: {status}"
+                )
+
         return f"{output_path}/{base_job_name}/output/model.tar.gz"
 
     def deploy_serverless(
@@ -305,6 +320,7 @@ class SageMakerClient:
         s3_output_location: str | None,
         base_job_name: str,
         environment: dict[str, str | PipelineVariable] | None = None,
+        wait: bool = True,
     ) -> None:
         """Process python file on SageMaker."""
         self._run_processing(
@@ -317,6 +333,7 @@ class SageMakerClient:
             s3_output_location,
             base_job_name,
             environment,
+            wait,
         )
 
     def _run_processing(
@@ -330,6 +347,7 @@ class SageMakerClient:
         s3_output_location: str | None,
         base_job_name: str,
         environment: dict[str, str | PipelineVariable] | None = None,
+        wait: bool = True,
     ) -> None:
         """Run processing job with given arguments."""
         image = self._construct_image_location(image_name)
@@ -365,4 +383,4 @@ class SageMakerClient:
                 )
             ]
 
-        proc.run(wait=True, arguments=arguments, inputs=proc_in, outputs=proc_out)
+        proc.run(wait=wait, arguments=arguments, inputs=proc_in, outputs=proc_out)

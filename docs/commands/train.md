@@ -18,7 +18,7 @@ The `train` command submits a training job to AWS SageMaker using your Docker im
 3. Runs your training code
 4. Uploads the trained model to S3
 
-The command outputs the S3 location of the trained model, making it easy to pipe into deployment commands.
+By default, the command waits for the training job to reach a terminal state before returning, and exits non-zero if the job fails. The S3 location of the trained model is still printed to stdout, making it easy to pipe into deployment commands.
 
 ## Options
 
@@ -31,6 +31,7 @@ The command outputs the S3 location of the trained model, making it easy to pipe
 | `--iam-role-arn` | `-r` | string | No | From `SAGEMAKER_ROLE` env var | AWS IAM role ARN for SageMaker |
 | `--app-name` | `-a` | string | No | Auto-detected | App name for configuration |
 | `--instance-count` | `-c` | integer | No | `1` | Number of EC2 instances for training |
+| `--no-wait` | - | boolean | No | `false` | Don't wait for the training job to finish |
 | `--docker-tag` | `-t` | string | No | `latest` | Docker image tag (global option) |
 
 ## Examples
@@ -75,6 +76,19 @@ easy_sm train \
   -i s3://my-bucket/data \
   -o s3://my-bucket/output
 ```
+
+### Submit a training job without waiting
+
+```bash
+easy_sm train \
+  -n my-training-job \
+  -e ml.m5.large \
+  -i s3://my-bucket/data \
+  -o s3://my-bucket/output \
+  --no-wait
+```
+
+The command returns immediately with the (eventual) S3 model path. Use [`list-training-jobs`](#list-training-jobs) to check on job status later.
 
 ### Training with specific Docker tag
 

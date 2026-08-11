@@ -47,19 +47,25 @@ def train(
     iam_role_arn: Annotated[Optional[str], typer.Option("--iam-role-arn", "-r", help="AWS IAM role ARN (or set SAGEMAKER_ROLE env var)")] = None,
     app_name: Annotated[Optional[str], typer.Option("--app-name", "-a", help="App name (auto-detected if not specified)")] = None,
     instance_count: Annotated[int, typer.Option("--instance-count", "-c", help="EC2 instance count")] = 1,
+    no_wait: Annotated[bool, typer.Option("--no-wait", help="Don't wait for the training job to finish")] = False,
 ) -> Optional[str]:
     """Train ML model(s) on SageMaker."""
     client = _get_client(app_name, iam_role_arn)
     image = _get_image(app_name)
 
-    s3_model_location = client.train(
-        image_name=image,
-        input_s3_data_location=input_s3_dir,
-        train_instance_type=ec2_type,
-        instance_count=instance_count,
-        output_path=output_s3_dir,
-        base_job_name=base_job_name,
-    )
+    try:
+        s3_model_location = client.train(
+            image_name=image,
+            input_s3_data_location=input_s3_dir,
+            train_instance_type=ec2_type,
+            instance_count=instance_count,
+            output_path=output_s3_dir,
+            base_job_name=base_job_name,
+            wait=not no_wait,
+        )
+    except RuntimeError as e:
+        print(str(e))
+        sys.exit(1)
 
     print(s3_model_location)
     return s3_model_location
@@ -216,6 +222,7 @@ def process(
     s3_output_location: Annotated[Optional[str], typer.Option("--s3-output-location", "-o", help="S3 location to save output")] = None,
     input_sharded: Annotated[bool, typer.Option("--input-sharded", "-is", help="Shard input data across machines")] = False,
     env: Annotated[Optional[list[str]], typer.Option("--env", help="Environment variables in KEY=VALUE format")] = None,
+    no_wait: Annotated[bool, typer.Option("--no-wait", help="Don't wait for the processing job to finish")] = False,
 ) -> None:
     """Run python file as processing job on SageMaker."""
     client = _get_client(app_name, iam_role_arn)
@@ -252,5 +259,6 @@ def process(
         s3_output_location=s3_output_location,
         base_job_name=base_job_name,
         environment=env_vars or None,  # type: ignore[arg-type]
+        wait=not no_wait,
     )
     print(base_job_name)

@@ -305,6 +305,112 @@ class TestCloudTrain:
         assert call_kwargs["instance_count"] == 4
 
     @patch("easy_sm.commands.cloud.SageMakerClient")
+    def test_train_waits_by_default(
+        self, mock_sagemaker_client: MagicMock, runner: CliRunner, temp_dir: str
+    ) -> None:
+        """Test cloud train waits for the job to finish by default."""
+        app_name = "test-app"
+        self._create_config(app_name)
+
+        mock_client = MagicMock()
+        mock_client.train.return_value = "s3://bucket/model.tar.gz"
+        mock_sagemaker_client.return_value = mock_client
+
+        result = runner.invoke(
+            app,
+            [
+                "train",
+                "-a",
+                app_name,
+                "-i",
+                "s3://bucket/training",
+                "-o",
+                "s3://bucket/output",
+                "-e",
+                "ml.m5.large",
+                "-r",
+                "arn:aws:iam::123456789012:role/SageMakerRole",
+                "-n",
+                "training-job",
+            ],
+        )
+
+        assert result.exit_code == 0
+        call_kwargs = mock_client.train.call_args[1]
+        assert call_kwargs["wait"] is True
+
+    @patch("easy_sm.commands.cloud.SageMakerClient")
+    def test_train_no_wait(
+        self, mock_sagemaker_client: MagicMock, runner: CliRunner, temp_dir: str
+    ) -> None:
+        """Test cloud train with --no-wait does not wait for the job."""
+        app_name = "test-app"
+        self._create_config(app_name)
+
+        mock_client = MagicMock()
+        mock_client.train.return_value = "s3://bucket/model.tar.gz"
+        mock_sagemaker_client.return_value = mock_client
+
+        result = runner.invoke(
+            app,
+            [
+                "train",
+                "-a",
+                app_name,
+                "-i",
+                "s3://bucket/training",
+                "-o",
+                "s3://bucket/output",
+                "-e",
+                "ml.m5.large",
+                "-r",
+                "arn:aws:iam::123456789012:role/SageMakerRole",
+                "-n",
+                "training-job",
+                "--no-wait",
+            ],
+        )
+
+        assert result.exit_code == 0
+        call_kwargs = mock_client.train.call_args[1]
+        assert call_kwargs["wait"] is False
+
+    @patch("easy_sm.commands.cloud.SageMakerClient")
+    def test_train_fails_when_job_fails(
+        self, mock_sagemaker_client: MagicMock, runner: CliRunner, temp_dir: str
+    ) -> None:
+        """Test cloud train exits non-zero when the training job fails while waiting."""
+        app_name = "test-app"
+        self._create_config(app_name)
+
+        mock_client = MagicMock()
+        mock_client.train.side_effect = RuntimeError(
+            "Training job 'training-job' did not complete successfully: Failed"
+        )
+        mock_sagemaker_client.return_value = mock_client
+
+        result = runner.invoke(
+            app,
+            [
+                "train",
+                "-a",
+                app_name,
+                "-i",
+                "s3://bucket/training",
+                "-o",
+                "s3://bucket/output",
+                "-e",
+                "ml.m5.large",
+                "-r",
+                "arn:aws:iam::123456789012:role/SageMakerRole",
+                "-n",
+                "training-job",
+            ],
+        )
+
+        assert result.exit_code == 1
+
+    @patch("easy_sm.commands.cloud.SageMakerClient")
     def test_train_missing_config(
         self, mock_sagemaker_client: MagicMock, runner: CliRunner, temp_dir: str
     ) -> None:
@@ -829,6 +935,71 @@ class TestCloudProcess:
         assert result.exit_code == 0
         call_kwargs = mock_client.process.call_args[1]
         assert call_kwargs["input_sharded"] is True
+
+    @patch("easy_sm.commands.cloud.SageMakerClient")
+    def test_process_waits_by_default(
+        self, mock_sagemaker_client: MagicMock, runner: CliRunner, temp_dir: str
+    ) -> None:
+        """Test cloud process waits for the job to finish by default."""
+        app_name = "test-app"
+        self._create_config(app_name)
+
+        mock_client = MagicMock()
+        mock_sagemaker_client.return_value = mock_client
+
+        result = runner.invoke(
+            app,
+            [
+                "process",
+                "-a",
+                app_name,
+                "-e",
+                "ml.m5.large",
+                "-f",
+                "process.py",
+                "-r",
+                "arn:aws:iam::123456789012:role/SageMakerRole",
+                "-n",
+                "process-job",
+            ],
+        )
+
+        assert result.exit_code == 0
+        call_kwargs = mock_client.process.call_args[1]
+        assert call_kwargs["wait"] is True
+
+    @patch("easy_sm.commands.cloud.SageMakerClient")
+    def test_process_no_wait(
+        self, mock_sagemaker_client: MagicMock, runner: CliRunner, temp_dir: str
+    ) -> None:
+        """Test cloud process with --no-wait does not wait for the job."""
+        app_name = "test-app"
+        self._create_config(app_name)
+
+        mock_client = MagicMock()
+        mock_sagemaker_client.return_value = mock_client
+
+        result = runner.invoke(
+            app,
+            [
+                "process",
+                "-a",
+                app_name,
+                "-e",
+                "ml.m5.large",
+                "-f",
+                "process.py",
+                "-r",
+                "arn:aws:iam::123456789012:role/SageMakerRole",
+                "-n",
+                "process-job",
+                "--no-wait",
+            ],
+        )
+
+        assert result.exit_code == 0
+        call_kwargs = mock_client.process.call_args[1]
+        assert call_kwargs["wait"] is False
 
 
 class TestCloudDeleteEndpoint:

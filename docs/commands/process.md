@@ -14,6 +14,8 @@ The `process` command submits a processing job to AWS SageMaker that executes a 
 
 Processing jobs run in the same Docker container as training but execute custom Python scripts instead of the training entry point.
 
+By default, the command waits for the processing job to finish before returning. Pass `--no-wait` to submit the job and return immediately.
+
 ## Options
 
 | Option | Short | Type | Required | Default | Description |
@@ -28,6 +30,7 @@ Processing jobs run in the same Docker container as training but execute custom 
 | `--s3-output-location` | `-o` | string | No | None | S3 location to save output |
 | `--input-sharded` | `-is` | boolean | No | `false` | Shard input data across instances |
 | `--env` | | string | No | None | Environment variables in `KEY=VALUE` format (repeatable) |
+| `--no-wait` | | boolean | No | `false` | Don't wait for the processing job to finish |
 | `--docker-tag` | `-t` | string | No | `latest` | Docker image tag (global option) |
 
 ## Examples
@@ -115,6 +118,18 @@ easy_sm -t v1.0.0 process \
   -i s3://bucket/models \
   -o s3://bucket/validation-results
 ```
+
+### Submit a processing job without waiting
+
+```bash
+easy_sm process \
+  -f preprocess.py \
+  -n data-preprocessing \
+  -e ml.m5.large \
+  --no-wait
+```
+
+The command returns immediately after submitting the job. Check status via the AWS Console or CLI (see [Monitoring](#monitoring)).
 
 ### Model evaluation job
 
