@@ -265,6 +265,12 @@ class SageMakerClient:
             return job_description["TransformJobStatus"]
         return None
 
+    def get_endpoint_config_name(self, endpoint_name: str) -> str:
+        """Get the current endpoint config name for an endpoint."""
+        return self.sagemaker_client.describe_endpoint(EndpointName=endpoint_name)[
+            "EndpointConfigName"
+        ]
+
     def shutdown_endpoint(self, endpoint_name: str) -> None:
         """Shuts down a SageMaker endpoint."""
         self.sagemaker_client.delete_endpoint(EndpointName=endpoint_name)

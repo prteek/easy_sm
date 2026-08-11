@@ -159,11 +159,13 @@ def delete_endpoint(
 ) -> None:
     """Delete a SageMaker endpoint."""
     client = _get_client(app_name, iam_role_arn)
+
+    config_name = client.get_endpoint_config_name(endpoint_name) if delete_config else None
+
     client.shutdown_endpoint(endpoint_name)
     print(endpoint_name)
 
-    if delete_config:
-        config_name = f"{endpoint_name}-config"
+    if config_name:
         client.delete_endpoint_config(config_name)
 
 

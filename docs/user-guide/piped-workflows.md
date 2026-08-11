@@ -330,9 +330,13 @@ MODEL=$(easy_sm train -n $JOB_NAME -e ml.m5.large \
   -i s3://bucket/latest-data \
   -o s3://bucket/models)
 
-# Get current endpoint model
+# Get current endpoint model (each deploy creates a new, uniquely-named
+# endpoint config, so look up the endpoint's *current* config name first)
+CURRENT_CONFIG=$(aws sagemaker describe-endpoint \
+  --endpoint-name prod-endpoint \
+  --query 'EndpointConfigName' --output text)
 CURRENT_MODEL=$(aws sagemaker describe-endpoint-config \
-  --endpoint-config-name prod-endpoint-config \
+  --endpoint-config-name $CURRENT_CONFIG \
   --query 'ProductionVariants[0].ModelName' --output text)
 
 echo "Current model: $CURRENT_MODEL"

@@ -206,7 +206,9 @@ easy_sm delete-endpoint -n my-endpoint --delete-config
 
 This deletes both:
 - The endpoint: `my-endpoint`
-- The endpoint config: `my-endpoint-config`
+- Its current endpoint config (looked up from the endpoint itself, e.g. `my-endpoint-model-<hash>-config`)
+
+Each `deploy`/`deploy-serverless` call creates a new, uniquely-named endpoint config rather than reusing a fixed name, so this always resolves and deletes whichever config the endpoint is currently using.
 
 #### Delete with specific IAM role
 

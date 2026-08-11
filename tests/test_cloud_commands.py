@@ -1060,6 +1060,7 @@ class TestCloudDeleteEndpoint:
         assert result.exit_code == 0
         assert endpoint_name in result.output
 
+        mock_client.get_endpoint_config_name.assert_not_called()
         mock_client.shutdown_endpoint.assert_called_once_with(endpoint_name)
         mock_client.delete_endpoint_config.assert_not_called()
 
@@ -1073,6 +1074,7 @@ class TestCloudDeleteEndpoint:
         self._create_config(app_name)
 
         mock_client = MagicMock()
+        mock_client.get_endpoint_config_name.return_value = f"{endpoint_name}-model-abc123-config"
         mock_sagemaker_client.return_value = mock_client
 
         result = runner.invoke(
@@ -1092,9 +1094,10 @@ class TestCloudDeleteEndpoint:
         assert result.exit_code == 0
         assert endpoint_name in result.output
 
+        mock_client.get_endpoint_config_name.assert_called_once_with(endpoint_name)
         mock_client.shutdown_endpoint.assert_called_once_with(endpoint_name)
         mock_client.delete_endpoint_config.assert_called_once_with(
-            f"{endpoint_name}-config"
+            f"{endpoint_name}-model-abc123-config"
         )
 
 
