@@ -2,15 +2,17 @@ import logging
 import os
 from urllib.parse import urlparse
 
+# Suppress verbose SageMaker SDK logging. This must run before `sagemaker` is
+# imported below, since the SDK logs "Not applying SDK defaults..." at import
+# time and only honors a pre-existing log level (see sagemaker.config.config_utils).
+logging.getLogger("sagemaker.config").setLevel(logging.WARNING)
+logging.getLogger("botocore.credentials").setLevel(logging.WARNING)
+
 import boto3
 from botocore.exceptions import ClientError
 from sagemaker import Session, get_execution_role
 from sagemaker.processing import ProcessingInput, ProcessingOutput, Processor
 from sagemaker.workflow.entities import PipelineVariable
-
-# Suppress verbose SageMaker SDK logging
-logging.getLogger("sagemaker.config").setLevel(logging.WARNING)
-logging.getLogger("botocore.credentials").setLevel(logging.WARNING)
 
 
 class SageMakerClient:
