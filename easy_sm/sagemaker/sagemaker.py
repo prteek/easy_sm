@@ -3,6 +3,7 @@ import os
 from urllib.parse import urlparse
 
 import boto3
+from botocore.exceptions import ClientError
 from sagemaker import Session, get_execution_role
 from sagemaker.processing import ProcessingInput, ProcessingOutput, Processor
 from sagemaker.workflow.entities import PipelineVariable
@@ -113,7 +114,7 @@ class SageMakerClient:
             raise ValueError("endpoint_name is required for deploy_serverless")
 
         model_name = self._create_model(image_name, s3_model_location)
-        endpoint_config_name = f"{endpoint_name}-config"
+        endpoint_config_name = f"{endpoint_name}-{model_name}-config"
         self._create_serverless_epc(
             endpoint_config_name, model_name, memory_size_in_mb, max_concurrency
         )
@@ -132,7 +133,7 @@ class SageMakerClient:
             raise ValueError("endpoint_name is required for deploy")
 
         model_name = self._create_model(image_name, s3_model_location)
-        endpoint_config_name = f"{endpoint_name}-config"
+        endpoint_config_name = f"{endpoint_name}-{model_name}-config"
         self._create_endpoint_config(
             endpoint_config_name, model_name, instance_type, instance_count
         )
@@ -154,9 +155,21 @@ class SageMakerClient:
     ) -> str:
         """Create new endpoint or update existing one."""
         if self._check_endpoint_exists(endpoint_name):
+            previous_config_name = self.sagemaker_client.describe_endpoint(
+                EndpointName=endpoint_name
+            )["EndpointConfigName"]
             self.sagemaker_client.update_endpoint(
                 EndpointName=endpoint_name, EndpointConfigName=endpoint_config_name
             )
+            if previous_config_name != endpoint_config_name:
+                try:
+                    self.sagemaker_client.delete_endpoint_config(
+                        EndpointConfigName=previous_config_name
+                    )
+                except ClientError:
+                    # The previous config may still be in use while the update
+                    # rolls out; leave cleanup to `delete-endpoint --delete-config`.
+                    pass
         else:
             self.sagemaker_client.create_endpoint(
                 EndpointName=endpoint_name, EndpointConfigName=endpoint_config_name
