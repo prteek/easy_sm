@@ -1,6 +1,6 @@
 import os
 import sys
-from typing import Annotated, Optional
+from typing import Annotated
 
 import typer
 
@@ -37,10 +37,10 @@ def _push(
 
 def push(
     app_name: Annotated[str, typer.Option("--app-name", "-a", help="App name for configuration")],
-    aws_region: Annotated[Optional[str], typer.Option("--aws-region", "-r", help="AWS region")] = None,
-    iam_role_arn: Annotated[Optional[str], typer.Option("--iam-role-arn", "-i", help="AWS IAM role ARN")] = None,
-    aws_profile: Annotated[Optional[str], typer.Option("--aws-profile", "-p", help="AWS profile")] = None,
-    external_id: Annotated[Optional[str], typer.Option("--external-id", "-e", help="External ID for IAM role")] = None,
+    aws_region: Annotated[str | None, typer.Option("--aws-region", "-r", help="AWS region")] = None,
+    iam_role_arn: Annotated[str | None, typer.Option("--iam-role-arn", "-i", help="AWS IAM role ARN")] = None,
+    aws_profile: Annotated[str | None, typer.Option("--aws-profile", "-p", help="AWS profile")] = None,
+    external_id: Annotated[str | None, typer.Option("--external-id", "-e", help="External ID for IAM role")] = None,
 ) -> None:
     """Push Docker image to AWS ECR."""
     if iam_role_arn is not None and aws_profile is not None:

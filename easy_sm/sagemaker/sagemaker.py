@@ -4,7 +4,7 @@ from urllib.parse import urlparse
 
 import boto3
 from sagemaker import Session, get_execution_role
-from sagemaker.processing import Processor, ProcessingInput, ProcessingOutput
+from sagemaker.processing import ProcessingInput, ProcessingOutput, Processor
 from sagemaker.workflow.entities import PipelineVariable
 
 # Suppress verbose SageMaker SDK logging

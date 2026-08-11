@@ -1,9 +1,13 @@
 import os
-from typing import Annotated, Optional
+from typing import Annotated
 
 import typer
 
-from easy_sm.commands.helpers import load_config, safe_run_subprocess, serialize_env_vars
+from easy_sm.commands.helpers import (
+    load_config,
+    safe_run_subprocess,
+    serialize_env_vars,
+)
 
 local_app = typer.Typer(help="Commands for local operations: train and deploy")
 
@@ -41,7 +45,7 @@ def train(
 def process(
     file: Annotated[str, typer.Option("--file", "-f", help="Python file name to run as processing job")],
     app_name: Annotated[str, typer.Option("--app-name", "-a", help="App name for configuration")],
-    env: Annotated[Optional[list[str]], typer.Option("--env", help="Environment variables in KEY=VALUE format")] = None,
+    env: Annotated[list[str] | None, typer.Option("--env", help="Environment variables in KEY=VALUE format")] = None,
 ) -> None:
     """Run python files locally as processing job."""
     config = load_config(app_name)

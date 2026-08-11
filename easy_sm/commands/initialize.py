@@ -2,7 +2,6 @@ import os
 import re
 import shutil
 from pathlib import Path
-from typing import List, Optional, Tuple
 
 import boto3
 import typer
@@ -55,7 +54,7 @@ def _template_creation(
     config_manager.set_config(config)
 
 
-def _get_local_aws_profiles() -> List[str]:
+def _get_local_aws_profiles() -> list[str]:
     return boto3.Session().available_profiles
 
 
@@ -82,7 +81,7 @@ def ask_for_root_dir() -> str:
 
 def ask_for_python_version() -> str:
     print("Select Python interpreter:")
-    print("\n".join(["1 - Python310", "2 - Python311", "3 - Python312", "4 - Python313"]))
+    print("1 - Python310\n2 - Python311\n3 - Python312\n4 - Python313")
 
     choice = typer.prompt("Choose from 1, 2, 3, 4", default="4")
 
@@ -93,7 +92,7 @@ def ask_for_python_version() -> str:
     return version_map[choice]
 
 
-def ask_for_aws_details() -> Tuple[str, str]:
+def ask_for_aws_details() -> tuple[str, str]:
     available_profiles = _get_local_aws_profiles()
 
     if len(available_profiles) == 0:
@@ -134,7 +133,7 @@ def init() -> None:
     easy_sm_app_name = ask_for_app_name()
     is_new_project = ask_if_existing_project_exists()
 
-    root_dir: Optional[str] = None
+    root_dir: str | None = None
     if not is_new_project:
         root_dir = ask_for_root_dir()
 

@@ -1,6 +1,6 @@
 import sys
 from pathlib import Path
-from typing import Annotated, Optional
+from typing import Annotated
 
 import typer
 
@@ -29,8 +29,8 @@ def _get_image(app_name: str | None) -> str:
 def upload_data(
     input_dir: Annotated[Path, typer.Option("--input-dir", "-i", help="Path to data input directory", exists=True, file_okay=False, dir_okay=True)],
     target_dir: Annotated[str, typer.Option("--target-dir", "-t", help="S3 location to upload data")],
-    iam_role_arn: Annotated[Optional[str], typer.Option("--iam-role-arn", "-r", help="AWS IAM role ARN (or set SAGEMAKER_ROLE env var)")] = None,
-    app_name: Annotated[Optional[str], typer.Option("--app-name", "-a", help="App name (auto-detected if not specified)")] = None,
+    iam_role_arn: Annotated[str | None, typer.Option("--iam-role-arn", "-r", help="AWS IAM role ARN (or set SAGEMAKER_ROLE env var)")] = None,
+    app_name: Annotated[str | None, typer.Option("--app-name", "-a", help="App name (auto-detected if not specified)")] = None,
 ) -> None:
     """Upload data to S3."""
     client = _get_client(app_name, iam_role_arn)
@@ -44,11 +44,11 @@ def train(
     output_s3_dir: Annotated[str, typer.Option("--output-s3-dir", "-o", help="S3 location to save output")],
     ec2_type: Annotated[str, typer.Option("--ec2-type", "-e", help="EC2 instance type")],
     base_job_name: Annotated[str, typer.Option("--base-job-name", "-n", help="Prefix for the SageMaker job")],
-    iam_role_arn: Annotated[Optional[str], typer.Option("--iam-role-arn", "-r", help="AWS IAM role ARN (or set SAGEMAKER_ROLE env var)")] = None,
-    app_name: Annotated[Optional[str], typer.Option("--app-name", "-a", help="App name (auto-detected if not specified)")] = None,
+    iam_role_arn: Annotated[str | None, typer.Option("--iam-role-arn", "-r", help="AWS IAM role ARN (or set SAGEMAKER_ROLE env var)")] = None,
+    app_name: Annotated[str | None, typer.Option("--app-name", "-a", help="App name (auto-detected if not specified)")] = None,
     instance_count: Annotated[int, typer.Option("--instance-count", "-c", help="EC2 instance count")] = 1,
     no_wait: Annotated[bool, typer.Option("--no-wait", help="Don't wait for the training job to finish")] = False,
-) -> Optional[str]:
+) -> str | None:
     """Train ML model(s) on SageMaker."""
     client = _get_client(app_name, iam_role_arn)
     image = _get_image(app_name)
@@ -76,8 +76,8 @@ def deploy(
     s3_model_location: Annotated[str, typer.Option("--s3-model-location", "-m", help="S3 location to model tar.gz")],
     instance_type: Annotated[str, typer.Option("--instance-type", "-e", help="EC2 instance type for endpoint")],
     endpoint_name: Annotated[str, typer.Option("--endpoint-name", "-n", help="Name for the SageMaker endpoint")],
-    iam_role_arn: Annotated[Optional[str], typer.Option("--iam-role-arn", "-r", help="AWS IAM role ARN (or set SAGEMAKER_ROLE env var)")] = None,
-    app_name: Annotated[Optional[str], typer.Option("--app-name", "-a", help="App name (auto-detected if not specified)")] = None,
+    iam_role_arn: Annotated[str | None, typer.Option("--iam-role-arn", "-r", help="AWS IAM role ARN (or set SAGEMAKER_ROLE env var)")] = None,
+    app_name: Annotated[str | None, typer.Option("--app-name", "-a", help="App name (auto-detected if not specified)")] = None,
     instance_count: Annotated[int, typer.Option("--instance-count", "-c", help="EC2 instance count")] = 1,
 ) -> None:
     """Deploy ML model(s) on SageMaker as a regular endpoint."""
@@ -99,8 +99,8 @@ def deploy_serverless(
     s3_model_location: Annotated[str, typer.Option("--s3-model-location", "-m", help="S3 location to model tar.gz")],
     memory_size_in_mb: Annotated[int, typer.Option("--memory-size-in-mb", "-s", help="Memory size in MB for serverless endpoint")],
     endpoint_name: Annotated[str, typer.Option("--endpoint-name", "-n", help="Name for the SageMaker endpoint")],
-    iam_role_arn: Annotated[Optional[str], typer.Option("--iam-role-arn", "-r", help="AWS IAM role ARN (or set SAGEMAKER_ROLE env var)")] = None,
-    app_name: Annotated[Optional[str], typer.Option("--app-name", "-a", help="App name (auto-detected if not specified)")] = None,
+    iam_role_arn: Annotated[str | None, typer.Option("--iam-role-arn", "-r", help="AWS IAM role ARN (or set SAGEMAKER_ROLE env var)")] = None,
+    app_name: Annotated[str | None, typer.Option("--app-name", "-a", help="App name (auto-detected if not specified)")] = None,
     max_concurrency: Annotated[int, typer.Option("--max-concurrency", "-mc", help="Max concurrency for the endpoint")] = 5,
 ) -> None:
     """Deploy ML model(s) on SageMaker as serverless endpoint."""
@@ -124,10 +124,10 @@ def batch_transform(
     s3_output_location: Annotated[str, typer.Option("--s3-output-location", "-o", help="S3 location to save predictions")],
     num_instances: Annotated[int, typer.Option("--num-instances", help="Number of EC2 instances")],
     ec2_type: Annotated[str, typer.Option("--ec2-type", "-e", help="EC2 instance type")],
-    iam_role_arn: Annotated[Optional[str], typer.Option("--iam-role-arn", "-r", help="AWS IAM role ARN (or set SAGEMAKER_ROLE env var)")] = None,
-    app_name: Annotated[Optional[str], typer.Option("--app-name", "-a", help="App name (auto-detected if not specified)")] = None,
+    iam_role_arn: Annotated[str | None, typer.Option("--iam-role-arn", "-r", help="AWS IAM role ARN (or set SAGEMAKER_ROLE env var)")] = None,
+    app_name: Annotated[str | None, typer.Option("--app-name", "-a", help="App name (auto-detected if not specified)")] = None,
     wait: Annotated[bool, typer.Option("--wait", "-w", help="Wait until Batch Transform is finished")] = False,
-    job_name: Annotated[Optional[str], typer.Option("--job-name", "-n", help="Name for the SageMaker batch transform job")] = None,
+    job_name: Annotated[str | None, typer.Option("--job-name", "-n", help="Name for the SageMaker batch transform job")] = None,
 ) -> None:
     """Execute a batch transform job on SageMaker."""
     client = _get_client(app_name, iam_role_arn)
@@ -153,8 +153,8 @@ def batch_transform(
 @cloud_app.command(name="delete-endpoint")
 def delete_endpoint(
     endpoint_name: Annotated[str, typer.Option("--endpoint-name", "-n", help="Name of the SageMaker endpoint")],
-    iam_role_arn: Annotated[Optional[str], typer.Option("--iam-role-arn", "-r", help="AWS IAM role ARN (or set SAGEMAKER_ROLE env var)")] = None,
-    app_name: Annotated[Optional[str], typer.Option("--app-name", "-a", help="App name (auto-detected if not specified)")] = None,
+    iam_role_arn: Annotated[str | None, typer.Option("--iam-role-arn", "-r", help="AWS IAM role ARN (or set SAGEMAKER_ROLE env var)")] = None,
+    app_name: Annotated[str | None, typer.Option("--app-name", "-a", help="App name (auto-detected if not specified)")] = None,
     delete_config: Annotated[bool, typer.Option("--delete-config", help="Also delete the associated endpoint config")] = False,
 ) -> None:
     """Delete a SageMaker endpoint."""
@@ -169,8 +169,8 @@ def delete_endpoint(
 
 @cloud_app.command(name="list-endpoints")
 def list_endpoints(
-    iam_role_arn: Annotated[Optional[str], typer.Option("--iam-role-arn", "-r", help="AWS IAM role ARN (or set SAGEMAKER_ROLE env var)")] = None,
-    app_name: Annotated[Optional[str], typer.Option("--app-name", "-a", help="App name (auto-detected if not specified)")] = None,
+    iam_role_arn: Annotated[str | None, typer.Option("--iam-role-arn", "-r", help="AWS IAM role ARN (or set SAGEMAKER_ROLE env var)")] = None,
+    app_name: Annotated[str | None, typer.Option("--app-name", "-a", help="App name (auto-detected if not specified)")] = None,
 ) -> None:
     """List all SageMaker endpoints."""
     client = _get_client(app_name, iam_role_arn)
@@ -182,8 +182,8 @@ def list_endpoints(
 
 @cloud_app.command(name="list-training-jobs")
 def list_training_jobs(
-    iam_role_arn: Annotated[Optional[str], typer.Option("--iam-role-arn", "-r", help="AWS IAM role ARN (or set SAGEMAKER_ROLE env var)")] = None,
-    app_name: Annotated[Optional[str], typer.Option("--app-name", "-a", help="App name (auto-detected if not specified)")] = None,
+    iam_role_arn: Annotated[str | None, typer.Option("--iam-role-arn", "-r", help="AWS IAM role ARN (or set SAGEMAKER_ROLE env var)")] = None,
+    app_name: Annotated[str | None, typer.Option("--app-name", "-a", help="App name (auto-detected if not specified)")] = None,
     max_results: Annotated[int, typer.Option("--max-results", "-m", help="Maximum number of jobs to return")] = 5,
     names_only: Annotated[bool, typer.Option("--names-only", "-n", help="Output only job names (one per line)")] = False,
 ) -> None:
@@ -201,8 +201,8 @@ def list_training_jobs(
 @cloud_app.command(name="get-model-artifacts")
 def get_model_artifacts(
     training_job_name: Annotated[str, typer.Option("--training-job-name", "-j", help="Training job name")],
-    iam_role_arn: Annotated[Optional[str], typer.Option("--iam-role-arn", "-r", help="AWS IAM role ARN (or set SAGEMAKER_ROLE env var)")] = None,
-    app_name: Annotated[Optional[str], typer.Option("--app-name", "-a", help="App name (auto-detected if not specified)")] = None,
+    iam_role_arn: Annotated[str | None, typer.Option("--iam-role-arn", "-r", help="AWS IAM role ARN (or set SAGEMAKER_ROLE env var)")] = None,
+    app_name: Annotated[str | None, typer.Option("--app-name", "-a", help="App name (auto-detected if not specified)")] = None,
 ) -> None:
     """Get S3 model artifacts location from training job name."""
     client = _get_client(app_name, iam_role_arn)
@@ -215,13 +215,13 @@ def process(
     file: Annotated[str, typer.Option("--file", "-f", help="Python file name to run as processing job")],
     ec2_type: Annotated[str, typer.Option("--ec2-type", "-e", help="EC2 instance type")],
     base_job_name: Annotated[str, typer.Option("--base-job-name", "-n", help="Prefix for the SageMaker job")],
-    iam_role_arn: Annotated[Optional[str], typer.Option("--iam-role-arn", "-r", help="AWS IAM role ARN (or set SAGEMAKER_ROLE env var)")] = None,
-    app_name: Annotated[Optional[str], typer.Option("--app-name", "-a", help="App name (auto-detected if not specified)")] = None,
+    iam_role_arn: Annotated[str | None, typer.Option("--iam-role-arn", "-r", help="AWS IAM role ARN (or set SAGEMAKER_ROLE env var)")] = None,
+    app_name: Annotated[str | None, typer.Option("--app-name", "-a", help="App name (auto-detected if not specified)")] = None,
     instance_count: Annotated[int, typer.Option("--instance-count", "-c", help="EC2 instance count")] = 1,
-    s3_input_location: Annotated[Optional[str], typer.Option("--s3-input-location", "-i", help="S3 input data location")] = None,
-    s3_output_location: Annotated[Optional[str], typer.Option("--s3-output-location", "-o", help="S3 location to save output")] = None,
+    s3_input_location: Annotated[str | None, typer.Option("--s3-input-location", "-i", help="S3 input data location")] = None,
+    s3_output_location: Annotated[str | None, typer.Option("--s3-output-location", "-o", help="S3 location to save output")] = None,
     input_sharded: Annotated[bool, typer.Option("--input-sharded", "-is", help="Shard input data across machines")] = False,
-    env: Annotated[Optional[list[str]], typer.Option("--env", help="Environment variables in KEY=VALUE format")] = None,
+    env: Annotated[list[str] | None, typer.Option("--env", help="Environment variables in KEY=VALUE format")] = None,
     no_wait: Annotated[bool, typer.Option("--no-wait", help="Don't wait for the processing job to finish")] = False,
 ) -> None:
     """Run python file as processing job on SageMaker."""
