@@ -64,26 +64,29 @@ ruff format easy_sm/
 
 ### Test Suite Overview
 
-**Total: 120 tests** covering all commands and core modules.
+**Total: 157 tests** covering all commands and core modules.
 
 #### Command Tests
 - **test_init_command.py** (7 tests): Project initialization with various configurations
 - **test_build_command.py** (13 tests): Docker image building with parameter variations and error scenarios
-- **test_local_commands.py** (23 tests): Local training, deployment, processing, and stop commands
-- **test_cloud_commands.py** (28 tests): SageMaker operations (train, deploy, batch-transform, process, list-endpoints, list-training-jobs, get-model-artifacts, delete-endpoint)
+- **test_local_commands.py** (33 tests): Local train, deploy, process, run and stop commands (incl. outdated-script guards and exit-code propagation)
+- **test_cloud_commands.py** (40 tests): SageMaker operations (train, deploy, batch-transform, process, run, list-endpoints, list-training-jobs, get-model-artifacts, delete-endpoint) and `SageMakerClient.run`
 - **test_push_command.py** (9 tests): ECR image push with IAM/profile authentication
 - **test_update_command.py** (7 tests): Shell script update command with security fixes
 
 #### Module Tests
 - **test_config.py** (16 tests): Configuration loading, saving, serialization, and error handling
-- **test_helpers.py** (17 tests): Subprocess execution, output handling, and error propagation
+- **test_helpers.py** (23 tests): Subprocess execution, output handling, error propagation, and `parse_env_vars`
 
-All tests use mocked external dependencies (subprocess, boto3, SageMaker SDK) for fast, reliable execution without requiring AWS credentials or Docker.
+#### Shell Script Tests
+- **test_local_scripts.py** (9 tests): Runs the real template scripts (`process_local.sh`, `deploy_local.sh`, `run_local.sh`, `executor.sh`) with a fake `docker` on PATH that records its arguments. Guards against env-var flag injection, checks localhost-only port binding, and verifies argument passthrough and exit codes.
+
+Python tests mock external dependencies (subprocess, boto3, SageMaker SDK), so no AWS credentials or Docker daemon are needed. The shell script tests need only `sh` and `bash`.
 
 ## Architecture
 
 ### Command Structure
-- **Entry point**: `easy_sm/__main__.py` - Defines the main Typer app with `--docker-tag` option and registers all commands
+- **Entry point**: `easy_sm/__main__.py` - Defines the main Typer app and registers all commands (there is no global CLI option)
 - **Top-level commands** (cloud operations - no prefix needed):
   - `init`: Initialize new easy_sm projects
   - `build`: Build Docker images
@@ -150,7 +153,7 @@ All tests use mocked external dependencies (subprocess, boto3, SageMaker SDK) fo
 7. Commands use config to build images, run jobs, or deploy endpoints
 
 ### Auto-Detection Behavior
-- **App name**: Searches for `*.json` files in current directory. Fails if none or multiple found (can override with `-a`)
+- **App name**: Searches for `*.json` files in current directory. Fails if none or multiple found (can override with `-a`). Note: `local *` commands and `build`/`update-scripts` currently require `-a` explicitly
 - **IAM role**: Reads from `SAGEMAKER_ROLE` environment variable. Fails if not set and not provided via `-r`
 - **AWS profile/region**: From config file, uses boto3 default credential chain
 
@@ -172,14 +175,19 @@ easy_sm deploy -n my-endpoint -e ml.m5.large \
 ```
 
 ### Docker Context
-- Docker tag passed via CLI flag `--docker-tag` (default: "latest"), accessible as `helpers.docker_tag`
-- Full image name: `{config.image_name}:{docker_tag}`
+- Docker tag comes from `docker_tag` in `{app_name}.json` (default: "latest"), accessed as `config.docker_tag`
+- Full image name: `{config.image_name}:{config.docker_tag}`
+- Note: many user docs still describe a global `--docker-tag`/`-t` option; it does not exist (the CLI rejects it)
 - Source code is mounted/copied into Docker containers for training/processing
 
 ### Security Features
 - **App name validation**: Prevents path traversal attacks (e.g., `../../../etc/passwd`)
 - **Shell script quoting**: All variables properly quoted to prevent injection
+- **Argument passing**: User-supplied values (`--env`, `run` commands) reach `docker run` / the container as individual argv entries via `"$@"`, never via unquoted strings or `eval`
+- **Local endpoint**: `local deploy` binds to `127.0.0.1` only
+- **Outdated-script guards**: commands refuse to run with project scripts that predate a fix/feature and point the user to `update-scripts`
 - **File permissions**: Scripts set to 0o755 (not world-writable)
+- **Known open item**: `~/.aws` is mounted read-write into local containers (`:ro` would break SSO token refresh)
 
 ### Environment Variables for Processing Jobs
 
@@ -222,7 +230,8 @@ easy_sm local process -f script.py -a myapp \
 ### Typer Commands
 - Use `Annotated[type, typer.Option(...)]` for option parameters
 - Always include help text for options
-- Access global `docker_tag` via `helpers.docker_tag`
+- Get the image tag from config: `config.docker_tag`
+- For commands that take an arbitrary trailing command, use a `list[str]` `typer.Argument` and tell users to put it after `--`
 - Use `typer.Typer()` for sub-apps and register with `app.add_typer(sub_app, name="...")`
 
 ### Error Handling
@@ -265,8 +274,7 @@ config = load_config(app_name)
 ```python
 from typing import Annotated, Optional
 import typer
-from easy_sm.commands import helpers
-from easy_sm.commands.helpers import get_app_name, get_iam_role
+from easy_sm.commands.helpers import get_app_name, get_iam_role, load_config
 
 @app.command()
 def subcommand(
@@ -276,7 +284,8 @@ def subcommand(
     """Command description."""
     app_name = get_app_name(app_name)
     iam_role = get_iam_role(iam_role_arn)
-    docker_tag = helpers.docker_tag
+    config = load_config(app_name)
+    image = f"{config.image_name}:{config.docker_tag}"
     # Implementation
 ```
 
@@ -342,7 +351,7 @@ Returns:
 - **Process**:
   1. Setup Python 3.13
   2. Install package and test dependencies
-  3. Run full test suite (`pytest` all 120 tests)
+  3. Run full test suite (`pytest --cov=easy_sm`, 157 tests)
   4. Run type checking (`mypy`)
   5. Run linting (`ruff check`)
 - **Result**: Validates code quality on every commit
@@ -387,6 +396,8 @@ Returns:
 - Runs `python3 scripts/validate_docs.py`
 - Blocks commit if validation fails
 - Helps prevent documentation drift
+- Only runs when staged files include `docs/`, `CLAUDE.md`, `README.md`, `DOCS_WORKFLOW.md`, `mkdocs.yml` or `requirements-docs.txt`
+- Enabled via `git config core.hooksPath .githooks`
 
 ## Claude Code Permissions
 
@@ -401,7 +412,9 @@ Configured to allow specific bash commands for development:
 - `mypy:*` - Type checking
 - `ruff check:*` - Linting
 - `easy_sm:*` - Run CLI tool
-- `mkdocs build:*` - Build documentation
+- `mkdocs build --strict` - Build documentation
+- `docker stop:*`, `lsof:*`, `netstat:*` - Manage local deployments
+- `gh run/workflow/api/release view` - Inspect GitHub Actions and releases
 - `WebFetch` and `WebSearch` - Web access for documentation and research
 
 ## Dependencies
@@ -443,8 +456,8 @@ easy_sm/
 │   ├── __main__.py           # CLI entry point (Typer app), registers commands
 │   ├── commands/             # Command implementations
 │   │   ├── build.py          # Build Docker image
-│   │   ├── cloud.py          # Cloud training/deployment/processing/endpoint management
-│   │   ├── local.py          # Local training/deployment/processing
+│   │   ├── cloud.py          # Cloud training/deployment/processing/run/endpoint management
+│   │   ├── local.py          # Local train/deploy/process/run/stop
 │   │   ├── initialize.py     # Initialize projects
 │   │   ├── push.py           # Push images to ECR
 │   │   ├── update.py         # Update shell scripts with security fixes
@@ -455,32 +468,32 @@ easy_sm/
 │   │   └── sagemaker.py      # SageMakerClient wrapper
 │   └── template/
 │       └── easy_sm_base/     # Docker template and entry points
-├── tests/                    # Test suite (uses pytest) - 120 tests total
+├── tests/                    # Test suite (uses pytest) - 157 tests total
 │   ├── test_build_command.py         # Tests for build command (13 tests)
 │   ├── test_init_command.py          # Tests for init command (7 tests)
-│   ├── test_local_commands.py        # Tests for local commands (23 tests)
-│   ├── test_cloud_commands.py        # Tests for cloud SageMaker operations (28 tests)
+│   ├── test_local_commands.py        # Tests for local commands (33 tests)
+│   ├── test_cloud_commands.py        # Tests for cloud SageMaker operations (40 tests)
 │   ├── test_push_command.py          # Tests for ECR push command (9 tests)
 │   ├── test_update_command.py        # Tests for update-scripts command (7 tests)
 │   ├── test_config.py                # Tests for Config/ConfigManager (16 tests)
-│   ├── test_helpers.py               # Tests for subprocess utilities (17 tests)
+│   ├── test_helpers.py               # Tests for subprocess utilities and env parsing (23 tests)
+│   ├── test_local_scripts.py         # Runs template shell scripts against a fake docker (9 tests)
 │   └── LOCAL_COMMANDS_TESTS_README.md # Documentation for local command tests
-├── .github/
-│   ├── README.md              # Usage guide and command examples
-│   └── workflows/             # CI/CD workflows
+├── docs/                      # MkDocs site (commands/, user-guide/, examples/, ...)
+├── mkdocs.yml                 # MkDocs configuration and nav
 ├── setup.py                   # Package metadata and dependencies
 ├── base-requirements.txt      # Development dependencies (pytest, mypy, ruff, etc)
+├── requirements-docs.txt      # Documentation dependencies
 ├── CLAUDE.md                  # Claude Code guidance (this file)
-├── AGENTS.md                  # Development guidelines (detailed style guide)
 ├── DOCS_WORKFLOW.md           # Documentation workflow and validation guide
-├── README.md                  # Project overview
 ├── .githooks/
 │   └── pre-commit             # Git pre-commit hook for doc validation
 └── .github/
-    ├── README.md              # Usage guide and command examples
+    ├── README.md              # Project overview, usage guide and command examples
     └── workflows/
-        ├── docs.yml           # GitHub Actions for documentation deployment (MkDocs + GitHub Pages)
-        └── release.yml        # GitHub Actions for PyPI release and testing
+        ├── test.yml           # Tests, mypy and ruff on push/PR to main
+        ├── publish.yml        # PyPI publish + GitHub Release on v* tags
+        └── docs.yml           # MkDocs build and GitHub Pages deployment
 ```
 
 ## Adding New Commands
@@ -489,6 +502,8 @@ easy_sm/
 2. Define Typer command using `@app.command()` decorator with `Annotated` type hints
 3. Import and register in `easy_sm/__main__.py` via `app.command()` or `app.add_typer()`
 4. Follow existing patterns for config loading and subprocess calls
+5. If the command needs a new template script (or changes `executor.sh`), add it to `SHELL_SCRIPTS` in `easy_sm/commands/update.py` and guard against outdated project copies (see `require_run_support`)
+6. Add a docs page under `docs/commands/`, add it to `mkdocs.yml` nav and `docs/commands/index.md`, and register it in `scripts/validate_docs.py`
 
 ## Key Implementation Details
 
@@ -599,6 +614,8 @@ Be direct. Tell me when I'm doing something wrong
 - Uses regex to extract documented parameters from markdown files
 - Analyzes bash code blocks in examples for common mistakes
 - Returns exit code 0 if valid, 1 if issues found
+- Commands are found by function name from a hardcoded list in `extract_command_params`, and doc/impl pairs are listed in `validate_all`. Register new commands in both places
+- **Known limitation**: flag comparison only reads markdown tables whose header contains `Flag`. The command pages use `| Option | Short | ...` headers, so documented flags are currently **not** compared against code. Cross-check option tables by hand
 
 Run manually:
 ```bash
