@@ -827,6 +827,17 @@ class TestLocalRun:
         assert args[0].endswith("run_local.sh")
         assert args[2:] == ["latest", "esm", "default", "us-east-1", "A=1", "--", "make", "-j4", "train"]
 
+    def test_run_without_separator_keeps_clashing_flags_in_command(
+        self, runner: CliRunner, mock_app_dir: str, mock_popen: MagicMock
+    ) -> None:
+        """Without --, `-a other` and `--env` after the command must stay with the command."""
+        result = runner.invoke(app, ["local", "run", "-a", "app", "mytool", "-a", "other", "--env", "X=1"])
+
+        assert result.exit_code == 0
+        args = mock_popen.call_args[0][0]
+        assert args[args.index("--") + 1:] == ["mytool", "-a", "other", "--env", "X=1"]
+        assert "X=1" not in args[: args.index("--")]
+
     def test_run_requires_command(self, runner: CliRunner, mock_app_dir: str, mock_popen: MagicMock) -> None:
         result = runner.invoke(app, ["local", "run", "-a", "app"])
 

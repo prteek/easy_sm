@@ -83,7 +83,8 @@ def process(
     )
 
 
-@local_app.command()
+# Stop option parsing at the command, so its flags (e.g. `dbt run -e prod`) are never read as easy_sm options
+@local_app.command(context_settings={"allow_interspersed_args": False})
 def run(
     command: Annotated[list[str], typer.Argument(help="Command to run in easy_sm_base/processing, after -- (e.g. -- make train)")],
     app_name: Annotated[str, typer.Option("--app-name", "-a", help="App name for configuration")],

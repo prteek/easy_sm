@@ -13,6 +13,7 @@ easy_sm run --base-job-name NAME --ec2-type TYPE [OPTIONS] -- COMMAND [ARGS...]
 The `run` command submits a SageMaker processing job that runs your command inside your project's Docker image. It works like [`process`](process.md), but instead of running a single Python file it runs whatever command you give it.
 
 - Everything after `--` is the command. It reaches the container exactly as you typed it, with no shell re-parsing, so spaces, quotes and `$` characters are kept.
+- easy_sm's own options must come **before** the command. Once the command starts, every remaining argument belongs to it.
 - The command runs from the `easy_sm_base/processing/` directory, so put files like your `Makefile` or `dbt_project.yml` there.
 - The tool must be installed in the image. `make` is included in the default Python base image; anything else (e.g. `dbt-core`) must be in your requirements file.
 - If the command exits with a non-zero code, the SageMaker job is marked as failed.
@@ -21,8 +22,16 @@ By default, the command waits for the job to finish before returning. Pass `--no
 
 The Docker image tag comes from `docker_tag` in your `{app_name}.json` (default `latest`).
 
-!!! tip "Always put `--` before the command"
-    Without `--`, flags meant for your tool (like `make -j4` or `dbt run -e prod`) would be read as easy_sm options. With `--`, everything after it belongs to your command.
+!!! tip "Put `--` before the command"
+    easy_sm stops reading its own options at the first word of your command, so flags like `dbt run -e prod` always go to your tool, even though `-e` is also an easy_sm option. `--` is still recommended: it makes the boundary obvious to readers, and it's required if your command itself starts with `-`.
+
+    ```bash
+    # Correct: easy_sm options first, then the command
+    easy_sm run -e ml.m5.large -n job -- dbt run -e prod
+
+    # Wrong: -e ml.m5.large is passed to dbt, and easy_sm reports that --ec2-type is missing
+    easy_sm run -n job dbt run -e ml.m5.large
+    ```
 
 ## Options
 

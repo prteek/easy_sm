@@ -486,7 +486,7 @@ easy_sm local run --app-name APP_NAME [--env KEY=VALUE ...] -- COMMAND [ARGS...]
 
 Runs a command (`make`, `dbt`, a Python module...) inside your project's Docker image, from the `easy_sm_base/processing/` directory. This is the local version of [`easy_sm run`](run.md), useful for testing a command before running it on SageMaker.
 
-Everything after `--` is the command, passed to the container exactly as typed. The tool must be installed in the image.
+Everything after `--` is the command, passed to the container exactly as typed. easy_sm's own options (`-a`, `--env`) must come before the command; anything after it belongs to the command. The tool must be installed in the image.
 
 easy_sm exits with the same exit code as your command, so `easy_sm local run -a my-app -- make test` can be used in CI.
 

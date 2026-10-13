@@ -1550,6 +1550,29 @@ class TestCloudRun:
         assert kwargs["processing_instance_type"] == "ml.m5.large"
 
     @patch("easy_sm.commands.cloud.SageMakerClient")
+    def test_run_without_separator_keeps_clashing_flags_in_command(
+        self, mock_client_cls: MagicMock, runner: CliRunner, app_dir: str
+    ) -> None:
+        """Without --, `-e prod` must stay with dbt and not overwrite --ec2-type."""
+        result = self._invoke(runner, "dbt", "run", "-e", "prod", "--target", "x")
+
+        assert result.exit_code == 0
+        kwargs = mock_client_cls.return_value.run.call_args[1]
+        assert kwargs["command"] == ["dbt", "run", "-e", "prod", "--target", "x"]
+        assert kwargs["processing_instance_type"] == "ml.m5.large"
+
+    @patch("easy_sm.commands.cloud.SageMakerClient")
+    def test_run_options_after_command_belong_to_command(
+        self, mock_client_cls: MagicMock, runner: CliRunner, app_dir: str
+    ) -> None:
+        """easy_sm options must come before the command; after it they're part of the command."""
+        result = runner.invoke(app, ["run", "-n", "run-job", "-r", self.ROLE, "make", "-e", "ml.m5.large"])
+
+        assert result.exit_code != 0
+        assert "--ec2-type" in result.output
+        mock_client_cls.return_value.run.assert_not_called()
+
+    @patch("easy_sm.commands.cloud.SageMakerClient")
     def test_run_with_all_options(self, mock_client_cls: MagicMock, runner: CliRunner, app_dir: str) -> None:
         result = self._invoke(
             runner,

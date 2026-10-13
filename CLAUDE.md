@@ -137,6 +137,7 @@ Python tests mock external dependencies (subprocess, boto3, SageMaker SDK), so n
 
 **Run Command** (`run` / `local run`):
 - Generic replacement for the old `make` command: everything after `--` is passed as the command
+- Option parsing stops at the first word of the command (`allow_interspersed_args=False`), so `dbt run -e prod` keeps its `-e` even without `--`; easy_sm options must precede the command
 - `executor.sh` `run` branch: `shift; cd ./easy_sm_base/processing; exec "$@"` (no shell re-parsing)
 - Cloud: `SageMakerClient.run()` → `_run_processing(["run", *command])`
 - Local: `run_local.sh` receives `KEY=VALUE` env pairs, then `--`, then the command; rebuilds `"$@"` as `-e` flags + `image run command...`
@@ -231,7 +232,8 @@ easy_sm local process -f script.py -a myapp \
 - Use `Annotated[type, typer.Option(...)]` for option parameters
 - Always include help text for options
 - Get the image tag from config: `config.docker_tag`
-- For commands that take an arbitrary trailing command, use a `list[str]` `typer.Argument` and tell users to put it after `--`
+- For commands that take an arbitrary trailing command, use a `list[str]` `typer.Argument` with `context_settings={"allow_interspersed_args": False}` (so the command's flags are never parsed as ours) and tell users to put it after `--`
+- Top-level cloud commands are registered in `__main__.py` (`app.command(...)(func)`); `cloud_app` is never registered, so `context_settings` on `@cloud_app.command` has **no effect**. Set it on the `__main__.py` registration
 - Use `typer.Typer()` for sub-apps and register with `app.add_typer(sub_app, name="...")`
 
 ### Error Handling

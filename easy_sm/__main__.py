@@ -42,7 +42,8 @@ app.command(name="list-endpoints")(list_endpoints)
 app.command(name="list-training-jobs")(list_training_jobs)
 app.command(name="get-model-artifacts")(get_model_artifacts)
 app.command(name="process")(process)
-app.command(name="run")(run)
+# Stop option parsing at the command, so its flags (e.g. `dbt run -e prod`) are never read as easy_sm options
+app.command(name="run", context_settings={"allow_interspersed_args": False})(run)
 
 # Register local sub-app
 app.add_typer(local_app, name="local")
