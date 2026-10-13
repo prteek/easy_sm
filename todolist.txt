@@ -29,6 +29,7 @@ Housekeeping:
   ☐ Delete local branch feat/run-command (already merged into main)
 
 Archive:
+  ✔ decisions.md updated from full commit history (179 commits) and this session: added Principles, CLI design, SageMaker SDK, CI and release sections (29 cited commits verified) @done(26-10-13)
   ✔ Simplified project docs to 3 files: dropped root README.md (repo map lives in CLAUDE.md), trimmed summary.md to blockers / risks / untested work; skill updated @done(26-10-13)
   ✔ Project docs moved to the repo root; facts re-checked (1.3.0 everywhere, 160 tests, CI green, PR #10 only open PR) @done(26-10-13)
   ✔ Project docs and project-docs skill on branch docs/project-docs; manual Trusted Publishing steps listed as blocked on PyPI login @done(26-10-13 12:12)
