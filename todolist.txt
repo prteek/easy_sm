@@ -1,10 +1,7 @@
-Release (manual steps for Prateek, in this order; blocked: PyPI login failing on 2026-10-13):
-  ☐ Add trusted publisher on pypi.org: easy-sm → Manage → Publishing → Add a new publisher → GitHub; owner `prteek`, repository `easy_sm`, workflow `publish.yml`, environment `pypi` @me @blocked
-  ☐ Merge PR #10 (Trusted Publishing + SHA-pinned actions) only after the step above; merged earlier, the next release fails with "invalid publisher" (nothing uploads, rerun once fixed) @me
-  ☐ Next release through the new workflow (bump version, tag, push); check build / publish / release jobs all pass @me
-  ☐ After that release: revoke the old API token on pypi.org (Account settings → API tokens) @me
-  ☐ Delete the `PYPI_TOKEN` repo secret (`gh secret delete PYPI_TOKEN`, or ask Claude) @me
-  Until then: releases still work as before, since main still publishes with PYPI_TOKEN
+Release:
+  ☐ Revoke the old API token on pypi.org (Account settings → API tokens) @me
+  ☐ Delete the `PYPI_TOKEN` repo secret (`gh secret delete PYPI_TOKEN`, or ask Claude): old branches (`dev`, `copilot/*`) still have workflows that publish with it if a `v*` tag lands on them
+  ☐ Review Dependabot PR #11: 8 major action bumps (checkout 4→7, setup-python 5→7, upload-artifact 4→7, download-artifact 4→8, ...); check upload/download-artifact compatibility before merging
 
 Run command:
   ☐ Smoke-test `easy_sm run` on SageMaker for real (only mocked so far), e.g. `-e ml.t3.medium -- make <target>`
@@ -29,6 +26,9 @@ Housekeeping:
   ☐ Delete local branch feat/run-command (already merged into main)
 
 Archive:
+  ✔ Released 1.3.1 through Trusted Publishing: build / publish / release jobs passed; PyPI has attestations for both files (provenance HTTP 200) @done(26-10-13 15:21)
+  ✔ Merged PR #10 (Trusted Publishing, least-privilege jobs, SHA-pinned actions); Test, Docs and Dependabot runs green on main @done(26-10-13 13:31)
+  ✔ Added trusted publisher on pypi.org (prteek/easy_sm, publish.yml, env pypi) @done(26-10-13)
   ✔ decisions.md updated from full commit history (179 commits) and this session: added Principles, CLI design, SageMaker SDK, CI and release sections (29 cited commits verified) @done(26-10-13)
   ✔ Simplified project docs to 3 files: dropped root README.md (repo map lives in CLAUDE.md), trimmed summary.md to blockers / risks / untested work; skill updated @done(26-10-13)
   ✔ Project docs moved to the repo root; facts re-checked (1.3.0 everywhere, 160 tests, CI green, PR #10 only open PR) @done(26-10-13)

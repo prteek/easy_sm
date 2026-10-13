@@ -35,10 +35,11 @@ updated: 2026-10-13
 - **`local deploy` binds to `127.0.0.1`** (`ce2c366`) — previously published on all interfaces. `localhost` URLs unchanged; `stop_local.sh` still matches the container.
 - **No secrets in config or job definitions** — credentials were removed from `{app}.json` in favour of boto3's credential chain (`d64173c`); docs warn that `--env` values and `run` arguments are stored in plain text in the SageMaker job.
 - **App name validated** (`4eb8302`) — alphanumeric, `-` and `_` only, to block path traversal via `{app_name}.json`; scripts installed `0o755`, not `0o777`.
-- **PyPI Trusted Publishing, `pypi` environment limited to `v*` tags** (PR #10) — replaces the long-lived `PYPI_TOKEN`. No required reviewer and no tag ruleset: solo repo, chosen 2026-10-13.
+- **PyPI Trusted Publishing, `pypi` environment limited to `v*` tags** (PR #10, `49b3e69`) — replaces the long-lived `PYPI_TOKEN`. No required reviewer and no tag ruleset: solo repo, chosen 2026-10-13. Verified on 1.3.1: published with no stored token, and PyPI holds attestations for both files.
+- **A CI-only patch release to prove publishing** (1.3.1) — released with no package changes so Trusted Publishing was tested while the old token still existed as a fallback, before revoking it.
 - **Least-privilege publish jobs** (PR #10) — `build` (read) / `publish` (`id-token: write` only) / `release` (`contents: write`), default `permissions: {}`, so build steps that install packages never get a publishing credential. Archived `actions/create-release` replaced by `gh release create`.
 - **Releases only from tags** (PR #10) — `workflow_dispatch` (added in `75db68b` "for testing") removed from publish: it let anyone with write access publish from any branch.
-- **Actions pinned to commit SHAs, Dependabot keeps them current** (PR #10) — pins are the versions the floating tags resolved to on 2026-10-13, so no behaviour change; without Dependabot, pins would silently miss security fixes.
+- **Actions pinned to commit SHAs, Dependabot keeps them current** (PR #10) — pins are the versions the floating tags resolved to on 2026-10-13, so no behaviour change; without Dependabot, pins would silently miss security fixes. Dependabot PRs are reviewed, not auto-merged: its first PR (#11) was all major bumps.
 
 # SageMaker SDK
 
