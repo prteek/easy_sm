@@ -233,7 +233,7 @@ easy_sm local process -f script.py -a myapp \
 - Always include help text for options
 - Get the image tag from config: `config.docker_tag`
 - For commands that take an arbitrary trailing command, use a `list[str]` `typer.Argument` with `context_settings={"allow_interspersed_args": False}` (so the command's flags are never parsed as ours) and tell users to put it after `--`
-- Top-level cloud commands are registered in `__main__.py` (`app.command(...)(func)`); `cloud_app` is never registered, so `context_settings` on `@cloud_app.command` has **no effect**. Set it on the `__main__.py` registration
+- Top-level commands in `cloud.py` are plain undecorated functions, registered in `__main__.py` with `app.command(name=...)(func)`. Command names and `context_settings` go on that registration
 - Use `typer.Typer()` for sub-apps and register with `app.add_typer(sub_app, name="...")`
 
 ### Error Handling
@@ -501,8 +501,8 @@ easy_sm/
 ## Adding New Commands
 
 1. Create `{command_name}.py` in `easy_sm/commands/`
-2. Define Typer command using `@app.command()` decorator with `Annotated` type hints
-3. Import and register in `easy_sm/__main__.py` via `app.command()` or `app.add_typer()`
+2. Define the command as a plain function with `Annotated` type hints (no decorator), or as `@local_app.command()` for a `local` subcommand
+3. Import and register top-level commands in `easy_sm/__main__.py` via `app.command(name=...)(func)`; sub-apps via `app.add_typer()`
 4. Follow existing patterns for config loading and subprocess calls
 5. If the command needs a new template script (or changes `executor.sh`), add it to `SHELL_SCRIPTS` in `easy_sm/commands/update.py` and guard against outdated project copies (see `require_run_support`)
 6. Add a docs page under `docs/commands/`, add it to `mkdocs.yml` nav and `docs/commands/index.md`, and register it in `scripts/validate_docs.py`

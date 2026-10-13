@@ -13,8 +13,6 @@ from easy_sm.commands.helpers import (
 )
 from easy_sm.sagemaker.sagemaker import SageMakerClient
 
-cloud_app = typer.Typer(help="Commands for AWS operations: upload data, train and deploy")
-
 
 def _get_client(app_name: str | None, iam_role_arn: str | None) -> SageMakerClient:
     """Create SageMaker client from app config."""
@@ -45,7 +43,6 @@ def _check_env_value_lengths(env_vars: dict[str, str]) -> None:
             )
 
 
-@cloud_app.command(name="upload-data")
 def upload_data(
     input_dir: Annotated[Path, typer.Option("--input-dir", "-i", help="Path to data input directory", exists=True, file_okay=False, dir_okay=True)],
     target_dir: Annotated[str, typer.Option("--target-dir", "-t", help="S3 location to upload data")],
@@ -58,7 +55,6 @@ def upload_data(
     print(target_path)
 
 
-@cloud_app.command(name="train")
 def train(
     input_s3_dir: Annotated[str, typer.Option("--input-s3-dir", "-i", help="S3 location for input data")],
     output_s3_dir: Annotated[str, typer.Option("--output-s3-dir", "-o", help="S3 location to save output")],
@@ -91,7 +87,6 @@ def train(
     return s3_model_location
 
 
-@cloud_app.command(name="deploy")
 def deploy(
     s3_model_location: Annotated[str, typer.Option("--s3-model-location", "-m", help="S3 location to model tar.gz")],
     instance_type: Annotated[str, typer.Option("--instance-type", "-e", help="EC2 instance type for endpoint")],
@@ -114,7 +109,6 @@ def deploy(
     print(endpoint)
 
 
-@cloud_app.command(name="deploy-serverless")
 def deploy_serverless(
     s3_model_location: Annotated[str, typer.Option("--s3-model-location", "-m", help="S3 location to model tar.gz")],
     memory_size_in_mb: Annotated[int, typer.Option("--memory-size-in-mb", "-s", help="Memory size in MB for serverless endpoint")],
@@ -137,7 +131,6 @@ def deploy_serverless(
     print(endpoint)
 
 
-@cloud_app.command(name="batch-transform")
 def batch_transform(
     s3_model_location: Annotated[str, typer.Option("--s3-model-location", "-m", help="S3 location to model tar.gz")],
     s3_input_location: Annotated[str, typer.Option("--s3-input-location", "-i", help="S3 input data location")],
@@ -170,7 +163,6 @@ def batch_transform(
             sys.exit(1)
 
 
-@cloud_app.command(name="delete-endpoint")
 def delete_endpoint(
     endpoint_name: Annotated[str, typer.Option("--endpoint-name", "-n", help="Name of the SageMaker endpoint")],
     iam_role_arn: Annotated[str | None, typer.Option("--iam-role-arn", "-r", help="AWS IAM role ARN (or set SAGEMAKER_ROLE env var)")] = None,
@@ -189,7 +181,6 @@ def delete_endpoint(
         client.delete_endpoint_config(config_name)
 
 
-@cloud_app.command(name="list-endpoints")
 def list_endpoints(
     iam_role_arn: Annotated[str | None, typer.Option("--iam-role-arn", "-r", help="AWS IAM role ARN (or set SAGEMAKER_ROLE env var)")] = None,
     app_name: Annotated[str | None, typer.Option("--app-name", "-a", help="App name (auto-detected if not specified)")] = None,
@@ -202,7 +193,6 @@ def list_endpoints(
         print(f"{ep.get('EndpointName')}  {ep.get('EndpointStatus')}  {ep.get('CreationTime')}")
 
 
-@cloud_app.command(name="list-training-jobs")
 def list_training_jobs(
     iam_role_arn: Annotated[str | None, typer.Option("--iam-role-arn", "-r", help="AWS IAM role ARN (or set SAGEMAKER_ROLE env var)")] = None,
     app_name: Annotated[str | None, typer.Option("--app-name", "-a", help="App name (auto-detected if not specified)")] = None,
@@ -220,7 +210,6 @@ def list_training_jobs(
             print(f"{job.get('TrainingJobName')}  {job.get('TrainingJobStatus')}  {job.get('CreationTime')}")
 
 
-@cloud_app.command(name="get-model-artifacts")
 def get_model_artifacts(
     training_job_name: Annotated[str, typer.Option("--training-job-name", "-j", help="Training job name")],
     iam_role_arn: Annotated[str | None, typer.Option("--iam-role-arn", "-r", help="AWS IAM role ARN (or set SAGEMAKER_ROLE env var)")] = None,
@@ -232,7 +221,6 @@ def get_model_artifacts(
     print(s3_location)
 
 
-@cloud_app.command(name="process")
 def process(
     file: Annotated[str, typer.Option("--file", "-f", help="Python file name to run as processing job")],
     ec2_type: Annotated[str, typer.Option("--ec2-type", "-e", help="EC2 instance type")],
@@ -268,7 +256,6 @@ def process(
     print(base_job_name)
 
 
-@cloud_app.command(name="run")
 def run(
     command: Annotated[list[str], typer.Argument(help="Command to run in easy_sm_base/processing, after -- (e.g. -- make train)")],
     ec2_type: Annotated[str, typer.Option("--ec2-type", "-e", help="EC2 instance type")],
