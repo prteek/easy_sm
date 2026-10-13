@@ -124,6 +124,8 @@ Python tests mock external dependencies (subprocess, boto3, SageMaker SDK), so n
 - `get_app_name`: Gets app name from parameter or auto-detects
 - `get_iam_role`: Gets IAM role from parameter or `SAGEMAKER_ROLE` env var
 - `load_config`: Loads and validates configuration from JSON files (supports auto-detection)
+- `parse_env_vars`: Parses `--env KEY=VALUE` strings into a dict (shared by cloud/local `process` and `run`)
+- `require_run_support`: Refuses `run` if the project's `executor.sh` predates the `run` branch
 
 **Update Scripts** (`easy_sm/commands/update.py`):
 - `update_scripts`: Copies latest shell scripts from package template to app directory
@@ -347,11 +349,12 @@ Returns:
 ### Project Docs (`/project-docs`)
 **Location**: `.claude/skills/project-docs/SKILL.md`
 
-Maintains four short files at the repo root that track the state of the work, so it can be picked up cold:
-- `README.md` - what the repo is and where everything is
-- `summary.md` - current state: released version, open PRs, open risks
+Maintains three short files at the repo root that track the state of the work, so it can be picked up cold:
+- `summary.md` - only state no tool shows: blockers, risks, untested work, anything kept local
 - `decisions.md` - choices made, why, and the evidence
-- `todolist.txt` - remaining work (Todo+ format, `Archive:` section last)
+- `todolist.txt` - remaining work (Todo+ format, `Archive:` section last; `@me` for steps only the user can do)
+
+The repo map stays in this file ("Project Structure Reference"); the project docs don't repeat it.
 
 Use it after finishing a feature, fix, release or PR, or to work through items in `todolist.txt` ("do item N" = Nth pending item in the named section). Facts are checked against git, `gh`, pytest and PyPI rather than copied.
 
@@ -508,8 +511,7 @@ easy_sm/
 ├── base-requirements.txt      # Development dependencies (pytest, mypy, ruff, etc)
 ├── requirements-docs.txt      # Documentation dependencies
 ├── CLAUDE.md                  # Claude Code guidance (this file)
-├── README.md                  # Project docs: repo map (GitHub shows .github/README.md instead)
-├── summary.md                 # Project docs: current state
+├── summary.md                 # Project docs: blockers, risks, untested work
 ├── decisions.md               # Project docs: choices and evidence
 ├── todolist.txt               # Project docs: work queue (Todo+)
 ├── DOCS_WORKFLOW.md           # Documentation workflow and validation guide

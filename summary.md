@@ -3,10 +3,10 @@ title: Summary
 updated: 2026-10-13
 ---
 
-- **Released:** 1.3.0 on PyPI and GitHub (2026-10-13), adding `run` / `local run` and the local-script security fixes. `main` is at the `v1.3.0` tag with nothing unreleased; CI green (160 tests, mypy, ruff, doc validation).
-- **`run` command:** runs any CLI tool (e.g. `make`, `dbt`) as a SageMaker processing job or locally, from `easy_sm_base/processing/` ([decisions.md](./decisions.md#run-command)). Checked for real in local Docker; **never run on SageMaker yet**.
-- **Security fixes in 1.3.0:** `local process --env` can no longer inject docker flags; `local deploy` binds to `127.0.0.1`. Existing projects get them through `easy_sm update-scripts`.
-- **Release hardening in review:** [PR #10](https://github.com/prteek/easy_sm/pull/10) moves publishing to PyPI Trusted Publishing and pins actions to SHAs. Tests pass; blocked on adding the trusted publisher on pypi.org, which is waiting on a PyPI login problem (2026-10-13). Manual steps are in [todolist.txt](./todolist.txt) under Release. The `pypi` GitHub environment (`v*` tags only) already exists.
-- **Open security items:** writable `~/.aws` mount in local containers; an old image + `run` starts the model server and bills until the 24 h timeout; `push.sh` edits `~/.aws/config` permanently. See [todolist.txt](./todolist.txt).
-- **Local only (not pushed, by choice):** branch `docs/project-docs` holds these project docs (repo root) and the `project-docs` skill.
-- **Known doc gaps:** user docs describe a global `--docker-tag` option that doesn't exist, and `validate_docs.py` compares no flags (no command page has a `Flag` table header).
+Only what tools can't tell you. For version, open PRs and CI, run `git tag`, `gh pr list` and `gh run list`.
+
+- **Blocked:** [PR #10](https://github.com/prteek/easy_sm/pull/10) (Trusted Publishing) waits on adding the trusted publisher on pypi.org; PyPI login failing on 2026-10-13. Steps under *Release* in [todolist.txt](./todolist.txt).
+- **Untested:** `easy_sm run` has only been run in local Docker, never on SageMaker (*Run command*).
+- **Risks:** an image built before 1.3.0 starts the model server on `run` and bills until the 24 h timeout; local containers get a writable `~/.aws`; `push.sh` edits `~/.aws/config` permanently (*Run command*, *Security*).
+- **Misleading docs:** user docs describe a non-existent `--docker-tag` option, and `validate_docs.py` compares no flags (*Docs*).
+- **Local only, by choice:** branch `docs/project-docs` (these docs and the `project-docs` skill) is not pushed (*Housekeeping*).

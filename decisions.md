@@ -26,5 +26,5 @@ updated: 2026-10-13
 - **Image tag from config** — `docker_tag` lives in `{app_name}.json` (`2f97df7`); there is no global `--docker-tag` option.
 - **SageMaker SDK pinned to `==2.257.3`** (`ce837b7`) — exact pin; reason not recorded beyond "stability". An earlier move to SDK v3 (`a19683f`) was superseded by this pin.
 - **Minor version for features** — new commands bump minor (env vars → 1.1.0, `run` → 1.3.0); fixes bump patch.
-- **Project docs at the repo root** (2026-10-13) — `README.md`, `summary.md`, `decisions.md`, `todolist.txt` sit at the root, as requested. A root `README.md` doesn't change GitHub's landing page (`.github/README.md` takes precedence) or PyPI (`setup.py` reads no README).
+- **Three project docs at the repo root, no README** (2026-10-13) — `summary.md`, `decisions.md`, `todolist.txt`. A root `README.md` repo map duplicated CLAUDE.md's structure map and would be mistaken for the user guide (`.github/README.md`), so it was dropped. `summary.md` keeps only state no tool shows, pointing to todolist sections, because version / PRs / CI are one command away and duplicated todos drift.
 - **Test against coloured output** — Rich splits flags with ANSI codes when colour is on (GitHub Actions), so tests strip ANSI before matching CLI errors. Reproduce with `FORCE_COLOR=1`.
