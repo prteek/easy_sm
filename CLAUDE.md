@@ -344,6 +344,19 @@ Returns:
 - Exit code `0` if all documentation is valid
 - Exit code `1` if issues found (displayed with specific descriptions)
 
+### Project Docs (`/project-docs`)
+**Location**: `.claude/skills/project-docs/SKILL.md`
+
+Maintains four short files in `project/` that track the state of the work, so it can be picked up cold:
+- `project/README.md` - what the repo is and where everything is
+- `project/summary.md` - current state: released version, open PRs, open risks
+- `project/decisions.md` - choices made, why, and the evidence
+- `project/todolist.txt` - remaining work (Todo+ format, `Archive:` section last)
+
+Use it after finishing a feature, fix, release or PR, or to work through items in `project/todolist.txt` ("do item N" = Nth pending item in the named section). Facts are checked against git, `gh`, pytest and PyPI rather than copied.
+
+Invoke with: `/project-docs`
+
 ## Continuous Integration and Deployment
 
 ### GitHub Actions Workflows
@@ -456,8 +469,11 @@ easy_sm/
 │   └── skills/
 │       ├── refresh/          # Documentation refresh skill
 │       │   └── SKILL.md      # Refresh skill documentation
-│       └── validate-docs/    # Documentation validation skill
-│           └── SKILL.md      # Validate-docs skill documentation
+│       ├── validate-docs/    # Documentation validation skill
+│       │   └── SKILL.md      # Validate-docs skill documentation
+│       └── project-docs/     # Project status docs skill
+│           └── SKILL.md      # Project-docs skill documentation
+├── project/                  # Project docs: README, summary, decisions, todolist (see /project-docs)
 ├── scripts/
 │   └── validate_docs.py      # Documentation validation script (AST + regex)
 ├── easy_sm/

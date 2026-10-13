@@ -1,0 +1,33 @@
+Release:
+  ☐ Add trusted publisher on pypi.org (owner prteek, repo easy_sm, workflow publish.yml, environment pypi)
+  ☐ Merge PR #10 (Trusted Publishing + SHA-pinned actions)
+  ☐ Next release through the new workflow; check build / publish / release jobs all pass
+  ☐ After that release: revoke the old PyPI API token and delete the PYPI_TOKEN repo secret
+
+Run command:
+  ☐ Smoke-test `easy_sm run` on SageMaker for real (only mocked so far), e.g. `-e ml.t3.medium -- make <target>`
+  ☐ Add `--max-runtime` to `run` (SageMaker max_runtime_in_seconds) so an old image stuck serving can't bill for 24 h
+
+Security:
+  ☐ Stop mounting all of `~/.aws` writable into local containers: pass the profile's temporary credentials instead (`:ro` breaks SSO refresh)
+  ☐ `push.sh`: stop writing a permanent profile to `~/.aws/config`; remove the AWS CLI v1 `eval` path
+  ☐ Run `pip-audit` on runtime and dev dependencies (incl. sagemaker==2.257.3)
+
+Docs:
+  ☐ Remove the non-existent global `--docker-tag` / `-t` option from user docs (tag comes from `docker_tag` in `{app}.json`)
+  ☐ Make `validate_docs.py` read the `| Option | Short |` tables so flags are actually compared
+  ☐ Fix `local` docs saying `-a` is auto-detected (local commands require it)
+  ☐ Check the local path mapping table in `docs/commands/local.md` (`/opt/ml/processing/input` vs `test_dir/`)
+
+Behaviour:
+  ☐ Make the other local commands exit non-zero when the container fails (breaking change: note in release)
+
+Archive:
+  ✔ Branch docs/project-docs: project docs and project-docs skill @done(26-10-13)
+  ✔ Opened PR #10: Trusted Publishing, least-privilege publish jobs, SHA-pinned actions, Dependabot; created `pypi` environment (v* tags only); tests pass on PR @done(26-10-13)
+  ✔ Released 1.3.0 to PyPI and GitHub; fixed ANSI-sensitive test that failed only in CI; verified wheel contains run_local.sh @done(26-10-13 11:15)
+  ✔ Removed unused cloud_app (--help identical for all 14 commands) @done(26-10-13 11:10)
+  ✔ `run` stops option parsing at the command (fixed `-e prod` silently becoming the instance type) @done(26-10-13 11:05)
+  ✔ Refreshed CLAUDE.md (120 → 157 tests, removed non-existent --docker-tag guidance, fixed structure) @done(26-10-13 10:35)
+  ✔ Added `run` / `local run` (generic replacement for make), checked end to end in local Docker @done(26-10-13 10:25)
+  ✔ Fixed `--env` docker flag injection in process_local.sh and bound local deploy to 127.0.0.1 (125 → 140 tests) @done(26-10-13 10:18)
