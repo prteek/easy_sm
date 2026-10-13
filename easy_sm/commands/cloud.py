@@ -9,6 +9,7 @@ from easy_sm.commands.helpers import (
     get_iam_role,
     load_config,
     parse_env_vars,
+    require_run_support,
 )
 from easy_sm.sagemaker.sagemaker import SageMakerClient
 
@@ -257,6 +258,44 @@ def process(
         processing_instance_type=ec2_type,
         instance_count=instance_count,
         file=file,
+        s3_input_location=s3_input_location,
+        input_sharded=input_sharded,
+        s3_output_location=s3_output_location,
+        base_job_name=base_job_name,
+        environment=env_vars or None,  # type: ignore[arg-type]
+        wait=not no_wait,
+    )
+    print(base_job_name)
+
+
+@cloud_app.command(name="run")
+def run(
+    command: Annotated[list[str], typer.Argument(help="Command to run in easy_sm_base/processing, after -- (e.g. -- make train)")],
+    ec2_type: Annotated[str, typer.Option("--ec2-type", "-e", help="EC2 instance type")],
+    base_job_name: Annotated[str, typer.Option("--base-job-name", "-n", help="Prefix for the SageMaker job")],
+    iam_role_arn: Annotated[str | None, typer.Option("--iam-role-arn", "-r", help="AWS IAM role ARN (or set SAGEMAKER_ROLE env var)")] = None,
+    app_name: Annotated[str | None, typer.Option("--app-name", "-a", help="App name (auto-detected if not specified)")] = None,
+    instance_count: Annotated[int, typer.Option("--instance-count", "-c", help="EC2 instance count")] = 1,
+    s3_input_location: Annotated[str | None, typer.Option("--s3-input-location", "-i", help="S3 input data location")] = None,
+    s3_output_location: Annotated[str | None, typer.Option("--s3-output-location", "-o", help="S3 location to save output")] = None,
+    input_sharded: Annotated[bool, typer.Option("--input-sharded", "-is", help="Shard input data across machines")] = False,
+    env: Annotated[list[str] | None, typer.Option("--env", help="Environment variables in KEY=VALUE format")] = None,
+    no_wait: Annotated[bool, typer.Option("--no-wait", help="Don't wait for the processing job to finish")] = False,
+) -> None:
+    """Run any CLI command (e.g. make, dbt) as a processing job on SageMaker."""
+    app_name = get_app_name(app_name)
+    require_run_support(load_config(app_name), app_name)
+    env_vars = parse_env_vars(env)
+    _check_env_value_lengths(env_vars)
+
+    client = _get_client(app_name, iam_role_arn)
+    image = _get_image(app_name)
+
+    client.run(
+        image_name=image,
+        processing_instance_type=ec2_type,
+        instance_count=instance_count,
+        command=command,
         s3_input_location=s3_input_location,
         input_sharded=input_sharded,
         s3_output_location=s3_output_location,

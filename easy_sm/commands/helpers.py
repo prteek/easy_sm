@@ -148,3 +148,21 @@ def parse_env_vars(env: list[str] | None) -> dict[str, str]:
             raise ValueError(f"Invalid environment variable format: {env_var}. Use KEY=VALUE")
         env_vars[key] = value
     return env_vars
+
+
+def require_run_support(config: Config, app_name: str) -> None:
+    """Fail early if the project's executor.sh predates the `run` command.
+
+    An image built from an old executor.sh falls through to the serving branch on `run`,
+    so the job would start a model server and keep running until it times out.
+
+    Raises:
+        ValueError: If executor.sh has no `run` branch.
+    """
+    executor_path = os.path.join(config.easy_sm_module_dir, "easy_sm_base", "executor.sh")
+    with open(executor_path) as f:
+        if '"$1" = "run"' not in f.read():
+            raise ValueError(
+                f"{executor_path} doesn't support 'run'. "
+                f"Run 'easy_sm update-scripts -a {app_name}', then rebuild (and push) the image."
+            )

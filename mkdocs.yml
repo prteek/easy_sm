@@ -145,6 +145,7 @@ nav:
       - train: commands/train.md
       - deploy: commands/deploy.md
       - process: commands/process.md
+      - run: commands/run.md
       - batch-transform: commands/batch-transform.md
       - endpoints: commands/endpoints.md
       - update-scripts: commands/update-scripts.md

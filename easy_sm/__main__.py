@@ -11,6 +11,7 @@ from easy_sm.commands.cloud import (
     list_endpoints,
     list_training_jobs,
     process,
+    run,
     train,
     upload_data,
 )
@@ -41,6 +42,7 @@ app.command(name="list-endpoints")(list_endpoints)
 app.command(name="list-training-jobs")(list_training_jobs)
 app.command(name="get-model-artifacts")(get_model_artifacts)
 app.command(name="process")(process)
+app.command(name="run")(run)
 
 # Register local sub-app
 app.add_typer(local_app, name="local")

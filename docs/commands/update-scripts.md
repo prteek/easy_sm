@@ -17,7 +17,7 @@ The `update-scripts` command copies the latest shell scripts from the easy_sm pa
 - Fixing bugs in build, push, or local test scripts
 - Updating existing projects after easy_sm package updates
 
-The command updates 7 shell scripts:
+The command updates 8 shell scripts:
 - `build.sh` - Docker image build script
 - `push.sh` - ECR push script
 - `executor.sh` - Container executor
@@ -25,6 +25,7 @@ The command updates 7 shell scripts:
 - `local_test/process_local.sh` - Local processing script
 - `local_test/deploy_local.sh` - Local deployment script
 - `local_test/stop_local.sh` - Stop local deployment script
+- `local_test/run_local.sh` - Local run script (for [`local run`](local.md#run))
 
 ## Options
 
@@ -51,8 +52,9 @@ Updating shell scripts in /path/to/my-app/easy_sm_base...
   Updated: local_test/process_local.sh
   Updated: local_test/deploy_local.sh
   Updated: local_test/stop_local.sh
+  Updated: local_test/run_local.sh
 
-Successfully updated 7 shell script(s).
+Successfully updated 8 shell script(s).
 ```
 
 ### Update specific app

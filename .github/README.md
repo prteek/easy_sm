@@ -21,6 +21,7 @@ A Python CLI tool that simplifies AWS SageMaker workflows by enabling rapid loca
 - **Endpoint Management**: Deploy and manage SageMaker endpoints (provisioned and serverless)
 - **Job Monitoring**: List and filter training jobs
 - **Environment Variables**: Pass environment variables to processing jobs (both local and cloud)
+- **Run Any Command**: Run `make`, `dbt` or any CLI tool as a SageMaker processing job (or locally)
 
 ## Requirements
 
@@ -100,13 +101,14 @@ Commands:
   deploy-serverless     Deploy to serverless endpoint
   batch-transform       Run batch predictions
   process               Run processing jobs
+  run                   Run any CLI command as a processing job
   list-endpoints        List all endpoints
   list-training-jobs    List recent training jobs
   get-model-artifacts   Get S3 path from training job
   delete-endpoint       Delete an endpoint
 
   # Local Operations
-  local                 Local operations (train, deploy, process, stop)
+  local                 Local operations (train, deploy, process, run, stop)
 ```
 
 ### Context Auto-Detection
@@ -140,6 +142,9 @@ easy_sm local process -f script.py
 
 # Run processing job with environment variables
 easy_sm local process -f script.py --env DEBUG=true --env LOG_LEVEL=info
+
+# Run any CLI command (everything after -- is the command)
+easy_sm local run -a my-app -- make features
 
 # Deploy locally (starts server on port 8080)
 easy_sm local deploy
@@ -176,6 +181,9 @@ easy_sm process -f script.py -e ml.m5.large -n job-name
 # Run processing job with environment variables
 easy_sm process -f script.py -e ml.m5.large -n job-name \
   --env DEBUG=true --env LOG_LEVEL=info
+
+# Run any CLI command, e.g. a make target (runs from easy_sm_base/processing)
+easy_sm run -e ml.m5.large -n job-name -- make features
 
 # List endpoints
 easy_sm list-endpoints

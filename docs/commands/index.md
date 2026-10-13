@@ -40,6 +40,7 @@ easy_sm COMMAND [OPTIONS]
 | [`local train`](local.md#train) | Train model locally in Docker |
 | [`local deploy`](local.md#deploy) | Deploy model locally on port 8080 |
 | [`local process`](local.md#process) | Run processing job locally |
+| [`local run`](local.md#run) | Run any CLI command locally |
 | [`local stop`](local.md#stop) | Stop local deployment |
 
 ### Cloud Training
@@ -60,6 +61,7 @@ easy_sm COMMAND [OPTIONS]
 | Command | Description |
 |---------|-------------|
 | [`process`](process.md) | Run processing job on SageMaker |
+| [`run`](run.md) | Run any CLI command (make, dbt...) on SageMaker |
 | [`batch-transform`](batch-transform.md) | Run batch predictions |
 
 ### Management

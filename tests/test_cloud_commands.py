@@ -12,6 +12,7 @@ from typing import Generator
 from unittest.mock import MagicMock, patch
 
 import pytest
+from click.testing import Result
 from typer.testing import CliRunner
 
 from easy_sm.__main__ import app
@@ -1488,6 +1489,121 @@ class TestCloudGetModelArtifacts:
         # Should not contain verbose messages
         assert "Model" not in result.output or result.output.strip() == s3_uri
         assert "location" not in result.output.lower() or result.output.strip() == s3_uri
+
+
+class TestCloudRun:
+    """Tests for the cloud run command."""
+
+    ROLE = "arn:aws:iam::123456789012:role/SageMakerRole"
+
+    @pytest.fixture
+    def runner(self) -> CliRunner:
+        return CliRunner()
+
+    @pytest.fixture
+    def app_dir(self, tmp_path: Path) -> Generator[str, None, None]:
+        """Project with config and an executor.sh that supports run."""
+        app_name = "test-app"
+        ConfigManager(str(tmp_path / f"{app_name}.json")).set_config(
+            Config(
+                image_name=app_name,
+                aws_profile="test-profile",
+                aws_region="us-east-1",
+                python_version="3.13",
+                easy_sm_module_dir=app_name,
+                requirements_dir="requirements.txt",
+            )
+        )
+        os.makedirs(tmp_path / app_name / "easy_sm_base")
+        (tmp_path / app_name / "easy_sm_base" / "executor.sh").write_text('elif [ "$1" = "run" ]; then\n')
+
+        original_cwd = os.getcwd()
+        os.chdir(tmp_path)
+        yield app_name
+        os.chdir(original_cwd)
+
+    def _invoke(self, runner: CliRunner, *args: str) -> Result:
+        return runner.invoke(app, ["run", "-e", "ml.m5.large", "-n", "run-job", "-r", self.ROLE, *args])
+
+    @patch("easy_sm.commands.cloud.SageMakerClient")
+    def test_run_success(self, mock_client_cls: MagicMock, runner: CliRunner, app_dir: str) -> None:
+        result = self._invoke(runner, "--", "make", "-j4", "train")
+
+        assert result.exit_code == 0
+        assert result.output.strip() == "run-job"
+        kwargs = mock_client_cls.return_value.run.call_args[1]
+        assert kwargs["command"] == ["make", "-j4", "train"]
+        assert kwargs["processing_instance_type"] == "ml.m5.large"
+        assert kwargs["image_name"] == "test-app:latest"
+        assert kwargs["wait"] is True
+        assert kwargs["environment"] is None
+
+    @patch("easy_sm.commands.cloud.SageMakerClient")
+    def test_run_command_flags_not_parsed_as_easy_sm_options(
+        self, mock_client_cls: MagicMock, runner: CliRunner, app_dir: str
+    ) -> None:
+        result = self._invoke(runner, "--", "dbt", "run", "-e", "prod", "--select", "x")
+
+        assert result.exit_code == 0
+        kwargs = mock_client_cls.return_value.run.call_args[1]
+        assert kwargs["command"] == ["dbt", "run", "-e", "prod", "--select", "x"]
+        assert kwargs["processing_instance_type"] == "ml.m5.large"
+
+    @patch("easy_sm.commands.cloud.SageMakerClient")
+    def test_run_with_all_options(self, mock_client_cls: MagicMock, runner: CliRunner, app_dir: str) -> None:
+        result = self._invoke(
+            runner,
+            "-c", "2", "-i", "s3://bucket/in", "-o", "s3://bucket/out", "-is",
+            "--env", "A=1", "--env", "B=x=y", "--no-wait",
+            "--", "make", "train",
+        )
+
+        assert result.exit_code == 0
+        kwargs = mock_client_cls.return_value.run.call_args[1]
+        assert kwargs["instance_count"] == 2
+        assert kwargs["s3_input_location"] == "s3://bucket/in"
+        assert kwargs["s3_output_location"] == "s3://bucket/out"
+        assert kwargs["input_sharded"] is True
+        assert kwargs["environment"] == {"A": "1", "B": "x=y"}
+        assert kwargs["wait"] is False
+
+    @patch("easy_sm.commands.cloud.SageMakerClient")
+    def test_run_requires_command(self, mock_client_cls: MagicMock, runner: CliRunner, app_dir: str) -> None:
+        result = self._invoke(runner)
+
+        assert result.exit_code != 0
+        mock_client_cls.return_value.run.assert_not_called()
+
+    @patch("easy_sm.commands.cloud.SageMakerClient")
+    def test_run_rejects_outdated_executor(self, mock_client_cls: MagicMock, runner: CliRunner, app_dir: str) -> None:
+        Path(app_dir, "easy_sm_base", "executor.sh").write_text("old script without run branch\n")
+
+        result = self._invoke(runner, "--", "make", "train")
+
+        assert result.exit_code != 0
+        assert "update-scripts" in str(result.exception)
+        mock_client_cls.return_value.run.assert_not_called()
+
+    @patch("easy_sm.commands.cloud.SageMakerClient")
+    def test_run_env_value_too_long(self, mock_client_cls: MagicMock, runner: CliRunner, app_dir: str) -> None:
+        result = self._invoke(runner, "--env", "A=" + "x" * 257, "--", "make")
+
+        assert result.exit_code != 0
+        assert "256 character limit" in str(result.exception)
+        mock_client_cls.return_value.run.assert_not_called()
+
+
+class TestSageMakerClientRun:
+    """SageMakerClient.run passes the command to the container's run entrypoint."""
+
+    def test_run_prefixes_command_with_run(self) -> None:
+        from easy_sm.sagemaker.sagemaker import SageMakerClient
+
+        client = SageMakerClient.__new__(SageMakerClient)
+        with patch.object(SageMakerClient, "_run_processing") as mock_run_processing:
+            client.run("img:latest", "ml.m5.large", 1, ["make", "train"], None, False, None, "job")
+
+        assert mock_run_processing.call_args[0][3] == ["run", "make", "train"]
 
 
 if __name__ == "__main__":

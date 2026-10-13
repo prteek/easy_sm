@@ -357,6 +357,33 @@ class SageMakerClient:
             wait,
         )
 
+    def run(
+        self,
+        image_name: str,
+        processing_instance_type: str,
+        instance_count: int,
+        command: list[str],
+        s3_input_location: str | None,
+        input_sharded: bool,
+        s3_output_location: str | None,
+        base_job_name: str,
+        environment: dict[str, str | PipelineVariable] | None = None,
+        wait: bool = True,
+    ) -> None:
+        """Run any command (e.g. make, dbt) in easy_sm_base/processing on SageMaker."""
+        self._run_processing(
+            image_name,
+            processing_instance_type,
+            instance_count,
+            ["run", *command],
+            s3_input_location,
+            input_sharded,
+            s3_output_location,
+            base_job_name,
+            environment,
+            wait,
+        )
+
     def _run_processing(
         self,
         image_name: str,

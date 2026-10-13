@@ -19,6 +19,7 @@ All local commands use the Docker image built with [`easy_sm build`](build.md).
 - [`train`](#train) - Train ML models locally
 - [`deploy`](#deploy) - Deploy model locally as HTTP endpoint
 - [`process`](#process) - Run processing jobs locally
+- [`run`](#run) - Run any CLI command locally
 - [`stop`](#stop) - Stop local deployment
 
 ---
@@ -471,6 +472,74 @@ ls {app_name}/easy_sm_base/local_test/test_dir/
 
 ---
 
+## run
+
+Run any CLI command locally in Docker.
+
+### Synopsis
+
+```bash
+easy_sm local run --app-name APP_NAME [--env KEY=VALUE ...] -- COMMAND [ARGS...]
+```
+
+### Description
+
+Runs a command (`make`, `dbt`, a Python module...) inside your project's Docker image, from the `easy_sm_base/processing/` directory. This is the local version of [`easy_sm run`](run.md), useful for testing a command before running it on SageMaker.
+
+Everything after `--` is the command, passed to the container exactly as typed. The tool must be installed in the image.
+
+easy_sm exits with the same exit code as your command, so `easy_sm local run -a my-app -- make test` can be used in CI.
+
+### Options
+
+| Option | Short | Type | Required | Default | Description |
+|--------|-------|------|----------|---------|-------------|
+| `--app-name` | `-a` | string | **Yes** | - | App name for configuration |
+| `--env` | | string | No | None | Environment variables in `KEY=VALUE` format (repeatable) |
+
+### Examples
+
+#### Run a make target
+
+```bash
+easy_sm local run -a my-ml-app -- make features
+```
+
+#### Pass flags and environment variables
+
+```bash
+easy_sm local run -a my-ml-app --env LOG_LEVEL=debug -- make -j4 all
+```
+
+#### Run a Python module
+
+```bash
+easy_sm local run -a my-ml-app -- python -m mypackage.backfill --since 2024-01-01
+```
+
+### Output
+
+```
+[Command output...]
+Local run completed
+```
+
+### Troubleshooting
+
+**Problem**: "executor.sh doesn't support 'run'" or "run_local.sh not found"
+
+**Solution**: Your project was created before `run` existed. Update the scripts and rebuild the image:
+```bash
+easy_sm update-scripts -a my-ml-app
+easy_sm build -a my-ml-app
+```
+
+**Problem**: `make: command not found` (or another tool)
+
+**Solution**: Add the tool to your requirements file (or Dockerfile) and rebuild with `easy_sm build`.
+
+---
+
 ## stop
 
 Stop a local deployment.
@@ -595,6 +664,7 @@ Local commands simulate the SageMaker container environment:
 - [`train`](train.md) - Train on SageMaker after local validation
 - [`deploy`](deploy.md) - Deploy to SageMaker after local testing
 - [`process`](process.md) - Run processing jobs on SageMaker
+- [`run`](run.md) - Run any CLI command on SageMaker
 
 ## See Also
 

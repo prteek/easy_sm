@@ -6,10 +6,11 @@ import typer
 from easy_sm.commands.helpers import (
     load_config,
     parse_env_vars,
+    require_run_support,
     safe_run_subprocess,
 )
 
-local_app = typer.Typer(help="Commands for local operations: train and deploy")
+local_app = typer.Typer(help="Commands for local operations: train, deploy, process and run")
 
 
 def _get_paths(app_name: str) -> tuple[str, str]:
@@ -80,6 +81,40 @@ def process(
         ],
         success_message="Local processing completed",
     )
+
+
+@local_app.command()
+def run(
+    command: Annotated[list[str], typer.Argument(help="Command to run in easy_sm_base/processing, after -- (e.g. -- make train)")],
+    app_name: Annotated[str, typer.Option("--app-name", "-a", help="App name for configuration")],
+    env: Annotated[list[str] | None, typer.Option("--env", help="Environment variables in KEY=VALUE format")] = None,
+) -> None:
+    """Run any CLI command (e.g. make, dbt) locally as a processing job."""
+    config = load_config(app_name)
+    base_path, test_path = _get_paths(app_name)
+    require_run_support(config, app_name)
+    env_vars = parse_env_vars(env)
+
+    run_script = os.path.join(base_path, "local_test", "run_local.sh")
+    if not os.path.isfile(run_script):
+        raise ValueError(f"{run_script} not found. Run 'easy_sm update-scripts -a {app_name}'")
+
+    return_code = safe_run_subprocess(
+        [
+            run_script,
+            os.path.abspath(test_path),
+            config.docker_tag,
+            config.image_name,
+            config.aws_profile,
+            config.aws_region,
+            *(f"{key}={value}" for key, value in env_vars.items()),
+            "--",
+            *command,
+        ],
+        success_message="Local run completed",
+    )
+    if return_code != 0:
+        raise typer.Exit(return_code)
 
 
 @local_app.command()

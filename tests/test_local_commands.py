@@ -775,3 +775,90 @@ class TestLocalProcess:
 
         assert result.exit_code == 0
         mock_popen.assert_called_once()
+
+
+class TestLocalRun:
+    """Tests for the local run command."""
+
+    @pytest.fixture
+    def runner(self) -> CliRunner:
+        return CliRunner()
+
+    @pytest.fixture
+    def mock_app_dir(self, tmp_path: Path) -> Generator[str, None, None]:
+        os.makedirs(tmp_path / "easy_sm_base" / "local_test" / "test_dir")
+        (tmp_path / "easy_sm_base" / "local_test" / "run_local.sh").write_text("#!/bin/sh\n")
+        (tmp_path / "easy_sm_base" / "executor.sh").write_text('elif [ "$1" = "run" ]; then\n')
+        config_data = {
+            "image_name": "esm",
+            "aws_profile": "default",
+            "aws_region": "us-east-1",
+            "python_version": "3.13",
+            "easy_sm_module_dir": ".",
+            "requirements_dir": "easy_sm_base",
+            "docker_tag": "latest",
+        }
+        (tmp_path / "app.json").write_text(json.dumps(config_data))
+
+        original_cwd = os.getcwd()
+        os.chdir(tmp_path)
+        yield str(tmp_path)
+        os.chdir(original_cwd)
+
+    @pytest.fixture
+    def mock_popen(self) -> Generator[MagicMock, None, None]:
+        with patch("easy_sm.commands.helpers.subprocess.Popen") as mock_popen:
+            mock_process = MagicMock()
+            mock_process.stdout = []
+            mock_process.wait.return_value = 0
+            mock_popen.return_value = mock_process
+            yield mock_popen
+
+    def test_run_passes_env_then_separator_then_command(
+        self, runner: CliRunner, mock_app_dir: str, mock_popen: MagicMock
+    ) -> None:
+        result = runner.invoke(
+            app, ["local", "run", "-a", "app", "--env", "A=1", "--", "make", "-j4", "train"]
+        )
+
+        assert result.exit_code == 0
+        assert "Local run completed" in result.output
+        args = mock_popen.call_args[0][0]
+        assert args[0].endswith("run_local.sh")
+        assert args[2:] == ["latest", "esm", "default", "us-east-1", "A=1", "--", "make", "-j4", "train"]
+
+    def test_run_requires_command(self, runner: CliRunner, mock_app_dir: str, mock_popen: MagicMock) -> None:
+        result = runner.invoke(app, ["local", "run", "-a", "app"])
+
+        assert result.exit_code != 0
+        mock_popen.assert_not_called()
+
+    def test_run_missing_script(self, runner: CliRunner, mock_app_dir: str, mock_popen: MagicMock) -> None:
+        os.remove(Path(mock_app_dir) / "easy_sm_base" / "local_test" / "run_local.sh")
+
+        result = runner.invoke(app, ["local", "run", "-a", "app", "--", "make"])
+
+        assert result.exit_code != 0
+        assert "update-scripts" in str(result.exception)
+        mock_popen.assert_not_called()
+
+    def test_run_rejects_outdated_executor(
+        self, runner: CliRunner, mock_app_dir: str, mock_popen: MagicMock
+    ) -> None:
+        (Path(mock_app_dir) / "easy_sm_base" / "executor.sh").write_text("old script\n")
+
+        result = runner.invoke(app, ["local", "run", "-a", "app", "--", "make"])
+
+        assert result.exit_code != 0
+        assert "update-scripts" in str(result.exception)
+        mock_popen.assert_not_called()
+
+    def test_run_exits_with_command_exit_code(
+        self, runner: CliRunner, mock_app_dir: str, mock_popen: MagicMock
+    ) -> None:
+        mock_popen.return_value.wait.return_value = 2
+
+        result = runner.invoke(app, ["local", "run", "-a", "app", "--", "make", "nosuchtarget"])
+
+        assert result.exit_code == 2
+        assert "Local run completed" not in result.output

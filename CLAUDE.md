@@ -95,12 +95,13 @@ All tests use mocked external dependencies (subprocess, boto3, SageMaker SDK) fo
   - `deploy-serverless`: Deploy to serverless endpoint
   - `batch-transform`: Run batch predictions
   - `process`: Run processing jobs
+  - `run`: Run any CLI command (e.g. `make`, `dbt`) as a processing job (`easy_sm run ... -- make target`)
   - `list-endpoints`: List all endpoints
   - `list-training-jobs`: List recent training jobs (supports `-n` for names-only)
   - `get-model-artifacts`: Get S3 model path from training job
   - `delete-endpoint`: Delete an endpoint
 - **Sub-commands**:
-  - `local`: Local operations (commands: `train`, `deploy`, `process`, `stop`)
+  - `local`: Local operations (commands: `train`, `deploy`, `process`, `run`, `stop`)
 
 ### Core Modules
 
@@ -123,13 +124,21 @@ All tests use mocked external dependencies (subprocess, boto3, SageMaker SDK) fo
 
 **Update Scripts** (`easy_sm/commands/update.py`):
 - `update_scripts`: Copies latest shell scripts from package template to app directory
-- Updates 7 shell scripts with security fixes (proper variable quoting)
+- Updates 8 shell scripts with security fixes (proper variable quoting)
 
 **Templates** (`easy_sm/template/easy_sm_base/`):
 - Dockerfile and scripts for containerized training/processing
 - Training entry point: `training/train`
 - Serving entry point: `prediction/serve`
 - Local test scripts in `local_test/`
+
+**Run Command** (`run` / `local run`):
+- Generic replacement for the old `make` command: everything after `--` is passed as the command
+- `executor.sh` `run` branch: `shift; cd ./easy_sm_base/processing; exec "$@"` (no shell re-parsing)
+- Cloud: `SageMakerClient.run()` → `_run_processing(["run", *command])`
+- Local: `run_local.sh` receives `KEY=VALUE` env pairs, then `--`, then the command; rebuilds `"$@"` as `-e` flags + `image run command...`
+- `helpers.require_run_support()` refuses to run if the project's `executor.sh` lacks the `run` branch (an old image would fall through to serving and run until timeout)
+- `local run` exits with the command's exit code (other local commands still exit 0 on failure)
 
 ### Configuration Flow
 1. Commands receive optional `app_name` and `iam_role_arn` parameters

@@ -149,6 +149,7 @@ class TestUpdateScriptsCommand:
         assert "Updated: build.sh" in result.output
         assert "Updated: push.sh" in result.output
         assert "Updated: executor.sh" in result.output
+        assert f"Updated: {os.path.join('local_test', 'run_local.sh')}" in result.output
 
 
 if __name__ == "__main__":

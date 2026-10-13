@@ -17,6 +17,7 @@ SHELL_SCRIPTS = [
     os.path.join("local_test", "process_local.sh"),
     os.path.join("local_test", "deploy_local.sh"),
     os.path.join("local_test", "stop_local.sh"),
+    os.path.join("local_test", "run_local.sh"),
 ]
 
 

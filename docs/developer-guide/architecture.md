@@ -83,10 +83,10 @@ Cloud operations are at the top level (no prefix needed):
 
 **Purpose**: Copies latest shell scripts from package template to app directory with security fixes (proper variable quoting).
 
-Updates 7 shell scripts:
-- Training entry points
-- Serving entry points
-- Local test scripts
+Updates 8 shell scripts:
+- Build and push scripts
+- Container entrypoint (`executor.sh`), including the `run` branch
+- Local test scripts (including `run_local.sh`)
 
 ### Templates
 

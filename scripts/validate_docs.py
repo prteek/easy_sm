@@ -37,7 +37,7 @@ class CommandValidator:
                     for dec in node.decorator_list
                 )
 
-                if is_command or node.name in ['train', 'deploy', 'deploy_serverless', 'batch_transform', 'process', 'upload_data', 'delete_endpoint', 'list_endpoints', 'list_training_jobs', 'get_model_artifacts']:
+                if is_command or node.name in ['train', 'deploy', 'deploy_serverless', 'batch_transform', 'process', 'run', 'upload_data', 'delete_endpoint', 'list_endpoints', 'list_training_jobs', 'get_model_artifacts']:
                     params = self._extract_function_params(node)
                     command_name = node.name.replace('_', '-')
                     commands[command_name] = params
@@ -227,6 +227,8 @@ class CommandValidator:
             ('deploy_serverless', self.commands_dir / 'cloud.py', self.docs_dir / 'commands' / 'deploy.md'),
             ('batch_transform', self.commands_dir / 'cloud.py', self.docs_dir / 'commands' / 'batch-transform.md'),
             ('process', self.commands_dir / 'cloud.py', self.docs_dir / 'commands' / 'process.md'),
+            ('run', self.commands_dir / 'cloud.py', self.docs_dir / 'commands' / 'run.md'),
+            ('run', self.commands_dir / 'local.py', self.docs_dir / 'commands' / 'local.md'),
             ('upload_data', self.commands_dir / 'cloud.py', self.docs_dir / 'commands' / 'train.md'),
             ('train', self.commands_dir / 'local.py', self.docs_dir / 'commands' / 'local.md'),
             ('deploy', self.commands_dir / 'local.py', self.docs_dir / 'commands' / 'local.md'),
