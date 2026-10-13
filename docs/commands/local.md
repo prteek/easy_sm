@@ -385,7 +385,7 @@ easy_sm local process -f preprocess.py \
 Values are passed to the container exactly as written, including spaces, commas and `=` characters.
 
 !!! note "Existing projects"
-    Projects created before easy_sm 1.2.4 must run [`easy_sm update-scripts`](update-scripts.md) before using `--env` locally. Older scripts dropped all but the first variable, so easy_sm stops with an error until the scripts are updated.
+    Projects created before easy_sm 1.3.0 must run [`easy_sm update-scripts`](update-scripts.md) before using `--env` locally. Older scripts dropped all but the first variable, so easy_sm stops with an error until the scripts are updated.
 
 ### Output
 

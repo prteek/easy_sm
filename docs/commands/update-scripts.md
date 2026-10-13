@@ -157,7 +157,7 @@ fi
 
 Proper error detection and user feedback.
 
-### 4. Environment Variable Injection (1.2.4)
+### 4. Environment Variable Injection (1.3.0)
 
 **Old (vulnerable):** `local process --env` values were joined with commas and expanded unquoted, so a value containing spaces became extra `docker run` flags:
 
@@ -172,7 +172,7 @@ Values containing spaces or commas were also corrupted.
 
 If you use `local process --env` with an older project, easy_sm refuses to run until you update the scripts.
 
-### 5. Local Endpoint Exposed to the Network (1.2.4)
+### 5. Local Endpoint Exposed to the Network (1.3.0)
 
 **Old:** `local deploy` published the port on all network interfaces, so anyone on the same network could call your model.
 

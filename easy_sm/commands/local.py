@@ -59,7 +59,7 @@ def process(
     env_vars = parse_env_vars(env)
     process_script = os.path.join(base_path, "local_test", "process_local.sh")
 
-    # Scripts from before easy_sm 1.2.4 joined env vars with commas and would silently drop all but the first
+    # Scripts from before easy_sm 1.3.0 joined env vars with commas and would silently drop all but the first
     if env_vars:
         with open(process_script) as f:
             if "IFS=','" in f.read():
