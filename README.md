@@ -1,8 +1,8 @@
 # easy_sm project docs
 
-easy_sm is a Python CLI (published on PyPI as `easy-sm`) for prototyping SageMaker training, processing and deployment locally in Docker, then running the same image on SageMaker. These four files track the state of the work so it can be picked up cold. The user guide is [`.github/README.md`](../.github/README.md); code conventions and commands are in [`CLAUDE.md`](../CLAUDE.md).
+easy_sm is a Python CLI (published on PyPI as `easy-sm`) for prototyping SageMaker training, processing and deployment locally in Docker, then running the same image on SageMaker. These four files track the state of the work so it can be picked up cold. The user guide is [`.github/README.md`](.github/README.md); code conventions and commands are in [`CLAUDE.md`](CLAUDE.md).
 
-- `project/README.md`, `summary.md`, `decisions.md`, `todolist.txt` — project docs (this folder; maintained with the `project-docs` skill).
+- `README.md` (this file), `summary.md`, `decisions.md`, `todolist.txt` — project docs at the repo root, maintained with the `project-docs` skill. GitHub's landing page shows `.github/README.md` instead of this file.
 - `easy_sm/__main__.py` — CLI entry point; registers every top-level command and the `local` sub-app.
 - `easy_sm/commands/` — command implementations: `cloud.py` (SageMaker commands incl. `process`, `run`), `local.py` (`local train/deploy/process/run/stop`), `build.py`, `push.py`, `initialize.py`, `update.py` (`update-scripts`), `helpers.py` (subprocess, config loading, env parsing, outdated-script guards).
 - `easy_sm/sagemaker/sagemaker.py` — `SageMakerClient`, the wrapper around the SageMaker SDK and boto3.

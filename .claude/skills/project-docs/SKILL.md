@@ -1,18 +1,18 @@
 ---
 name: project-docs
-description: Set up or update the project docs in project/ (README.md, summary.md, decisions.md, todolist.txt) that track the state of work on easy_sm. Use when asked to "set up/update project docs", to work through items in project/todolist.txt, or after finishing a piece of work (a feature, fix, release or PR) to record status and decisions.
+description: Set up or update the project docs at the repo root (README.md, summary.md, decisions.md, todolist.txt) that track the state of work on easy_sm. Use when asked to "set up/update project docs", to work through items in todolist.txt, or after finishing a piece of work (a feature, fix, release or PR) to record status and decisions.
 ---
 
 # Project docs
 
-Four short files in `project/`, so work on easy_sm can be picked up cold. They track *the work*; the user guide is `.github/README.md` and code conventions are in `CLAUDE.md`. Link to those rather than repeat them.
+Four short files at the repo root, so work on easy_sm can be picked up cold. They track *the work*; the user guide is `.github/README.md` (GitHub shows it in place of the root `README.md`) and code conventions are in `CLAUDE.md`. Link to those rather than repeat them.
 
 | File | Answers |
 |---|---|
-| `project/README.md` | What is this repo and where is everything? |
-| `project/summary.md` | Where are we now (released version, open PRs, open risks)? |
-| `project/decisions.md` | What did we choose, and why? |
-| `project/todolist.txt` | What's left to do? |
+| `README.md` | What is this repo and where is everything? |
+| `summary.md` | Where are we now (released version, open PRs, open risks)? |
+| `decisions.md` | What did we choose, and why? |
+| `todolist.txt` | What's left to do? |
 
 ## Rules
 

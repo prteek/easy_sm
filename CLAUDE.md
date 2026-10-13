@@ -347,13 +347,13 @@ Returns:
 ### Project Docs (`/project-docs`)
 **Location**: `.claude/skills/project-docs/SKILL.md`
 
-Maintains four short files in `project/` that track the state of the work, so it can be picked up cold:
-- `project/README.md` - what the repo is and where everything is
-- `project/summary.md` - current state: released version, open PRs, open risks
-- `project/decisions.md` - choices made, why, and the evidence
-- `project/todolist.txt` - remaining work (Todo+ format, `Archive:` section last)
+Maintains four short files at the repo root that track the state of the work, so it can be picked up cold:
+- `README.md` - what the repo is and where everything is
+- `summary.md` - current state: released version, open PRs, open risks
+- `decisions.md` - choices made, why, and the evidence
+- `todolist.txt` - remaining work (Todo+ format, `Archive:` section last)
 
-Use it after finishing a feature, fix, release or PR, or to work through items in `project/todolist.txt` ("do item N" = Nth pending item in the named section). Facts are checked against git, `gh`, pytest and PyPI rather than copied.
+Use it after finishing a feature, fix, release or PR, or to work through items in `todolist.txt` ("do item N" = Nth pending item in the named section). Facts are checked against git, `gh`, pytest and PyPI rather than copied.
 
 Invoke with: `/project-docs`
 
@@ -473,7 +473,6 @@ easy_sm/
 │       │   └── SKILL.md      # Validate-docs skill documentation
 │       └── project-docs/     # Project status docs skill
 │           └── SKILL.md      # Project-docs skill documentation
-├── project/                  # Project docs: README, summary, decisions, todolist (see /project-docs)
 ├── scripts/
 │   └── validate_docs.py      # Documentation validation script (AST + regex)
 ├── easy_sm/
@@ -509,6 +508,10 @@ easy_sm/
 ├── base-requirements.txt      # Development dependencies (pytest, mypy, ruff, etc)
 ├── requirements-docs.txt      # Documentation dependencies
 ├── CLAUDE.md                  # Claude Code guidance (this file)
+├── README.md                  # Project docs: repo map (GitHub shows .github/README.md instead)
+├── summary.md                 # Project docs: current state
+├── decisions.md               # Project docs: choices and evidence
+├── todolist.txt               # Project docs: work queue (Todo+)
 ├── DOCS_WORKFLOW.md           # Documentation workflow and validation guide
 ├── .githooks/
 │   └── pre-commit             # Git pre-commit hook for doc validation
