@@ -179,7 +179,7 @@ Both cloud and local processing jobs support passing environment variables via t
 ```bash
 # Cloud processing with env vars
 easy_sm process -f script.py -e ml.m5.large -n job \
-  --env DEBUG=true --env LOG_LEVEL=info --env API_KEY=secret123
+  --env DEBUG=true --env LOG_LEVEL=info --env DATASET_VERSION=2024-q1
 
 # Local processing with env vars
 easy_sm local process -f script.py -a myapp \
@@ -188,7 +188,9 @@ easy_sm local process -f script.py -a myapp \
 
 **Implementation Details:**
 - **Cloud**: Environment variables passed to `Processor` constructor (sagemaker SDK)
-- **Local**: Environment variables serialized as comma-separated pairs and passed to shell script, which converts them to Docker `-e` flags
+- **Local**: Each `KEY=VALUE` pair is passed to the shell script as its own argument; the script rebuilds `"$@"` as `-e KEY=VALUE` pairs so values can never be word-split into extra docker flags. `local process` refuses `--env` if the project's `process_local.sh` is the old comma-separated version (tells user to run `update-scripts`)
+- **Parsing**: Shared `helpers.parse_env_vars()`; cloud additionally enforces SageMaker's 256-char value limit
+- **Secrets**: Don't pass secrets via `--env` — values are visible in the SageMaker job definition
 - **Validation**: `KEY=VALUE` format enforced; values can contain `=` (e.g., `API_KEY=sk-1234=5678`)
 - **Empty values**: Allowed (e.g., `--env EMPTY_VAR=`)
 

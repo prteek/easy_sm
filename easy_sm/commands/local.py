@@ -5,8 +5,8 @@ import typer
 
 from easy_sm.commands.helpers import (
     load_config,
+    parse_env_vars,
     safe_run_subprocess,
-    serialize_env_vars,
 )
 
 local_app = typer.Typer(help="Commands for local operations: train and deploy")
@@ -55,25 +55,28 @@ def process(
     if not os.path.isfile(job_file):
         raise ValueError(f"Processing file not found: {job_file}")
 
-    # Parse and validate environment variables
-    env_vars = {}
-    if env:
-        for env_var in env:
-            if "=" not in env_var:
-                raise ValueError(f"Invalid environment variable format: {env_var}. Use KEY=VALUE")
-            key, value = env_var.split("=", 1)
-            env_vars[key] = value
+    env_vars = parse_env_vars(env)
+    process_script = os.path.join(base_path, "local_test", "process_local.sh")
+
+    # Scripts from before easy_sm 1.2.4 joined env vars with commas and would silently drop all but the first
+    if env_vars:
+        with open(process_script) as f:
+            if "IFS=','" in f.read():
+                raise ValueError(
+                    f"{process_script} is outdated and can't pass --env safely. "
+                    f"Run 'easy_sm update-scripts -a {app_name}'"
+                )
 
     safe_run_subprocess(
         [
-            os.path.join(base_path, "local_test", "process_local.sh"),
+            process_script,
             os.path.abspath(test_path),
             config.docker_tag,
             config.image_name,
             file,
             config.aws_profile,
             config.aws_region,
-            serialize_env_vars(env_vars),
+            *(f"{key}={value}" for key, value in env_vars.items()),
         ],
         success_message="Local processing completed",
     )

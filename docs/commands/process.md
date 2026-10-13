@@ -62,8 +62,11 @@ easy_sm process \
   -e ml.m5.large \
   --env DEBUG=true \
   --env LOG_LEVEL=info \
-  --env API_KEY=my-secret-key
+  --env DATASET_VERSION=2024-q1
 ```
+
+!!! warning "Don't pass secrets with `--env`"
+    Environment variables are stored in plain text in the SageMaker job definition. Anyone who can view the job in the console or call `DescribeProcessingJob` can read them. Store secrets in AWS Secrets Manager and fetch them inside your script instead.
 
 Environment variables are available in your processing script via `os.environ`:
 
@@ -74,7 +77,7 @@ import os
 def process():
     debug = os.environ.get('DEBUG', 'false') == 'true'
     log_level = os.environ.get('LOG_LEVEL', 'warning')
-    api_key = os.environ.get('API_KEY', '')
+    dataset_version = os.environ.get('DATASET_VERSION', 'latest')
     
     if debug:
         print(f"Debug mode enabled, log level: {log_level}")

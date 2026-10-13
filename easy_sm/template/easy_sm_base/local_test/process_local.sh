@@ -6,19 +6,17 @@ image="$3"
 file="$4"
 aws_profile="$5"
 aws_region="$6"
-env_vars="$7"
+shift 6
 
-# Build docker run command with base env vars
-docker_env="-e AWS_PROFILE=${aws_profile} -e AWS_DEFAULT_REGION=${aws_region}"
+# Remaining arguments are KEY=VALUE pairs. Rebuild "$@" as "-e" "KEY=VALUE" pairs so each
+# value stays a single argument (no word splitting, so values can't inject docker flags).
+remaining=$#
+while [ "$remaining" -gt 0 ]; do
+    set -- "$@" -e "$1"
+    shift
+    remaining=$((remaining - 1))
+done
 
-# Add custom environment variables if provided
-if [ -n "${env_vars}" ]; then
-    # Convert comma-separated KEY=VALUE pairs to individual -e flags
-    IFS=','
-    for env_var in ${env_vars}; do
-        docker_env="${docker_env} -e ${env_var}"
-    done
-    unset IFS
-fi
-
-docker run -v ~/.aws:/root/.aws -v "${test_path}:/opt/ml" ${docker_env} --rm "${image}:${tag}" process "${file}"
+docker run -v "${HOME}/.aws:/root/.aws" -v "${test_path}:/opt/ml" \
+    -e "AWS_PROFILE=${aws_profile}" -e "AWS_DEFAULT_REGION=${aws_region}" "$@" \
+    --rm "${image}:${tag}" process "${file}"

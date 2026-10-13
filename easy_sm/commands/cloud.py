@@ -4,7 +4,12 @@ from typing import Annotated
 
 import typer
 
-from easy_sm.commands.helpers import get_app_name, get_iam_role, load_config
+from easy_sm.commands.helpers import (
+    get_app_name,
+    get_iam_role,
+    load_config,
+    parse_env_vars,
+)
 from easy_sm.sagemaker.sagemaker import SageMakerClient
 
 cloud_app = typer.Typer(help="Commands for AWS operations: upload data, train and deploy")
@@ -23,6 +28,20 @@ def _get_image(app_name: str | None) -> str:
     app_name = get_app_name(app_name)
     config = load_config(app_name)
     return f"{config.image_name}:{config.docker_tag}"
+
+
+def _check_env_value_lengths(env_vars: dict[str, str]) -> None:
+    """SageMaker enforces a 256 character limit per environment variable value."""
+    for key, value in env_vars.items():
+        if len(value) > 256:
+            raise ValueError(
+                f"Environment variable '{key}' value exceeds 256 character limit. "
+                f"Current length: {len(value)} characters.\n"
+                f"For long values (tokens, API keys, etc.), consider:\n"
+                f"  1. Using AWS Secrets Manager and retrieving in your script\n"
+                f"  2. Using S3 to store the value and retrieving it in your script\n"
+                f"  3. Shortening or splitting the value"
+            )
 
 
 @cloud_app.command(name="upload-data")
@@ -230,26 +249,8 @@ def process(
     client = _get_client(app_name, iam_role_arn)
     image = _get_image(app_name)
 
-    # Parse environment variables from KEY=VALUE strings into dict
-    env_vars = {}
-    if env:
-        for env_var in env:
-            if "=" not in env_var:
-                raise ValueError(f"Invalid environment variable format: {env_var}. Use KEY=VALUE")
-            key, value = env_var.split("=", 1)
-
-            # SageMaker enforces a 256 character limit per environment variable value
-            if len(value) > 256:
-                raise ValueError(
-                    f"Environment variable '{key}' value exceeds 256 character limit. "
-                    f"Current length: {len(value)} characters.\n"
-                    f"For long values (tokens, API keys, etc.), consider:\n"
-                    f"  1. Using AWS Secrets Manager and retrieving in your script\n"
-                    f"  2. Using S3 to store the value and retrieving it in your script\n"
-                    f"  3. Shortening or splitting the value"
-                )
-
-            env_vars[key] = value
+    env_vars = parse_env_vars(env)
+    _check_env_value_lengths(env_vars)
 
     client.process(
         image_name=image,

@@ -149,7 +149,9 @@ easy_sm [--docker-tag TAG] local deploy [OPTIONS]
 
 Starts a local HTTP server on the specified port serving your trained model. The endpoint mimics SageMaker's inference API and can be tested with HTTP requests.
 
-The server runs in the foreground. Use [`local stop`](#stop) to terminate it.
+The server is only reachable from your own machine (`localhost`), not from other devices on your network.
+
+The server runs in the background. Use [`local stop`](#stop) to terminate it.
 
 ### Options
 
@@ -375,8 +377,14 @@ easy_sm -t v1.0.0 local process -f feature_engineering.py -a my-ml-app
 ```bash
 easy_sm local process -f preprocess.py \
   --env DEBUG=true \
-  --env LOG_LEVEL=info
+  --env LOG_LEVEL=info \
+  --env "GREETING=hello, world"
 ```
+
+Values are passed to the container exactly as written, including spaces, commas and `=` characters.
+
+!!! note "Existing projects"
+    Projects created before easy_sm 1.2.4 must run [`easy_sm update-scripts`](update-scripts.md) before using `--env` locally. Older scripts dropped all but the first variable, so easy_sm stops with an error until the scripts are updated.
 
 ### Output
 

@@ -11,7 +11,7 @@ from io import StringIO
 
 import pytest
 
-from easy_sm.commands.helpers import safe_run_subprocess
+from easy_sm.commands.helpers import parse_env_vars, safe_run_subprocess
 
 
 class TestSafeRunSubprocess:
@@ -303,6 +303,31 @@ class TestSafeRunSubprocess:
                 if "Success" in str(c) or "success" in str(c)
             ]
             assert len(calls_with_success) == 0
+
+
+class TestParseEnvVars:
+    """Tests for the parse_env_vars function."""
+
+    def test_none_returns_empty_dict(self) -> None:
+        assert parse_env_vars(None) == {}
+
+    def test_parses_pairs(self) -> None:
+        assert parse_env_vars(["DEBUG=true", "LOG_LEVEL=info"]) == {"DEBUG": "true", "LOG_LEVEL": "info"}
+
+    def test_value_may_contain_equals_commas_and_spaces(self) -> None:
+        assert parse_env_vars(["KEY=sk=1=2", "URL=a,b", "MSG=hello world"]) == {
+            "KEY": "sk=1=2",
+            "URL": "a,b",
+            "MSG": "hello world",
+        }
+
+    def test_empty_value_allowed(self) -> None:
+        assert parse_env_vars(["EMPTY="]) == {"EMPTY": ""}
+
+    @pytest.mark.parametrize("bad", ["NOEQUALS", "=value"])
+    def test_invalid_format_raises(self, bad: str) -> None:
+        with pytest.raises(ValueError, match="Invalid environment variable format"):
+            parse_env_vars([bad])
 
 
 if __name__ == "__main__":

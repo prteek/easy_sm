@@ -91,11 +91,12 @@ Container entry point executor with:
 **process_local.sh:**
 - Local processing job execution
 - AWS credential forwarding
+- Safe `--env` handling (values can't inject Docker flags)
 - Proper cleanup
 
 **deploy_local.sh:**
 - Local endpoint deployment
-- Port binding
+- Port binding to `localhost` only
 - Container lifecycle management
 
 **stop_local.sh:**
@@ -153,6 +154,27 @@ fi
 ```
 
 Proper error detection and user feedback.
+
+### 4. Environment Variable Injection (1.2.4)
+
+**Old (vulnerable):** `local process --env` values were joined with commas and expanded unquoted, so a value containing spaces became extra `docker run` flags:
+
+```bash
+easy_sm local process -f job.py -a my-app --env "MSG=hi --privileged -v /:/host"
+# ran: docker run ... -e MSG=hi --privileged -v /:/host ...
+```
+
+Values containing spaces or commas were also corrupted.
+
+**New (secure):** each `KEY=VALUE` is passed to Docker as a single argument, exactly as written.
+
+If you use `local process --env` with an older project, easy_sm refuses to run until you update the scripts.
+
+### 5. Local Endpoint Exposed to the Network (1.2.4)
+
+**Old:** `local deploy` published the port on all network interfaces, so anyone on the same network could call your model.
+
+**New:** the port is bound to `127.0.0.1`, so only your own machine can reach it. `http://localhost:<port>` works exactly as before.
 
 ## When to Update
 

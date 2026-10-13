@@ -126,35 +126,25 @@ def load_config(app_name: str | None = None) -> Config:
     return ConfigManager(config_file).get_config()
 
 
-def serialize_env_vars(env_vars: dict[str, str]) -> str:
-    """Serialize environment variables dict to a shell-friendly string.
+def parse_env_vars(env: list[str] | None) -> dict[str, str]:
+    """Parse KEY=VALUE strings into a dict.
 
     Args:
-        env_vars: Dictionary of environment variables
-
-    Returns:
-        Comma-separated KEY=VALUE pairs (or empty string if no vars)
-
-    Example:
-        {"DEBUG": "true", "LOG_LEVEL": "info"} -> "DEBUG=true,LOG_LEVEL=info"
-    """
-    if not env_vars:
-        return ""
-    return ",".join(f"{k}={v}" for k, v in env_vars.items())
-
-
-def deserialize_env_vars(env_string: str) -> dict[str, str]:
-    """Deserialize environment variables from shell-friendly string.
-
-    Args:
-        env_string: Comma-separated KEY=VALUE pairs (or empty string)
+        env: List of KEY=VALUE strings (values may contain '=' or be empty), or None
 
     Returns:
         Dictionary of environment variables
 
+    Raises:
+        ValueError: If an entry is not in KEY=VALUE format.
+
     Example:
-        "DEBUG=true,LOG_LEVEL=info" -> {"DEBUG": "true", "LOG_LEVEL": "info"}
+        ["DEBUG=true", "API_KEY=sk=1"] -> {"DEBUG": "true", "API_KEY": "sk=1"}
     """
-    if not env_string:
-        return {}
-    return dict(pair.split("=", 1) for pair in env_string.split(","))
+    env_vars: dict[str, str] = {}
+    for env_var in env or []:
+        key, sep, value = env_var.partition("=")
+        if not sep or not key:
+            raise ValueError(f"Invalid environment variable format: {env_var}. Use KEY=VALUE")
+        env_vars[key] = value
+    return env_vars
