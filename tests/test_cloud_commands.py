@@ -6,6 +6,7 @@ to avoid real AWS calls. Each test verifies command structure, parameter passing
 """
 
 import os
+import re
 import tempfile
 from pathlib import Path
 from typing import Generator
@@ -1569,7 +1570,8 @@ class TestCloudRun:
         result = runner.invoke(app, ["run", "-n", "run-job", "-r", self.ROLE, "make", "-e", "ml.m5.large"])
 
         assert result.exit_code != 0
-        assert "--ec2-type" in result.output
+        # Strip ANSI colour codes: Rich colours parts of the flag separately in CI
+        assert "--ec2-type" in re.sub(r"\x1b\[[0-9;]*m", "", result.output)
         mock_client_cls.return_value.run.assert_not_called()
 
     @patch("easy_sm.commands.cloud.SageMakerClient")
