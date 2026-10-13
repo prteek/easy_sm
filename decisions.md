@@ -15,11 +15,11 @@ updated: 2026-10-13
 - **Image tag from config, not a CLI flag** (`2f97df7`) — `docker_tag` lives in `{app_name}.json` so each app/model version can use its own tag; the global `--docker-tag` option was removed (user docs still mention it: open).
 - **Wait by default, `--no-wait` to opt out** (`0eba322`) — `train` and `process` (and `run`) wait for the job; reverses the fire-and-forget behaviour from the v3 simplification (`81e2c05`), which returned an S3 path before the job had finished.
 - **Short flags don't collide within a command** (`e25c95d`) — `-c` is always instance count; serverless max concurrency became `-mc`.
-- **`requirements_dir` kept** — renaming it to `requirements_file_name` was tried and reverted the same day (`9d7365e` → `472c0a1`); reason not recorded.
+- **`requirements_dir` kept** — renaming it to `requirements_file_name` was tried and reverted the same day (`9d7365e` → `472c0a1`) because requirements can live in different folders for different scenarios (e.g. dev vs prod), so the config points at a location, not a fixed file name.
 
 # Run command
 
-- **Generic `run` instead of `make`** — the old `make` command (removed in `4eb8302`, reason not recorded) is replaced by `run`, which runs any command. Same processing-job path: `SageMakerClient.run()` → `_run_processing(["run", *command])`.
+- **Generic `run` instead of `make`** — the old `make` command (removed in `4eb8302` to simplify the project and focus on Python functionality) is replaced by `run`, which runs any command. Same processing-job path: `SageMakerClient.run()` → `_run_processing(["run", *command])`.
 - **Runs from `easy_sm_base/processing/`** — same directory `process` uses (`aa3da62`: processing jobs run inside it so local runs mirror SageMaker), so a `Makefile` or `dbt_project.yml` goes there.
 - **`exec "$@"` in `executor.sh`, not `sh -c "$*"`** — arguments reach the tool unchanged. Checked: with `sh -c "$*"`, `python -c 'print("a b")'` is a syntax error and `echo 'x; echo INJECTED'` runs a second command. `exec` also makes the tool PID 1, so its exit code fails the SageMaker job. Shell features need an explicit `-- sh -c "..."`.
 - **Trailing arguments after `--`, not a `--command` flag** — a string flag would need re-splitting (`shlex`) and nested quoting, and goes against `docker run` / `uv run` convention. A command already held in one string can use `-- sh -c "$CMD"`.
