@@ -1,6 +1,4 @@
 Release:
-  ☐ Revoke the old API token on pypi.org (Account settings → API tokens) @me
-  ☐ Delete the `PYPI_TOKEN` repo secret (`gh secret delete PYPI_TOKEN`, or ask Claude): old branches (`dev`, `copilot/*`) still have workflows that publish with it if a `v*` tag lands on them
   ☐ Review Dependabot PR #11: 8 major action bumps (checkout 4→7, setup-python 5→7, upload-artifact 4→7, download-artifact 4→8, ...); check upload/download-artifact compatibility before merging
 
 Run command:
@@ -26,6 +24,7 @@ Housekeeping:
   ☐ Delete local branch feat/run-command (already merged into main)
 
 Archive:
+  ✔ Revoked the old PyPI API token and deleted the PYPI_TOKEN repo secret (repo and `pypi` environment now have no secrets); old-branch workflows can no longer publish @done(26-10-13)
   ✔ Released 1.3.1 through Trusted Publishing: build / publish / release jobs passed; PyPI has attestations for both files (provenance HTTP 200) @done(26-10-13 15:21)
   ✔ Merged PR #10 (Trusted Publishing, least-privilege jobs, SHA-pinned actions); Test, Docs and Dependabot runs green on main @done(26-10-13 13:31)
   ✔ Added trusted publisher on pypi.org (prteek/easy_sm, publish.yml, env pypi) @done(26-10-13)

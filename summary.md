@@ -5,7 +5,6 @@ updated: 2026-10-13
 
 Only what tools can't tell you. For version, open PRs and CI, run `git tag`, `gh pr list` and `gh run list`.
 
-- **Half-finished:** publishing now uses Trusted Publishing (verified on 1.3.1), but the old `PYPI_TOKEN` is still valid and still a repo secret; old branches can publish with it (*Release*).
 - **Unreviewed:** Dependabot PR #11 bumps all 8 actions by a major version (*Release*).
 - **Untested:** `easy_sm run` has only been run in local Docker, never on SageMaker (*Run command*).
 - **Risks:** an image built before 1.3.0 starts the model server on `run` and bills until the 24 h timeout; local containers get a writable `~/.aws`; `push.sh` edits `~/.aws/config` permanently (*Run command*, *Security*).
