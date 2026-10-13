@@ -1,8 +1,10 @@
-Release:
-  ☐ Add trusted publisher on pypi.org (owner prteek, repo easy_sm, workflow publish.yml, environment pypi)
-  ☐ Merge PR #10 (Trusted Publishing + SHA-pinned actions)
-  ☐ Next release through the new workflow; check build / publish / release jobs all pass
-  ☐ After that release: revoke the old PyPI API token and delete the PYPI_TOKEN repo secret
+Release (manual steps for Prateek, in this order; blocked: PyPI login failing on 2026-10-13):
+  ☐ Add trusted publisher on pypi.org: easy-sm → Manage → Publishing → Add a new publisher → GitHub; owner `prteek`, repository `easy_sm`, workflow `publish.yml`, environment `pypi` @me @blocked
+  ☐ Merge PR #10 (Trusted Publishing + SHA-pinned actions) only after the step above; merged earlier, the next release fails with "invalid publisher" (nothing uploads, rerun once fixed) @me
+  ☐ Next release through the new workflow (bump version, tag, push); check build / publish / release jobs all pass @me
+  ☐ After that release: revoke the old API token on pypi.org (Account settings → API tokens) @me
+  ☐ Delete the `PYPI_TOKEN` repo secret (`gh secret delete PYPI_TOKEN`, or ask Claude) @me
+  Until then: releases still work as before, since main still publishes with PYPI_TOKEN
 
 Run command:
   ☐ Smoke-test `easy_sm run` on SageMaker for real (only mocked so far), e.g. `-e ml.t3.medium -- make <target>`
