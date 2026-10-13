@@ -3,51 +3,82 @@ on:
   push:
     tags:
       - 'v*'  # Trigger only on version tags (v1.0.0, v1.0.1, etc.)
-  workflow_dispatch:  # Allow manual workflow trigger
+
+# Deny everything by default; each job asks only for what it needs
+permissions: {}
 
 jobs:
-  publish:
-    name: Create Release and Publish to PyPI
+  build:
+    name: Build distribution
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      with:
+        persist-credentials: false
 
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
       with:
         python-version: '3.13'
 
-    - name: Install dependencies
+    - name: Install build dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install setuptools wheel twine
+        pip install setuptools wheel
 
     - name: Build a binary wheel and a source tarball
       run: |
         python setup.py sdist bdist_wheel
 
+    - name: Store distribution packages
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      with:
+        name: python-package-distributions
+        path: dist/
+
+  publish:
+    name: Publish to PyPI
+    needs: build
+    runs-on: ubuntu-latest
+    # Must match the environment configured in the PyPI trusted publisher.
+    # The environment only allows deployments from v* tags.
+    environment:
+      name: pypi
+      url: https://pypi.org/project/easy-sm/
+    permissions:
+      id-token: write  # Trusted Publishing: short-lived OIDC token instead of a stored API token
+    steps:
+    - name: Download distribution packages
+      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+      with:
+        name: python-package-distributions
+        path: dist/
+
     - name: Publish distribution 📦 to PyPI
-      uses: pypa/gh-action-pypi-publish@release/v1
+      uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
       with:
-        user: __token__
-        password: ${{ secrets.PYPI_TOKEN }}
-        skip_existing: true
+        skip-existing: true
 
+  release:
+    name: Create GitHub Release
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
     - name: Create GitHub Release
-      uses: actions/create-release@v1
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.ref_name }}
-        release_name: Release ${{ github.ref_name }}
-        body: |
-          ## Version ${{ github.ref_name }}
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        cat > notes.md <<EOF
+        ## Version ${GITHUB_REF_NAME}
 
-          Package published to PyPI: https://pypi.org/project/easy-sm/${{ github.ref_name }}/
+        Package published to PyPI: https://pypi.org/project/easy-sm/${GITHUB_REF_NAME#v}/
 
-          See commit history: https://github.com/${{ github.repository }}/commits/${{ github.ref_name }}
-        draft: false
-        prerelease: false
+        See commit history: https://github.com/${GITHUB_REPOSITORY}/commits/${GITHUB_REF_NAME}
+        EOF
+        gh release create "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}" \
+          --title "Release ${GITHUB_REF_NAME}" --notes-file notes.md

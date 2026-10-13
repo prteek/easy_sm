@@ -1,0 +1,11 @@
+version: 2
+updates:
+  # Actions are pinned to commit SHAs; Dependabot opens PRs to bump the SHA (and version comment)
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      github-actions:
+        patterns:
+          - "*"

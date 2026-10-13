@@ -360,11 +360,15 @@ Returns:
 - **Badge**: Shows test status, not affected by release jobs
 
 **publish.yml**: Release and Publish
-- **Trigger**: Git tag creation matching `v*` (e.g., `git tag v1.0.1`)
-- **Process**:
-  1. Build source distribution and wheel
-  2. Publish to PyPI
-  3. Create GitHub Release with release notes
+- **Trigger**: Git tag creation matching `v*` (e.g., `git tag v1.0.1`). No manual trigger
+- **Process** (three jobs, each with least-privilege `permissions`; workflow default is `permissions: {}`):
+  1. `build` (`contents: read`): build sdist and wheel, upload as artifact
+  2. `publish` (`id-token: write` only): publish to PyPI via **Trusted Publishing** (OIDC, no stored token) in the `pypi` environment
+  3. `release` (`contents: write`): create GitHub Release with `gh release create`
+- **Security**:
+  - The PyPI trusted publisher is bound to `prteek/easy_sm`, `publish.yml` and environment `pypi`. Renaming the workflow file or environment breaks publishing until PyPI is updated
+  - The `pypi` GitHub environment only accepts deployments from `v*` tags
+  - Build steps never get a publishing credential (separate job)
 - **Result**:
   - New version available on PyPI
   - GitHub release page created with commit history
@@ -379,6 +383,8 @@ Returns:
   git push origin v1.0.1
   # Publish workflow triggers automatically and handles both PyPI + GitHub
   ```
+
+**Action pinning**: All third-party actions are pinned to full commit SHAs with a `# vX.Y.Z` comment. `.github/dependabot.yml` opens a weekly grouped PR to bump them. When adding an action, pin it the same way (resolve the tag with `git ls-remote https://github.com/OWNER/REPO refs/tags/vX.Y.Z^{}`)
 
 **docs.yml**: Documentation Deployment
 - **Trigger**: Push to main (when `docs/`, `mkdocs.yml`, or source docs files change)
@@ -492,6 +498,7 @@ easy_sm/
 │   └── pre-commit             # Git pre-commit hook for doc validation
 └── .github/
     ├── README.md              # Project overview, usage guide and command examples
+    ├── dependabot.yml         # Weekly PRs to bump SHA-pinned GitHub Actions
     └── workflows/
         ├── test.yml           # Tests, mypy and ruff on push/PR to main
         ├── publish.yml        # PyPI publish + GitHub Release on v* tags
