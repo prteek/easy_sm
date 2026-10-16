@@ -29,7 +29,8 @@ The command:
 1. Creates a SageMaker model from your Docker image and model artifacts
 2. Creates an endpoint configuration with specified instance type and count
 3. Creates or updates the endpoint
-4. Outputs the endpoint name for use in other commands
+4. Waits until the endpoint is `InService` on the new config (see [Updates and rollbacks](#updates-and-rollbacks))
+5. Outputs the endpoint name for use in other commands
 
 ### Options
 
@@ -112,6 +113,24 @@ This can be used in scripts or piped to other tools:
 ```bash
 ENDPOINT=$(easy_sm deploy -n my-endpoint -e ml.m5.large -m s3://...)
 echo "Deployed to: $ENDPOINT"
+```
+
+The endpoint name is only printed once the endpoint is serving the new model. If the deploy fails, the error goes to the output instead and the command exits with code 1.
+
+### Updates and rollbacks
+
+`deploy` and `deploy-serverless` create the endpoint if it doesn't exist and update it if it does. Both always wait for the endpoint to finish (up to an hour) and then check that it is serving the **new** endpoint config:
+
+- **Success**: the endpoint name is printed, exit code 0.
+- **Failure or rollback**: if the new model fails to start, SageMaker rolls the endpoint back to its previous config, and the endpoint is `InService` again but on the old model. easy_sm detects this, prints the status, config and SageMaker's `FailureReason`, and exits 1, so CI stops before running tests against the old model. Container logs are in CloudWatch under `/aws/sagemaker/Endpoints/<endpoint-name>`.
+
+easy_sm **never deletes old endpoint configs (or models)**. SageMaker needs the previous config to roll back to, and an endpoint whose config has been deleted can't be updated until a config with that name exists again. If a deploy finds the endpoint in that state, it stops with an error naming the missing config; recreate it (`aws sagemaker create-endpoint-config` with the same name) or delete and recreate the endpoint.
+
+Cleaning up old configs is up to you. `easy_sm delete-endpoint --delete-config` removes the endpoint's current config; older ones can be listed and deleted with the AWS CLI:
+
+```bash
+aws sagemaker list-endpoint-configs --name-contains my-endpoint
+aws sagemaker delete-endpoint-config --endpoint-config-name <config-name>
 ```
 
 ### Prerequisites
@@ -421,7 +440,7 @@ easy_sm -t v1.0.0 deploy-serverless \
 
 ### Output Format
 
-The command outputs the endpoint name:
+The command outputs the endpoint name once the endpoint is `InService` on the new config, and exits 1 otherwise (see [Updates and rollbacks](#updates-and-rollbacks)):
 
 ```
 my-serverless-endpoint

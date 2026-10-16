@@ -1,6 +1,6 @@
 ---
 title: Decisions
-updated: 2026-10-13
+updated: 2026-10-15
 ---
 
 # Principles
@@ -14,6 +14,9 @@ updated: 2026-10-13
 - **No `cloud_app`** — it was never registered; cloud commands are plain functions registered in `__main__.py`, where names and `context_settings` belong. `--help` for all 14 commands identical before and after removal.
 - **Image tag from config, not a CLI flag** (`2f97df7`) — `docker_tag` lives in `{app_name}.json` so each app/model version can use its own tag; the global `--docker-tag` option was removed (user docs still mention it: open).
 - **Wait by default, `--no-wait` to opt out** (`0eba322`) — `train` and `process` (and `run`) wait for the job; reverses the fire-and-forget behaviour from the v3 simplification (`81e2c05`), which returned an S3 path before the job had finished.
+- **Deploys always wait and verify the new config; no `--no-wait`** (2026-10-15) — `deploy` / `deploy-serverless` (create or update) wait for `endpoint_in_service`, then fail (exit 1) unless the endpoint is `InService` on the **new** config. A failed update also ends `InService` after rolling back, so the config name is the real check. Before, the command returned as soon as the update started and CI smoke-tested the old model. No `--no-wait`, unlike `train`/`process`: a deploy that returns before it is known to work is the bug.
+- **Kept create-or-update, no separate `update-endpoint`** (2026-10-15) — callers run one command whether or not the endpoint exists, and splitting wouldn't change the wait/verify logic. A rollback command (point an endpoint at an existing config) is a different operation, possible later.
+- **easy_sm never deletes resources on its own; cleanup is the user's job** (2026-10-15) — updates used to delete the previous endpoint config right after `update_endpoint`. SageMaker allows that mid-rollout, so when the new model crashed it rolled back to a deleted config and the endpoint could no longer be updated (incident 2026-10-15; CloudTrail shows the delete one second after the update). Config names are unique per deploy (`hash()` per run, `62c900e`), so keeping them never collides; the cost is that configs and models accumulate until the user deletes them (`delete-endpoint --delete-config` or the AWS CLI). Deploying to an endpoint whose current config is already missing stops with a clear error instead of SageMaker's `ValidationException`.
 - **Short flags don't collide within a command** (`e25c95d`) — `-c` is always instance count; serverless max concurrency became `-mc`.
 - **`requirements_dir` kept** — renaming it to `requirements_file_name` was tried and reverted the same day (`9d7365e` → `472c0a1`) because requirements can live in different folders for different scenarios (e.g. dev vs prod), so the config points at a location, not a fixed file name.
 

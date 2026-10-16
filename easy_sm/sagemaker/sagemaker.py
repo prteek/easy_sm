@@ -9,7 +9,7 @@ logging.getLogger("sagemaker.config").setLevel(logging.WARNING)
 logging.getLogger("botocore.credentials").setLevel(logging.WARNING)
 
 import boto3
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, WaiterError
 from sagemaker import Session, get_execution_role
 from sagemaker.processing import ProcessingInput, ProcessingOutput, Processor
 from sagemaker.workflow.entities import PipelineVariable
@@ -155,26 +155,50 @@ class SageMakerClient:
     def _create_or_update_endpoint(
         self, endpoint_name: str, endpoint_config_name: str, endpoint_type: str
     ) -> str:
-        """Create new endpoint or update existing one."""
+        """Create new endpoint or update existing one, and wait until it is in service.
+
+        Old endpoint configs are never deleted: SageMaker rolls a failed update
+        back to the previous config, so it must still exist. Cleanup is left to
+        the user (`delete-endpoint --delete-config`).
+        """
         if self._check_endpoint_exists(endpoint_name):
-            previous_config_name = self.sagemaker_client.describe_endpoint(
-                EndpointName=endpoint_name
-            )["EndpointConfigName"]
+            current_config_name = self.get_endpoint_config_name(endpoint_name)
+            try:
+                self.sagemaker_client.describe_endpoint_config(
+                    EndpointConfigName=current_config_name
+                )
+            except ClientError:
+                raise RuntimeError(
+                    f"Endpoint '{endpoint_name}' uses endpoint config '{current_config_name}', "
+                    "which no longer exists, so SageMaker will refuse to update it. Recreate "
+                    "a config with that name, or delete and recreate the endpoint."
+                )
             self.sagemaker_client.update_endpoint(
                 EndpointName=endpoint_name, EndpointConfigName=endpoint_config_name
             )
-            if previous_config_name != endpoint_config_name:
-                try:
-                    self.sagemaker_client.delete_endpoint_config(
-                        EndpointConfigName=previous_config_name
-                    )
-                except ClientError:
-                    # The previous config may still be in use while the update
-                    # rolls out; leave cleanup to `delete-endpoint --delete-config`.
-                    pass
         else:
             self.sagemaker_client.create_endpoint(
                 EndpointName=endpoint_name, EndpointConfigName=endpoint_config_name
+            )
+
+        try:
+            self.sagemaker_client.get_waiter("endpoint_in_service").wait(
+                EndpointName=endpoint_name
+            )
+        except WaiterError:
+            pass  # Reported below from the endpoint's final state
+        endpoint = self.sagemaker_client.describe_endpoint(EndpointName=endpoint_name)
+        # A failed update also ends InService, after rolling back to the old
+        # config, so the config name is what says whether the deploy worked.
+        if (
+            endpoint["EndpointStatus"] != "InService"
+            or endpoint["EndpointConfigName"] != endpoint_config_name
+        ):
+            raise RuntimeError(
+                f"Deploying '{endpoint_config_name}' to endpoint '{endpoint_name}' failed "
+                f"(status {endpoint['EndpointStatus']}, config "
+                f"'{endpoint['EndpointConfigName']}'): "
+                f"{endpoint.get('FailureReason', 'no reason given')}"
             )
         return endpoint_name
 
