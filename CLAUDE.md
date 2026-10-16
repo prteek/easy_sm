@@ -64,13 +64,13 @@ ruff format easy_sm/
 
 ### Test Suite Overview
 
-**Total: 157 tests** covering all commands and core modules.
+**Total: 167 tests** covering all commands and core modules.
 
 #### Command Tests
 - **test_init_command.py** (7 tests): Project initialization with various configurations
 - **test_build_command.py** (13 tests): Docker image building with parameter variations and error scenarios
 - **test_local_commands.py** (33 tests): Local train, deploy, process, run and stop commands (incl. outdated-script guards and exit-code propagation)
-- **test_cloud_commands.py** (40 tests): SageMaker operations (train, deploy, batch-transform, process, run, list-endpoints, list-training-jobs, get-model-artifacts, delete-endpoint) and `SageMakerClient.run`
+- **test_cloud_commands.py** (47 tests): SageMaker operations (train, deploy, batch-transform, process, run, list-endpoints, list-training-jobs, get-model-artifacts, delete-endpoint), `SageMakerClient.run` and endpoint create/update (wait, rollback detection, configs never deleted)
 - **test_push_command.py** (9 tests): ECR image push with IAM/profile authentication
 - **test_update_command.py** (7 tests): Shell script update command with security fixes
 
@@ -124,6 +124,8 @@ Python tests mock external dependencies (subprocess, boto3, SageMaker SDK), so n
 - `get_app_name`: Gets app name from parameter or auto-detects
 - `get_iam_role`: Gets IAM role from parameter or `SAGEMAKER_ROLE` env var
 - `load_config`: Loads and validates configuration from JSON files (supports auto-detection)
+- `parse_env_vars`: Parses `--env KEY=VALUE` strings into a dict (shared by cloud/local `process` and `run`)
+- `require_run_support`: Refuses `run` if the project's `executor.sh` predates the `run` branch
 
 **Update Scripts** (`easy_sm/commands/update.py`):
 - `update_scripts`: Copies latest shell scripts from package template to app directory
@@ -161,7 +163,7 @@ Python tests mock external dependencies (subprocess, boto3, SageMaker SDK), so n
 ### Output Design
 Commands output clean, pipable data:
 - **train**: S3 model path (`s3://bucket/path/model.tar.gz`)
-- **deploy**: Endpoint name
+- **deploy**: Endpoint name, printed only once the endpoint is `InService` on the new config (exit 1 on failure or rollback)
 - **upload-data**: S3 data path
 - **get-model-artifacts**: S3 model path
 - **list-training-jobs**: Job details or names-only with `-n` flag
@@ -344,6 +346,20 @@ Returns:
 - Exit code `0` if all documentation is valid
 - Exit code `1` if issues found (displayed with specific descriptions)
 
+### Project Docs (`/project-docs`)
+**Location**: `.claude/skills/project-docs/SKILL.md`
+
+Maintains three short files at the repo root that track the state of the work, so it can be picked up cold:
+- `summary.md` - only state no tool shows: blockers, risks, untested work, anything kept local
+- `decisions.md` - choices made, why, and the evidence
+- `todolist.txt` - remaining work (Todo+ format, `Archive:` section last; `@me` for steps only the user can do)
+
+The repo map stays in this file ("Project Structure Reference"); the project docs don't repeat it.
+
+Use it after finishing a feature, fix, release or PR, or to work through items in `todolist.txt` ("do item N" = Nth pending item in the named section). Facts are checked against git, `gh`, pytest and PyPI rather than copied.
+
+Invoke with: `/project-docs`
+
 ## Continuous Integration and Deployment
 
 ### GitHub Actions Workflows
@@ -353,7 +369,7 @@ Returns:
 - **Process**:
   1. Setup Python 3.13
   2. Install package and test dependencies
-  3. Run full test suite (`pytest --cov=easy_sm`, 157 tests)
+  3. Run full test suite (`pytest --cov=easy_sm`, 167 tests)
   4. Run type checking (`mypy`)
   5. Run linting (`ruff check`)
 - **Result**: Validates code quality on every commit
@@ -456,8 +472,10 @@ easy_sm/
 │   └── skills/
 │       ├── refresh/          # Documentation refresh skill
 │       │   └── SKILL.md      # Refresh skill documentation
-│       └── validate-docs/    # Documentation validation skill
-│           └── SKILL.md      # Validate-docs skill documentation
+│       ├── validate-docs/    # Documentation validation skill
+│       │   └── SKILL.md      # Validate-docs skill documentation
+│       └── project-docs/     # Project status docs skill
+│           └── SKILL.md      # Project-docs skill documentation
 ├── scripts/
 │   └── validate_docs.py      # Documentation validation script (AST + regex)
 ├── easy_sm/
@@ -476,11 +494,11 @@ easy_sm/
 │   │   └── sagemaker.py      # SageMakerClient wrapper
 │   └── template/
 │       └── easy_sm_base/     # Docker template and entry points
-├── tests/                    # Test suite (uses pytest) - 157 tests total
+├── tests/                    # Test suite (uses pytest) - 167 tests total
 │   ├── test_build_command.py         # Tests for build command (13 tests)
 │   ├── test_init_command.py          # Tests for init command (7 tests)
 │   ├── test_local_commands.py        # Tests for local commands (33 tests)
-│   ├── test_cloud_commands.py        # Tests for cloud SageMaker operations (40 tests)
+│   ├── test_cloud_commands.py        # Tests for cloud SageMaker operations (47 tests)
 │   ├── test_push_command.py          # Tests for ECR push command (9 tests)
 │   ├── test_update_command.py        # Tests for update-scripts command (7 tests)
 │   ├── test_config.py                # Tests for Config/ConfigManager (16 tests)
@@ -493,6 +511,9 @@ easy_sm/
 ├── base-requirements.txt      # Development dependencies (pytest, mypy, ruff, etc)
 ├── requirements-docs.txt      # Documentation dependencies
 ├── CLAUDE.md                  # Claude Code guidance (this file)
+├── summary.md                 # Project docs: blockers, risks, untested work
+├── decisions.md               # Project docs: choices and evidence
+├── todolist.txt               # Project docs: work queue (Todo+)
 ├── DOCS_WORKFLOW.md           # Documentation workflow and validation guide
 ├── .githooks/
 │   └── pre-commit             # Git pre-commit hook for doc validation
@@ -521,6 +542,7 @@ easy_sm/
 - SageMaker operations require valid AWS credentials via configured profile
 - Local training/processing uses Docker to simulate SageMaker container environment
 - Configuration is persisted as JSON to maintain state across command invocations
+- easy_sm never deletes AWS resources on its own (old endpoint configs, models); cleanup is the user's job (`delete-endpoint --delete-config`). Deleting a config mid-update broke SageMaker's rollback (see `decisions.md`)
 - App names are validated to prevent security issues (path traversal, injection)
 
 ## Release Process

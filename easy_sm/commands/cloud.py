@@ -95,17 +95,21 @@ def deploy(
     app_name: Annotated[str | None, typer.Option("--app-name", "-a", help="App name (auto-detected if not specified)")] = None,
     instance_count: Annotated[int, typer.Option("--instance-count", "-c", help="EC2 instance count")] = 1,
 ) -> None:
-    """Deploy ML model(s) on SageMaker as a regular endpoint."""
+    """Deploy ML model(s) on SageMaker as a regular endpoint and wait until it is in service."""
     client = _get_client(app_name, iam_role_arn)
     image = _get_image(app_name)
 
-    endpoint = client.deploy(
-        image_name=image,
-        s3_model_location=s3_model_location,
-        instance_type=instance_type,
-        endpoint_name=endpoint_name,
-        instance_count=instance_count,
-    )
+    try:
+        endpoint = client.deploy(
+            image_name=image,
+            s3_model_location=s3_model_location,
+            instance_type=instance_type,
+            endpoint_name=endpoint_name,
+            instance_count=instance_count,
+        )
+    except RuntimeError as e:
+        print(str(e))
+        sys.exit(1)
     print(endpoint)
 
 
@@ -117,17 +121,21 @@ def deploy_serverless(
     app_name: Annotated[str | None, typer.Option("--app-name", "-a", help="App name (auto-detected if not specified)")] = None,
     max_concurrency: Annotated[int, typer.Option("--max-concurrency", "-mc", help="Max concurrency for the endpoint")] = 5,
 ) -> None:
-    """Deploy ML model(s) on SageMaker as serverless endpoint."""
+    """Deploy ML model(s) on SageMaker as serverless endpoint and wait until it is in service."""
     client = _get_client(app_name, iam_role_arn)
     image = _get_image(app_name)
 
-    endpoint = client.deploy_serverless(
-        image_name=image,
-        s3_model_location=s3_model_location,
-        memory_size_in_mb=memory_size_in_mb,
-        endpoint_name=endpoint_name,
-        max_concurrency=max_concurrency,
-    )
+    try:
+        endpoint = client.deploy_serverless(
+            image_name=image,
+            s3_model_location=s3_model_location,
+            memory_size_in_mb=memory_size_in_mb,
+            endpoint_name=endpoint_name,
+            max_concurrency=max_concurrency,
+        )
+    except RuntimeError as e:
+        print(str(e))
+        sys.exit(1)
     print(endpoint)
 
 

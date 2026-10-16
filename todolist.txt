@@ -1,0 +1,41 @@
+Release:
+  ☐ Review Dependabot PR #11: 8 major action bumps (checkout 4→7, setup-python 5→7, upload-artifact 4→7, download-artifact 4→8, ...); check upload/download-artifact compatibility before merging
+
+Run command:
+  ☐ Smoke-test `easy_sm run` on SageMaker for real (only mocked so far), e.g. `-e ml.t3.medium -- make <target>`
+  ☐ Add `--max-runtime` to `run` (SageMaker max_runtime_in_seconds) so an old image stuck serving can't bill for 24 h
+
+Security:
+  ☐ Stop mounting all of `~/.aws` writable into local containers: pass the profile's temporary credentials instead (`:ro` breaks SSO refresh)
+  ☐ `push.sh`: stop writing a permanent profile to `~/.aws/config`; remove the AWS CLI v1 `eval` path
+  ☐ Run `pip-audit` on runtime and dev dependencies (incl. sagemaker==2.257.3)
+
+Docs:
+  ☐ Remove the non-existent global `--docker-tag` / `-t` option from user docs (tag comes from `docker_tag` in `{app}.json`)
+  ☐ Make `validate_docs.py` read the `| Option | Short |` tables so flags are actually compared
+  ☐ Fix `local` docs saying `-a` is auto-detected (local commands require it)
+  ☐ Check the local path mapping table in `docs/commands/local.md` (`/opt/ml/processing/input` vs `test_dir/`)
+
+Behaviour:
+  ☐ Make the other local commands exit non-zero when the container fails (breaking change: note in release)
+
+Housekeeping:
+  ☐ Push branch docs/project-docs (kept local on request) and merge into main @me
+  ☐ Delete local branch feat/run-command (already merged into main)
+
+Archive:
+  ✔ Revoked the old PyPI API token and deleted the PYPI_TOKEN repo secret (repo and `pypi` environment now have no secrets); old-branch workflows can no longer publish @done(26-10-13)
+  ✔ Released 1.3.1 through Trusted Publishing: build / publish / release jobs passed; PyPI has attestations for both files (provenance HTTP 200) @done(26-10-13 15:21)
+  ✔ Merged PR #10 (Trusted Publishing, least-privilege jobs, SHA-pinned actions); Test, Docs and Dependabot runs green on main @done(26-10-13 13:31)
+  ✔ Added trusted publisher on pypi.org (prteek/easy_sm, publish.yml, env pypi) @done(26-10-13)
+  ✔ decisions.md updated from full commit history (179 commits) and this session: added Principles, CLI design, SageMaker SDK, CI and release sections (29 cited commits verified) @done(26-10-13)
+  ✔ Simplified project docs to 3 files: dropped root README.md (repo map lives in CLAUDE.md), trimmed summary.md to blockers / risks / untested work; skill updated @done(26-10-13)
+  ✔ Project docs moved to the repo root; facts re-checked (1.3.0 everywhere, 160 tests, CI green, PR #10 only open PR) @done(26-10-13)
+  ✔ Project docs and project-docs skill on branch docs/project-docs; manual Trusted Publishing steps listed as blocked on PyPI login @done(26-10-13 12:12)
+  ✔ Opened PR #10: Trusted Publishing, least-privilege publish jobs, SHA-pinned actions, Dependabot; created `pypi` environment (v* tags only); tests pass on PR @done(26-10-13 11:38)
+  ✔ Released 1.3.0 to PyPI and GitHub; fixed ANSI-sensitive test that failed only in CI; verified wheel contains run_local.sh @done(26-10-13 11:15)
+  ✔ Removed unused cloud_app (--help identical for all 14 commands) @done(26-10-13 11:10)
+  ✔ `run` stops option parsing at the command (fixed `-e prod` silently becoming the instance type) @done(26-10-13 11:05)
+  ✔ Refreshed CLAUDE.md (120 → 157 tests, removed non-existent --docker-tag guidance, fixed structure) @done(26-10-13 10:35)
+  ✔ Added `run` / `local run` (generic replacement for make), checked end to end in local Docker @done(26-10-13 10:25)
+  ✔ Fixed `--env` docker flag injection in process_local.sh and bound local deploy to 127.0.0.1 (125 → 140 tests) @done(26-10-13 10:18)

@@ -544,6 +544,27 @@ class TestCloudDeploy:
         call_kwargs = mock_client.deploy.call_args[1]
         assert call_kwargs["instance_count"] == 3
 
+    @patch("easy_sm.commands.cloud.SageMakerClient")
+    def test_deploy_failure_exits_nonzero(
+        self, mock_sagemaker_client: MagicMock, runner: CliRunner, temp_dir: str
+    ) -> None:
+        """A failed or rolled-back deploy exits 1 and does not print the endpoint name."""
+        app_name = "test-app"
+        self._create_config(app_name)
+
+        mock_client = MagicMock()
+        mock_client.deploy.side_effect = RuntimeError("rolled back")
+        mock_sagemaker_client.return_value = mock_client
+
+        result = runner.invoke(
+            app,
+            ["deploy", "-a", app_name, "-m", "s3://bucket/model.tar.gz", "-e", "ml.m5.large",
+             "-n", "test-endpoint", "-r", "arn:aws:iam::123456789012:role/SageMakerRole"],
+        )
+
+        assert result.exit_code == 1
+        assert result.output.strip() == "rolled back"
+
 
 class TestCloudDeployServerless:
     """Tests for the cloud deploy-serverless command."""
@@ -646,6 +667,27 @@ class TestCloudDeployServerless:
         assert result.exit_code == 0
         call_kwargs = mock_client.deploy_serverless.call_args[1]
         assert call_kwargs["max_concurrency"] == 10
+
+    @patch("easy_sm.commands.cloud.SageMakerClient")
+    def test_deploy_serverless_failure_exits_nonzero(
+        self, mock_sagemaker_client: MagicMock, runner: CliRunner, temp_dir: str
+    ) -> None:
+        """A failed or rolled-back deploy-serverless exits 1 and does not print the endpoint name."""
+        app_name = "test-app"
+        self._create_config(app_name)
+
+        mock_client = MagicMock()
+        mock_client.deploy_serverless.side_effect = RuntimeError("rolled back")
+        mock_sagemaker_client.return_value = mock_client
+
+        result = runner.invoke(
+            app,
+            ["deploy-serverless", "-a", app_name, "-m", "s3://bucket/model.tar.gz", "-s", "2048",
+             "-n", "test-serverless-endpoint", "-r", "arn:aws:iam::123456789012:role/SageMakerRole"],
+        )
+
+        assert result.exit_code == 1
+        assert result.output.strip() == "rolled back"
 
 
 class TestCloudBatchTransform:
@@ -1629,6 +1671,78 @@ class TestSageMakerClientRun:
             client.run("img:latest", "ml.m5.large", 1, ["make", "train"], None, False, None, "job")
 
         assert mock_run_processing.call_args[0][3] == ["run", "make", "train"]
+
+
+class TestSageMakerClientCreateOrUpdateEndpoint:
+    """_create_or_update_endpoint waits, verifies the new config is live, and never deletes configs."""
+
+    NEW = "ep-model-new-config"
+    OLD = "ep-model-old-config"
+
+    def _client(self, exists: bool, final: dict) -> tuple:
+        from easy_sm.sagemaker.sagemaker import SageMakerClient
+
+        client = SageMakerClient.__new__(SageMakerClient)
+        sm = MagicMock()
+        sm.list_endpoints.return_value = {"Endpoints": [{"EndpointName": "ep"}] if exists else []}
+        # First describe_endpoint reads the current config, the last one the final state
+        sm.describe_endpoint.side_effect = [{"EndpointConfigName": self.OLD}, final] if exists else [final]
+        client.sagemaker_client = sm
+        return client, sm
+
+    def test_update_success_waits_and_keeps_old_config(self) -> None:
+        client, sm = self._client(True, {"EndpointStatus": "InService", "EndpointConfigName": self.NEW})
+
+        assert client._create_or_update_endpoint("ep", self.NEW, "serverless") == "ep"
+
+        sm.update_endpoint.assert_called_once_with(EndpointName="ep", EndpointConfigName=self.NEW)
+        sm.get_waiter.assert_called_once_with("endpoint_in_service")
+        sm.get_waiter.return_value.wait.assert_called_once_with(EndpointName="ep")
+        sm.delete_endpoint_config.assert_not_called()
+
+    def test_rollback_raises_and_keeps_old_config(self) -> None:
+        client, sm = self._client(
+            True,
+            {"EndpointStatus": "InService", "EndpointConfigName": self.OLD, "FailureReason": "container crashed"},
+        )
+
+        with pytest.raises(RuntimeError, match="container crashed"):
+            client._create_or_update_endpoint("ep", self.NEW, "serverless")
+
+        sm.delete_endpoint_config.assert_not_called()
+
+    def test_waiter_failure_reports_final_state(self) -> None:
+        from botocore.exceptions import WaiterError
+
+        client, sm = self._client(
+            False, {"EndpointStatus": "Failed", "EndpointConfigName": self.NEW, "FailureReason": "bad image"}
+        )
+        sm.get_waiter.return_value.wait.side_effect = WaiterError("endpoint_in_service", "Failed", {})
+
+        with pytest.raises(RuntimeError, match="status Failed.*bad image"):
+            client._create_or_update_endpoint("ep", self.NEW, "provisioned")
+
+    def test_create_waits(self) -> None:
+        client, sm = self._client(False, {"EndpointStatus": "InService", "EndpointConfigName": self.NEW})
+
+        client._create_or_update_endpoint("ep", self.NEW, "provisioned")
+
+        sm.create_endpoint.assert_called_once_with(EndpointName="ep", EndpointConfigName=self.NEW)
+        sm.get_waiter.return_value.wait.assert_called_once_with(EndpointName="ep")
+        sm.delete_endpoint_config.assert_not_called()
+
+    def test_missing_current_config_gives_clear_error(self) -> None:
+        from botocore.exceptions import ClientError
+
+        client, sm = self._client(True, {})
+        sm.describe_endpoint_config.side_effect = ClientError(
+            {"Error": {"Code": "ValidationException", "Message": "Could not find"}}, "DescribeEndpointConfig"
+        )
+
+        with pytest.raises(RuntimeError, match=f"'{self.OLD}', which no longer exists"):
+            client._create_or_update_endpoint("ep", self.NEW, "serverless")
+
+        sm.update_endpoint.assert_not_called()
 
 
 if __name__ == "__main__":
