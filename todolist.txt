@@ -1,3 +1,16 @@
+v2 rewrite (branch v2, see decisions.md *Build order for the rewrite*):
+  ☐ Step 0: clean slate: delete 1.x code, tests, docs machinery; pyproject.toml; CI on pip --group dev
+  ☐ Step 1: easy_sm.toml config, lookup order, --config, `init`, `env` (28 tests)
+  ☐ Step 2: runtime module: train entry, stdlib WSGI app under gunicorn, run
+  ☐ Step 3: image: content hash, generated uv Dockerfile, `build`
+  ☐ Step 4: local loop: train/run --local, endpoints serve/invoke --local
+  ☐ Step 5: cloud jobs: push via boto3, train/run with log streaming
+  ☐ Step 6: endpoints: deploy from job, invoke, ls, describe, delete
+  ☐ Step 7: jobs group, data upload
+  ☐ Step 8: README, CLAUDE.md, release 2.0.0
+  ☐ Run the full sample workflow against a real AWS account before merging @me
+  ☐ Unpublish the 1.x GitHub Pages site (repo Settings → Pages) once docs.yml is gone from main @me
+
 Release:
   ☐ Review Dependabot PR #11: 8 major action bumps (checkout 4→7, setup-python 5→7, upload-artifact 4→7, download-artifact 4→8, ...); check upload/download-artifact compatibility before merging
 

@@ -25,8 +25,8 @@ Three short files at the repo root, so work on easy_sm can be picked up cold. Th
 
 Check facts before writing them; don't copy numbers from memory or from other docs.
 
-- Version: `setup.py`, `easy_sm/__init__.py`, `mkdocs.yml` (all three must agree); latest tag: `git tag --sort=-v:refname | head -1`; on PyPI: `https://pypi.org/pypi/easy-sm/json`.
-- Test count: `pytest -q --collect-only | tail -1`.
+- Version: `easy_sm/__init__.py` (the only place; `pyproject.toml` reads it); latest tag: `git tag --sort=-v:refname | head -1`; on PyPI: `https://pypi.org/pypi/easy-sm/json`.
+- Test count: `.venv/bin/pytest -q --collect-only | tail -1`.
 - PRs and CI: `gh pr list`, `gh run list --branch main --limit 3`.
 - History and reasons: `git log --format="%h %ad %s" --date=short`, `git show -s <hash>`.
 
@@ -35,6 +35,6 @@ Check facts before writing them; don't copy numbers from memory or from other do
 - **Starting:** create the three files with what is known; leave `TBD` where unknown.
 - **After each piece of work** (commit, PR, release): move the todo to `Archive:` with its result, update or remove the matching `summary.md` bullet, add any choice or caveat to `decisions.md`, and add new files to CLAUDE.md's structure map.
 - **Todo list as work queue:** "do item N" means the Nth pending `☐` in the named section. Don't reorder or reword the user's items. Prerequisites go above the item they block; out-of-scope findings become new items rather than silent fixes.
-- **Code changes still follow CLAUDE.md:** explain the plan and wait for OK before writing code, run tests/mypy/ruff, and run `/validate-docs` after doc edits.
+- **Code changes still follow CLAUDE.md:** explain the plan and wait for OK before writing code, run tests/mypy/ruff, and check doc edits against the code by hand.
 - **Keep it short:** one line per item, one or two sentences per decision or bullet, the result plus the one number that proves it. Link rather than repeat.
 - **Human edits win:** re-read a file before editing and build on the user's version.

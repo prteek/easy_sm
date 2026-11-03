@@ -1,0 +1,10 @@
+[project]
+name = "__APP_NAME__"
+version = "0.1.0"
+requires-python = ">=3.13"
+# Add packages with `uv add pandas scikit-learn`. They are installed in the image.
+dependencies = []
+
+[dependency-groups]
+# Only on your machine, never in the image.
+dev = ["pytest"]

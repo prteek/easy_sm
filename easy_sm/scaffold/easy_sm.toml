@@ -1,0 +1,28 @@
+# easy_sm settings for this project.
+# Command-line flags override anything here, and the environment variables
+# AWS_PROFILE, AWS_REGION and SAGEMAKER_ROLE override the [aws] values.
+app_name = "__APP_NAME__"
+
+[aws]
+# profile = "default"
+# region = "eu-west-2"
+# role = "arn:aws:iam::123456789012:role/sagemaker"
+
+[train]
+instance = "ml.m5.large"
+# count = 1
+# input = "s3://my-bucket/__APP_NAME__/data"
+# output = "s3://my-bucket/__APP_NAME__/models"
+# timeout = "24h"
+
+[run]
+instance = "ml.t3.medium"
+# timeout = "24h"
+# env = { LOG_LEVEL = "info" }
+
+[endpoint]
+# name = "__APP_NAME__"
+instance = "ml.m5.large"
+# serverless = true
+# memory = 2048
+# concurrency = 5

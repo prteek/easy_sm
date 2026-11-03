@@ -1,0 +1,37 @@
+[project]
+name = "easy_sm"
+dynamic = ["version"]
+description = "Prototype SageMaker training, jobs and endpoints locally with Docker, then run the same commands in the cloud"
+readme = ".github/README.md"
+license = "MIT"
+authors = [{ name = "Prateek", email = "prteek@icloud.com" }]
+requires-python = ">=3.13"
+dependencies = [
+    "typer>=0.9.0",
+    "boto3>=1.26.0",
+]
+
+[project.scripts]
+easy_sm = "easy_sm.__main__:cli"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "mypy>=1.8.0",
+    "ruff==0.16.2",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+path = "easy_sm/__init__.py"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--strict-markers --tb=short"
+
+[tool.mypy]
+python_version = "3.13"
+ignore_missing_imports = true
