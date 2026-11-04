@@ -24,7 +24,7 @@ uv venv -p 3.13 && uv pip install -e . --group dev   # dev setup
 .venv/bin/easy_sm --help
 ```
 
-## What exists (v2, step 1)
+## What exists (v2, step 2)
 
 ```
 easy_sm/
@@ -32,6 +32,12 @@ easy_sm/
 ├── __main__.py        # Typer app: global --config option, `init`, `env`
 ├── config.py          # easy_sm.toml loading/validation, SETTINGS table, Config.resolve()
 ├── init.py            # create_project(): copies scaffold/, never overwrites
+├── runtime/           # runs INSIDE the image as top-level `runtime`: stdlib only, relative imports
+│   ├── __init__.py    # /opt/ml paths, load_from() to import user code from src/
+│   ├── __main__.py    # python -m runtime train | serve | run COMMAND...
+│   ├── train.py       # run_training(): calls train(), failure file for SageMaker
+│   ├── serve.py       # make_app(handler): WSGI app (/ping, /invocations); gunicorn via create()
+│   └── run.py         # build_command() (.py → python), exec in src/
 └── scaffold/          # files `easy_sm init` writes into a new project
     ├── easy_sm.toml
     ├── pyproject.toml
