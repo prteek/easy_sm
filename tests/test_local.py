@@ -92,7 +92,9 @@ def test_local_folder_ignores_itself_in_git(tmp_path):
     assert (tmp_path / ".easy_sm" / ".gitignore").read_text() == "*\n"
 
 
-def test_cloud_mode_says_it_is_not_available_yet():
-    result = CliRunner().invoke(app, ["train"])
+def test_cloud_only_options_are_rejected_with_local(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    CliRunner().invoke(app, ["init", "--name", "churn"])
+    result = CliRunner().invoke(app, ["train", "--local", "--instance", "ml.m5.large"])
     assert result.exit_code == 2
-    assert "--local" in result.stderr
+    assert "only apply to SageMaker jobs" in result.stderr

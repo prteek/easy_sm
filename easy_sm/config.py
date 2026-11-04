@@ -26,7 +26,6 @@ class Setting:
 # so a typo like `instnace` fails loudly instead of being silently ignored.
 SETTINGS: dict[str, Setting] = {
     "app_name": Setting(str),
-    "aws.profile": Setting(str, env="AWS_PROFILE"),
     "aws.region": Setting(str, env="AWS_REGION"),
     "aws.role": Setting(str, env="SAGEMAKER_ROLE"),
     "train.instance": Setting(str, default="ml.m5.large"),
@@ -37,6 +36,8 @@ SETTINGS: dict[str, Setting] = {
     "run.instance": Setting(str, default="ml.t3.medium"),
     "run.timeout": Setting(str, default="24h"),
     "run.env": Setting(dict),
+    "run.input": Setting(str),  # S3 folder copied to /opt/ml/processing/input
+    "run.output": Setting(str),  # S3 folder that /opt/ml/processing/output is uploaded to
     "endpoint.name": Setting(str),
     "endpoint.instance": Setting(str, default="ml.m5.large"),
     "endpoint.serverless": Setting(bool, default=False),

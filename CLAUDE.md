@@ -24,16 +24,17 @@ uv venv -p 3.13 && uv pip install -e . --group dev   # dev setup
 .venv/bin/easy_sm --help
 ```
 
-## What exists (v2, step 4)
+## What exists (v2, step 5)
 
 ```
 easy_sm/
 ├── __init__.py        # __version__ (single source; pyproject reads it)
-├── __main__.py        # Typer app: --config, init, env, build, train/run --local, endpoints serve/invoke --local
+├── __main__.py        # Typer app: --config, init, env, build, push, train/run (cloud or --local), endpoints serve/invoke --local
 ├── config.py          # easy_sm.toml loading/validation, SETTINGS table, Config.resolve()
 ├── init.py            # create_project(): copies scaffold/, never overwrites
 ├── image.py           # image_files() → hash tag + build folder; generated uv Dockerfile; build()
 ├── local.py           # docker run argv builders (train/run/serve), parse_env, invoke(); .easy_sm/ folder
+├── cloud.py           # boto3: session (default credential chain), ECR push, job names, Create*Job requests, follow() logs
 ├── runtime/           # runs INSIDE the image as top-level `runtime`: stdlib only, relative imports
 │   ├── __init__.py    # /opt/ml paths, load_from() to import user code from src/
 │   ├── __main__.py    # python -m runtime train | serve | run COMMAND...
@@ -55,7 +56,8 @@ pyproject.toml         # packaging (hatchling), dev dependency group, pytest/myp
 - `load(path)` rejects unknown keys, wrong types, missing/invalid `app_name`, non-string `run.env` values. Raises `ConfigError`
 - `Config.resolve(key, flag)` returns `(value, source)`; `Config.get(key, flag)` returns the value. `env` is a parameter so tests pass a dict instead of patching `os.environ`
 - `app_name`: lowercase letters, digits, single hyphens, max 32 chars (it becomes the Docker image, ECR repo and SageMaker job/endpoint name prefix)
-- Env overrides: `AWS_PROFILE`, `AWS_REGION`, `SAGEMAKER_ROLE`
+- Env overrides: `AWS_REGION`, `SAGEMAKER_ROLE`. With no region set, boto3's own (`AWS_DEFAULT_REGION`, `~/.aws`) is used
+- **No profile setting**: credentials come from boto3's default chain exactly like the AWS CLI (env keys, `AWS_PROFILE`, OIDC, instance role). `easy_sm env` shows the account and credential source actually used
 
 ## Code Style
 

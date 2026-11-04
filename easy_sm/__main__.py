@@ -1,11 +1,14 @@
 """The easy_sm command line."""
 
+from collections.abc import Callable
 from pathlib import Path
-from typing import Annotated, NoReturn
+from typing import Annotated, Any, NoReturn
 
 import typer
+from botocore.exceptions import BotoCoreError, ClientError
 
-from easy_sm import config, image, local
+from easy_sm import cloud, config, image, local
+from easy_sm.cloud import CloudError
 from easy_sm.config import CONFIG_FILE, SETTINGS, Config, ConfigError
 from easy_sm.image import ImageError
 from easy_sm.init import create_project
@@ -19,6 +22,13 @@ app.add_typer(endpoints, name="endpoints")
 
 LocalFlag = Annotated[bool, typer.Option("--local", help="Run in local Docker instead of SageMaker")]
 PortOption = Annotated[int, typer.Option("--port", help="Local port of the endpoint")]
+InstanceOption = Annotated[str | None, typer.Option("--instance", help="SageMaker instance type, e.g. ml.m5.large")]
+TimeoutOption = Annotated[str | None, typer.Option("--timeout", help="Stop the job after this long, e.g. 90m, 2h")]
+NoWaitFlag = Annotated[bool, typer.Option("--no-wait", help="Print the job name and return without waiting")]
+QuietFlag = Annotated[bool, typer.Option("--quiet", "-q", help="Wait without printing logs")]
+
+# Errors from AWS or our own checks that should end the command with a message, not a traceback.
+AWS_ERRORS = (CloudError, ValueError, ClientError, BotoCoreError)
 
 
 @app.callback()
@@ -92,6 +102,14 @@ def env(ctx: typer.Context) -> None:
     except ImageError:
         tag, source = "-", "run 'easy_sm build'"
     typer.echo(f"{'image':<22} {tag:<45} {source}")
+    try:
+        s = cloud.session(cfg)
+        method = s.get_credentials().method
+        via = f"{method}, profile {s.profile_name}" if method == "shared-credentials-file" else method
+        account, source = cloud.account_id(s), f"{s.region_name}, credentials: {via}"
+    except AWS_ERRORS as e:
+        account, source = "-", f"not available ({type(e).__name__})"
+    typer.echo(f"{'aws.account':<22} {account:<45} {source}")
     for key in SETTINGS:
         value, source = cfg.resolve(key)
         shown = "-" if value is None else str(value)
@@ -105,26 +123,113 @@ def build(ctx: typer.Context) -> None:
 
 
 @app.command()
+def push(ctx: typer.Context) -> None:
+    """Build the image if needed, push it to ECR (skipped if already there) and print its URI."""
+    cfg = load_config(ctx)
+    tag = build_image(cfg)
+    try:
+        s = cloud.session(cfg)
+        typer.echo(cloud.push(s, cloud.account_id(s), tag))
+    except AWS_ERRORS as e:
+        fail(str(e))
+
+
+def reject_cloud_options(**options: object) -> None:
+    """--local runs in Docker on this machine, so SageMaker-only options make no sense."""
+    given = [name for name, value in options.items() if value not in (None, False)]
+    if given:
+        fail(f"{', '.join(given)} only apply to SageMaker jobs, not --local", 2)
+
+
+def run_cloud_job(
+    cfg: Config, kind: str, make_request: Callable[[str, str, str], dict[str, Any]], no_wait: bool, quiet: bool
+) -> None:
+    """Build and push the image, start the job, print its name, then follow it to the end."""
+    tag = build_image(cfg)
+    try:
+        s = cloud.session(cfg)
+        role = cfg.get("aws.role")
+        if not role:
+            fail("No IAM role: set [aws] role in easy_sm.toml or SAGEMAKER_ROLE")
+        uri = cloud.push(s, cloud.account_id(s), tag)
+        name = cloud.job_name(tag, cloud.now())
+        cloud.start(s, kind, make_request(name, uri, role))
+    except AWS_ERRORS as e:
+        fail(str(e))
+    typer.echo(name)  # stdout: just the job name, so $(easy_sm train) works
+    if no_wait:
+        return
+    try:
+        job = cloud.follow(s, kind, name, show_logs=not quiet)
+    except KeyboardInterrupt:
+        fail(
+            f"Stopped following {name}; the job is still running.\n"
+            f"Stop it with: aws sagemaker stop-{kind}-job --{kind}-job-name {name}",
+            130,
+        )
+    if job["status"] != "Completed":
+        fail(f"{name} {job['status']}: {job['reason']}")
+
+
+def s3_default(cfg: Config, folder: str) -> str:
+    """s3://sagemaker-<region>-<account>/<app>/<folder>, creating the bucket if needed."""
+    s = cloud.session(cfg)
+    bucket = cloud.default_bucket(cloud.account_id(s), s.region_name)
+    cloud.ensure_bucket(s, bucket)
+    return f"s3://{bucket}/{cfg.get('app_name')}/{folder}"
+
+
+@app.command()
 def train(
     ctx: typer.Context,
     is_local: LocalFlag = False,
-    input_dir: Annotated[
-        Path, typer.Option("--input", help="Local folder with the training data")
-    ] = Path("data"),
+    input_path: Annotated[
+        str | None,
+        typer.Option("--input", help="Training data: S3 folder, or a local folder with --local (default data/)"),
+    ] = None,
+    output: Annotated[str | None, typer.Option("--output", help="S3 folder for the model")] = None,
+    instance: InstanceOption = None,
+    count: Annotated[int | None, typer.Option("--count", help="Number of instances")] = None,
+    timeout: TimeoutOption = None,
+    no_wait: NoWaitFlag = False,
+    quiet: QuietFlag = False,
 ) -> None:
-    """Train a model: calls train() in src/train.py. Prints where the model was saved."""
-    if not is_local:
-        cloud_not_ready()
+    """Train a model: calls train() in src/train.py.
+
+    On SageMaker, prints the job name and streams the logs. With --local, prints the model folder.
+    """
     cfg = load_config(ctx)
     project = cfg.path.parent
-    data_dir = input_dir if input_dir.is_absolute() else project / input_dir
-    if not data_dir.is_dir():
-        fail(f"{data_dir} not found")
-    tag = build_image(cfg)
-    model_dir, output_dir = local.local_dirs(project)
-    local.empty(model_dir)
-    docker_or_exit(local.train_command(tag, data_dir, model_dir, output_dir))
-    typer.echo(model_dir)
+    if is_local:
+        reject_cloud_options(
+            output=output, instance=instance, count=count, timeout=timeout, no_wait=no_wait, quiet=quiet
+        )
+        data_dir = Path(input_path or "data")
+        data_dir = data_dir if data_dir.is_absolute() else project / data_dir
+        if not data_dir.is_dir():
+            fail(f"{data_dir} not found")
+        tag = build_image(cfg)
+        model_dir, output_dir = local.local_dirs(project)
+        local.empty(model_dir)
+        docker_or_exit(local.train_command(tag, data_dir, model_dir, output_dir))
+        typer.echo(model_dir)
+        return
+
+    try:
+        input_s3 = cfg.get("train.input", input_path) or s3_default(cfg, "data")
+        output_s3 = cfg.get("train.output", output) or s3_default(cfg, "models")
+        cloud.check_s3_has_data(cloud.session(cfg), input_s3)
+        seconds = cloud.parse_timeout(cfg.get("train.timeout", timeout))
+    except AWS_ERRORS as e:
+        fail(str(e))
+
+    def request(name: str, uri: str, role: str) -> dict[str, Any]:
+        return cloud.training_job_request(
+            name, uri, role, cfg.get("train.instance", instance), cfg.get("train.count", count),
+            input_s3, output_s3, seconds,
+        )  # fmt: skip
+
+    run_cloud_job(cfg, "training", request, no_wait, quiet)
 
 
 @app.command(context_settings={"allow_interspersed_args": False})
@@ -137,13 +242,15 @@ def run(
     env_pairs: Annotated[
         list[str] | None, typer.Option("--env", help="Environment variable KEY=VALUE (repeatable)")
     ] = None,
+    instance: InstanceOption = None,
+    timeout: TimeoutOption = None,
+    no_wait: NoWaitFlag = False,
+    quiet: QuietFlag = False,
 ) -> None:
     """Run any command from src/ in the project's image. A .py file runs with python.
 
     easy_sm options go before the command; everything after it is passed to the command.
     """
-    if not is_local:
-        cloud_not_ready()
     cfg = load_config(ctx)
     project = cfg.path.parent
     try:
@@ -151,9 +258,26 @@ def run(
         env_vars = {**(cfg.get("run.env") or {}), **local.parse_env(env_pairs or [])}
     except ValueError as e:
         fail(str(e))
-    tag = build_image(cfg)
-    _, output_dir = local.local_dirs(project)
-    docker_or_exit(local.run_command(tag, project / "data", output_dir, env_vars, command))
+
+    if is_local:
+        reject_cloud_options(instance=instance, timeout=timeout, no_wait=no_wait, quiet=quiet)
+        tag = build_image(cfg)
+        _, output_dir = local.local_dirs(project)
+        docker_or_exit(local.run_command(tag, project / "data", output_dir, env_vars, command))
+        return
+
+    try:
+        seconds = cloud.parse_timeout(cfg.get("run.timeout", timeout))
+    except ValueError as e:
+        fail(str(e))
+
+    def request(name: str, uri: str, role: str) -> dict[str, Any]:
+        return cloud.processing_job_request(
+            name, uri, role, cfg.get("run.instance", instance), command, env_vars,
+            cfg.get("run.input"), cfg.get("run.output"), seconds,
+        )  # fmt: skip
+
+    run_cloud_job(cfg, "processing", request, no_wait, quiet)
 
 
 @endpoints.command()

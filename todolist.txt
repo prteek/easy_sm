@@ -2,8 +2,11 @@ v2 rewrite (branch v2, see decisions.md *Build order for the rewrite*):
   ☐ Step 5: cloud jobs: push via boto3, train/run with log streaming
   ☐ Pass AWS credentials to local containers without mounting ~/.aws writable (needed for run --local scripts that use S3)
   ☐ Step 6: endpoints: deploy from job, invoke, ls, describe, delete
-  ☐ Step 7: jobs group, data upload
+  ☐ Step 7: jobs group, data upload; agent support: --dry-run, --format json, `easy_sm skill`
+  ☐ Retired easy_sm.toml keys give a targeted hint (start with aws.profile → use AWS_PROFILE)
   ☐ Step 8: README, CLAUDE.md, release 2.0.0
+  ☐ Scaffold pyproject: add easy_sm to the dev group; README explains `uv run easy_sm` and upgrading via `uv lock --upgrade-package easy_sm`
+  ☐ If a docs site is brought back, include the hf CLI credits (now only in .github/README.md, which is also the PyPI page)
   ☐ Run the full sample workflow against a real AWS account before merging @me
   ☐ Unpublish the 1.x GitHub Pages site (repo Settings → Pages) once docs.yml is gone from main @me
 
