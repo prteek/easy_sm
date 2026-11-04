@@ -1,35 +1,22 @@
-v2 rewrite (branch v2, see decisions.md *Build order for the rewrite*):
-  ☐ Step 8: README, CLAUDE.md, release 2.0.0
-  ☐ Scaffold pyproject: add easy_sm to the dev group; README explains `uv run easy_sm` and upgrading via `uv lock --upgrade-package easy_sm`
-  ☐ Run the full sample workflow against a real AWS account before merging @me
-  ☐ After merging v2: check https://prteek.github.io/easy_sm/ shows the README page (pages.yml replaces the 1.x site)
-
-Release:
-  ☐ Review Dependabot PR #11: 8 major action bumps (checkout 4→7, setup-python 5→7, upload-artifact 4→7, download-artifact 4→8, ...); check upload/download-artifact compatibility before merging
-
-Run command:
-  ☐ Smoke-test `easy_sm run` on SageMaker for real (only mocked so far), e.g. `-e ml.t3.medium -- make <target>`
-  ☐ Add `--max-runtime` to `run` (SageMaker max_runtime_in_seconds) so an old image stuck serving can't bill for 24 h
-
-Security:
-  ☐ Stop mounting all of `~/.aws` writable into local containers: pass the profile's temporary credentials instead (`:ro` breaks SSO refresh)
-  ☐ `push.sh`: stop writing a permanent profile to `~/.aws/config`; remove the AWS CLI v1 `eval` path
-  ☐ Run `pip-audit` on runtime and dev dependencies (incl. sagemaker==2.257.3)
-
-Docs:
-  ☐ Remove the non-existent global `--docker-tag` / `-t` option from user docs (tag comes from `docker_tag` in `{app}.json`)
-  ☐ Make `validate_docs.py` read the `| Option | Short |` tables so flags are actually compared
-  ☐ Fix `local` docs saying `-a` is auto-detected (local commands require it)
-  ☐ Check the local path mapping table in `docs/commands/local.md` (`/opt/ml/processing/input` vs `test_dir/`)
-
-Behaviour:
-  ☐ Make the other local commands exit non-zero when the container fails (breaking change: note in release)
-
-Housekeeping:
-  ☐ Push branch docs/project-docs (kept local on request) and merge into main @me
-  ☐ Delete local branch feat/run-command (already merged into main)
+Next:
+  ☐ Run the README's two examples yourself against your AWS account (Claude ran every command; your own run is still open) @me
+  ☐ Review Dependabot PR #13 (setup-python and pypi-publish action bumps)
+  ☐ Run `pip-audit` on runtime and dev dependencies (now typer, boto3; dev: pytest, mypy, ruff)
+  ☐ Delete merged local branches: v2, docs/project-docs, feat/run-command; remote v2 and docs/project-docs @me
 
 Archive:
+  ✔ Released 2.0.0: PR #14 merged (CI green after fixing `env` with no AWS credentials), tag v2.0.0 published to PyPI by Trusted Publishing (wheel + sdist), GitHub release created; fresh `uvx easy_sm==2.0.0` project ran init, uv lock (resolves the easy_sm>=2.0.0 dev pin) and train --local @done(26-11-04)
+  ✔ GitHub Pages now renders the README (pages.yml); first deploy replaced the 1.x MkDocs site, HTTP 200 @done(26-11-04)
+  ✔ README minimal execution-role policy tested with a temporary role: training, processing with S3 in/out, endpoint (role deleted after) @done(26-11-04)
+  ✔ Scaffold pins easy_sm>=2.0.0 in the dev group; README explains `uv run easy_sm` and upgrading (dff2906) @done(26-11-04)
+  ✘ Review Dependabot PR #11 (merged) @cancelled(26-11-04)
+  ✘ Smoke-test `easy_sm run` on SageMaker (done in v2: real processing jobs, exit codes, S3 input/output) @cancelled(26-11-04)
+  ✘ Add `--max-runtime` to `run` (v2 has `--timeout` / `[run] timeout`, and no serving fallback) @cancelled(26-11-04)
+  ✘ Stop mounting `~/.aws` writable (v2 passes current credentials as `-e NAME` only) @cancelled(26-11-04)
+  ✘ `push.sh` writes `~/.aws/config` (v2 pushes with boto3; no push.sh) @cancelled(26-11-04)
+  ✘ 1.x docs fixes: --docker-tag, validate_docs.py tables, local -a, local path table (MkDocs site and validate_docs.py removed in v2) @cancelled(26-11-04)
+  ✘ Make other local commands exit non-zero on failure (v2: every local command passes the container's exit code) @cancelled(26-11-04)
+  ✘ Push and merge docs/project-docs (its content reached main through v2) @cancelled(26-11-04)
   ✔ Diagrams for endpoints, jobs, data, --dry-run and local credentials; README, summary.md and CLAUDE.md updated for v2 (22 diagrams, be06ebd) @done(26-11-04)
   ✔ v2: local containers get the current AWS credentials as `-e NAME` only; no ~/.aws mount (127 tests; STS call from container returned the personal account, 2894fc6) @done(26-11-04 14:04)
   ✔ v2 step 7b: --dry-run, --format json, easy_sm skill, retired-key hints (122 tests; real dry runs started nothing, 4d62c94) @done(26-11-04 13:43)
