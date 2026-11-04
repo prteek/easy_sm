@@ -210,12 +210,12 @@ def split_s3(uri: str) -> tuple[str, str]:
     return bucket, prefix
 
 
-def check_s3_has_data(s: boto3.Session, uri: str) -> None:
-    """Fail now, not minutes later on a paid instance, if the input folder is empty."""
+def check_s3_has_data(s: boto3.Session, uri: str, hint: str) -> None:
+    """Fail now, not minutes later on a paid instance, if the input folder is empty. hint says how to fix it."""
     bucket, prefix = split_s3(uri)
     found = s.client("s3").list_objects_v2(Bucket=bucket, Prefix=prefix, MaxKeys=1).get("KeyCount", 0)
     if not found:
-        raise CloudError(f"No data at {uri}. Upload it first, e.g. aws s3 cp --recursive data/ {uri}/")
+        raise CloudError(f"No data at {uri}. {hint}")
 
 
 def ensure_bucket(s: boto3.Session, bucket: str) -> None:

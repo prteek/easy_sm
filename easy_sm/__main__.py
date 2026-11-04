@@ -302,7 +302,7 @@ def train(
     try:
         input_s3 = cfg.get("train.input", input_path) or s3_default(cfg, "data", create=not dry_run)
         output_s3 = cfg.get("train.output", output) or s3_default(cfg, "models", create=not dry_run)
-        cloud.check_s3_has_data(cloud.session(cfg), input_s3)
+        cloud.check_s3_has_data(cloud.session(cfg), input_s3, f"Upload it first: easy_sm data upload data {input_s3}")
         seconds = cloud.parse_timeout(cfg.get("train.timeout", timeout))
     except AWS_ERRORS as e:
         fail(str(e))
@@ -429,7 +429,7 @@ def deploy(
         s = cloud.session(cfg)
         source: dict[str, Any]
         if model:
-            cloud.check_s3_has_data(s, model)
+            cloud.check_s3_has_data(s, model, "Check the path; easy_sm jobs artifacts JOB prints a job's model")
             if dry_run:
                 plan = image_plan(cfg, s, cloud.account_id(s))
                 image_uri, source = plan["uri"], {"model": model, "image": plan}
