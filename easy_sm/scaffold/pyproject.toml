@@ -6,5 +6,6 @@ requires-python = ">=3.13"
 dependencies = []
 
 [dependency-groups]
-# Only on your machine, never in the image.
-dev = ["pytest"]
+# Only on your machine, never in the image. easy_sm is pinned here so everyone on the
+# project uses the same version: run it with `uv run easy_sm ...`.
+dev = ["pytest", "easy_sm>=2.0.0"]

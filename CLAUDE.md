@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **easy_sm** is a Python CLI (Python >=3.13, built on Typer) for prototyping SageMaker training, jobs and endpoints locally with Docker, then running the same commands in the cloud.
 
-**Version 2 is a complete rewrite in progress on the `v2` branch** (no backward compatibility with 1.x). `main` still holds 1.4.0. The design and its reasons are in `decisions.md` (section *CLI redesign*); the build order is its *Build order for the rewrite* bullet. Only describe and document what exists in the code now.
+**Version 2 (2.0.0) is a complete rewrite** with no backward compatibility with 1.x; 1.x lives only in git history and on PyPI. The design and its reasons are in `decisions.md` (section *CLI redesign*); the build order is its *Build order for the rewrite* bullet. Only describe and document what exists in the code now.
 
 ### Design principles
 - **hf-style CLI**: commands grouped by resource then action (`easy_sm jobs ls`), the main object as a positional argument, sensible defaults, `--local` to run the same command in local Docker
