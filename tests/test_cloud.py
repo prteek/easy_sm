@@ -90,3 +90,17 @@ def test_env_values_over_sagemakers_limit_are_rejected():
 
 def test_log_lines_are_labelled_with_the_host():
     assert host_of("churn-20261104-153000-a1b2/algo-1-1730000000") == "algo-1"
+
+
+def test_credential_env_for_temporary_credentials():
+    from easy_sm.cloud import credential_env
+
+    env = credential_env("AKIA", "secret", "token", "eu-west-1")
+    assert env == {"AWS_ACCESS_KEY_ID": "AKIA", "AWS_SECRET_ACCESS_KEY": "secret", "AWS_SESSION_TOKEN": "token",
+                   "AWS_REGION": "eu-west-1", "AWS_DEFAULT_REGION": "eu-west-1"}  # fmt: skip
+
+
+def test_credential_env_without_token_or_region():
+    from easy_sm.cloud import credential_env
+
+    assert credential_env("AKIA", "secret", None, None) == {"AWS_ACCESS_KEY_ID": "AKIA", "AWS_SECRET_ACCESS_KEY": "secret"}

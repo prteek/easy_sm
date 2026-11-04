@@ -98,3 +98,34 @@ def test_cloud_only_options_are_rejected_with_local(tmp_path, monkeypatch):
     result = CliRunner().invoke(app, ["train", "--local", "--instance", "ml.m5.large"])
     assert result.exit_code == 2
     assert "only apply to SageMaker jobs" in result.stderr
+
+
+# --- AWS credentials for local containers ---
+
+
+def test_credentials_are_passed_by_name_never_by_value():
+    command = run_command("churn:abc", DATA, OUTPUT, {}, ["x.py"], ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"])
+    i = command.index("AWS_SECRET_ACCESS_KEY")
+    assert command[i - 1] == "-e"  # `-e NAME`: docker copies the value from its own environment
+    assert not any(arg.startswith("AWS_SECRET_ACCESS_KEY=") for arg in command)
+
+
+def test_no_aws_folder_is_mounted():
+    for command in (
+        train_command("t", DATA, MODEL, OUTPUT, ["AWS_ACCESS_KEY_ID"]),
+        run_command("t", DATA, OUTPUT, {}, ["x.py"], ["AWS_ACCESS_KEY_ID"]),
+        serve_command("t", MODEL, 8080, ["AWS_ACCESS_KEY_ID"]),
+    ):
+        assert not any(".aws" in mount for mount in mounts(command))
+
+
+def test_dry_run_shows_credential_names_but_not_values(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    CliRunner().invoke(app, ["init", "--name", "churn"])
+    (tmp_path / "uv.lock").write_text("version = 1\n")
+    (tmp_path / "src" / "x.py").write_text("print('hi')\n")
+    fake = {"AWS_ACCESS_KEY_ID": "AKIAFAKEFAKEFAKE", "AWS_SECRET_ACCESS_KEY": "fake-secret-value",
+            "AWS_SESSION_TOKEN": None, "AWS_PROFILE": None, "AWS_REGION": "eu-west-1"}  # fmt: skip
+    result = CliRunner().invoke(app, ["run", "--local", "--dry-run", "x.py"], env=fake)
+    assert "AWS_SECRET_ACCESS_KEY" in result.stdout
+    assert "fake-secret-value" not in result.stdout and "AKIAFAKEFAKEFAKE" not in result.stdout

@@ -3,11 +3,13 @@
 The *_command functions only build the `docker run` argument list; docker() runs one.
 """
 
+import os
 import shutil
 import subprocess
 import sys
 import urllib.error
 import urllib.request
+from collections.abc import Sequence
 from pathlib import Path
 
 from easy_sm.image import PLATFORM, ImageError
@@ -36,13 +38,20 @@ def empty(folder: Path) -> None:
     folder.mkdir()
 
 
-def docker_run() -> list[str]:
-    return ["docker", "run", "--rm", "--platform", PLATFORM]
+def docker_run(passed: Sequence[str] = ()) -> list[str]:
+    """`-e NAME` without a value makes docker copy NAME from its own environment, so secrets
+    (AWS credentials) never appear in the command line, the process list or --dry-run output."""
+    args = ["docker", "run", "--rm", "--platform", PLATFORM]
+    for name in passed:
+        args += ["-e", name]
+    return args
 
 
-def train_command(tag: str, data_dir: Path, model_dir: Path, output_dir: Path) -> list[str]:
+def train_command(
+    tag: str, data_dir: Path, model_dir: Path, output_dir: Path, passed: Sequence[str] = ()
+) -> list[str]:
     return [
-        *docker_run(),
+        *docker_run(passed),
         "-v", f"{data_dir.resolve()}:/opt/ml/input/data/training:ro",
         "-v", f"{model_dir.resolve()}:/opt/ml/model",
         "-v", f"{output_dir.resolve()}:/opt/ml/output",
@@ -51,13 +60,13 @@ def train_command(tag: str, data_dir: Path, model_dir: Path, output_dir: Path) -
 
 
 def run_command(
-    tag: str, data_dir: Path, output_dir: Path, env: dict[str, str], command: list[str]
+    tag: str, data_dir: Path, output_dir: Path, env: dict[str, str], command: list[str], passed: Sequence[str] = ()
 ) -> list[str]:
     env_args: list[str] = []
     for key, value in env.items():
         env_args += ["-e", f"{key}={value}"]  # one argument each: a value can't become a docker flag
     return [
-        *docker_run(),
+        *docker_run(passed),
         "-v", f"{data_dir.resolve()}:/opt/ml/processing/input:ro",
         "-v", f"{output_dir.resolve()}:/opt/ml/processing/output",
         *env_args,
@@ -65,9 +74,9 @@ def run_command(
     ]  # fmt: skip
 
 
-def serve_command(tag: str, model_dir: Path, port: int) -> list[str]:
+def serve_command(tag: str, model_dir: Path, port: int, passed: Sequence[str] = ()) -> list[str]:
     return [
-        *docker_run(),
+        *docker_run(passed),
         "-p", f"127.0.0.1:{port}:8080",  # reachable from this machine only
         "-v", f"{model_dir.resolve()}:/opt/ml/model:ro",
         tag, "serve",
@@ -116,9 +125,11 @@ def invoke(port: int, body: bytes, content_type: str) -> tuple[int, bytes]:
         ) from e
 
 
-def docker(command: list[str]) -> int:
-    """Run docker with its output on stderr; return the container's exit code."""
+def docker(command: list[str], secrets: dict[str, str] | None = None) -> int:
+    """Run docker with its output on stderr; return the container's exit code. secrets are added
+    to docker's environment only, for the `-e NAME` arguments to pick up."""
+    env = {**os.environ, **secrets} if secrets else None
     try:
-        return subprocess.run(command, stdout=sys.stderr, check=False).returncode
+        return subprocess.run(command, stdout=sys.stderr, env=env, check=False).returncode
     except FileNotFoundError as e:
         raise ImageError("'docker' is not installed or not on PATH") from e

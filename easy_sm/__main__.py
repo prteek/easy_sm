@@ -95,10 +95,10 @@ def build_image(cfg: Config) -> str:
         fail(str(e))
 
 
-def docker_or_exit(command: list[str]) -> None:
+def docker_or_exit(command: list[str], secrets: dict[str, str] | None = None) -> None:
     """Run a container; exit with its exit code if that isn't 0."""
     try:
-        code = local.docker(command)
+        code = local.docker(command, secrets)
     except ImageError as e:
         fail(str(e))
     if code != 0:
@@ -283,13 +283,15 @@ def train(
         if dry_run:
             plan = image_plan(cfg)
             model_dir, output_dir = local.local_paths(project)
+            names = list(cloud.container_credentials(cfg.get("aws.region")))
             emit_json({"command": "train --local", "dry_run": True, "image": plan,
-                       "docker": local.train_command(plan["tag"], data_dir, model_dir, output_dir)})  # fmt: skip
+                       "docker": local.train_command(plan["tag"], data_dir, model_dir, output_dir, names)})  # fmt: skip
             return
         tag = build_image(cfg)
         model_dir, output_dir = local.local_dirs(project)
         local.empty(model_dir)
-        docker_or_exit(local.train_command(tag, data_dir, model_dir, output_dir))
+        secrets = cloud.container_credentials(cfg.get("aws.region"))
+        docker_or_exit(local.train_command(tag, data_dir, model_dir, output_dir, list(secrets)), secrets)
         typer.echo(model_dir)
         return
 
@@ -343,12 +345,15 @@ def run(
         if dry_run:
             plan = image_plan(cfg)
             _, output_dir = local.local_paths(project)
+            names = list(cloud.container_credentials(cfg.get("aws.region")))
             emit_json({"command": "run --local", "dry_run": True, "image": plan,
-                       "docker": local.run_command(plan["tag"], project / "data", output_dir, env_vars, command)})  # fmt: skip
+                       "docker": local.run_command(plan["tag"], project / "data", output_dir, env_vars, command,
+                                                   names)})  # fmt: skip
             return
         tag = build_image(cfg)
         _, output_dir = local.local_dirs(project)
-        docker_or_exit(local.run_command(tag, project / "data", output_dir, env_vars, command))
+        secrets = cloud.container_credentials(cfg.get("aws.region"))
+        docker_or_exit(local.run_command(tag, project / "data", output_dir, env_vars, command, list(secrets)), secrets)
         return
 
     try:
@@ -377,7 +382,8 @@ def serve(ctx: typer.Context, is_local: LocalFlag = False, port: PortOption = 80
     tag = build_image(cfg)
     typer.echo(f"Serving {tag} on http://127.0.0.1:{port} (Ctrl-C to stop)", err=True)
     try:
-        docker_or_exit(local.serve_command(tag, model_dir, port))
+        secrets = cloud.container_credentials(cfg.get("aws.region"))
+        docker_or_exit(local.serve_command(tag, model_dir, port, list(secrets)), secrets)
     except KeyboardInterrupt:
         pass  # Ctrl-C also reaches docker, which stops the container
 

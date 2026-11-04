@@ -36,10 +36,11 @@ easy_sm/
 ├── init.py            # create_project(): copies scaffold/, never overwrites
 ├── skill.md           # agent guide written by `easy_sm skill`; tests/test_agents.py fails if a command is missing from it
 ├── image.py           # image_files() → hash tag + build folder; generated uv Dockerfile; build()
-├── local.py           # docker run argv builders (train/run/serve), parse_env, invoke(); .easy_sm/ folder
+├── local.py           # docker run argv builders (train/run/serve; AWS credentials as `-e NAME` only), parse_env, invoke(); .easy_sm/
 ├── cloud.py           # boto3: session (default credential chain), ECR push, Create*Job requests, follow() logs,
 │                      #   endpoints: model/config requests, deploy + wait + deploy_outcome, invoke, ls, describe, delete
 │                      #   jobs: is_own, job_rows, inspect_lines, find_job, stop_job; upload_plan + upload
+│                      #   container_credentials: current boto3 credentials for --local containers
 ├── runtime/           # runs INSIDE the image as top-level `runtime`: stdlib only, relative imports
 │   ├── __init__.py    # /opt/ml paths, load_from() to import user code from src/
 │   ├── __main__.py    # python -m runtime train | serve | run COMMAND...

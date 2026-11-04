@@ -616,3 +616,31 @@ def upload(s: boto3.Session, plan: list[tuple[Path, str, str]]) -> None:
     for path, bucket, key in plan:
         print(f"upload {path} → s3://{bucket}/{key}", file=sys.stderr)
         s3.upload_file(str(path), bucket, key)
+
+
+# --- credentials for local containers ---
+
+
+def credential_env(access_key: str, secret_key: str, token: str | None, region: str | None) -> dict[str, str]:
+    """The environment variables any AWS SDK in the container reads, for one set of credentials."""
+    env = {"AWS_ACCESS_KEY_ID": access_key, "AWS_SECRET_ACCESS_KEY": secret_key}
+    if token:
+        env["AWS_SESSION_TOKEN"] = token  # temporary credentials (SSO, assumed role, OIDC)
+    if region:
+        env["AWS_REGION"] = env["AWS_DEFAULT_REGION"] = region
+    return env
+
+
+def container_credentials(region: str | None) -> dict[str, str]:
+    """The credentials this shell is using (boto3's chain, like the AWS CLI), for a local container.
+    Empty if there are none, so local runs work without AWS."""
+    try:
+        s = boto3.Session(**session_kwargs(region))
+        found = s.get_credentials()
+        if found is None:
+            return {}
+        frozen = found.get_frozen_credentials()  # also refreshes SSO/assumed-role credentials if needed
+    except Exception as e:  # noqa: BLE001 - an expired SSO login must not break local runs
+        print(f"No AWS credentials passed to the container ({type(e).__name__}: {e})", file=sys.stderr)
+        return {}
+    return credential_env(frozen.access_key, frozen.secret_key, frozen.token, s.region_name)
