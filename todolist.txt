@@ -1,9 +1,8 @@
 v2 rewrite (branch v2, see decisions.md *Build order for the rewrite*):
   ☐ Step 8: README, CLAUDE.md, release 2.0.0
   ☐ Scaffold pyproject: add easy_sm to the dev group; README explains `uv run easy_sm` and upgrading via `uv lock --upgrade-package easy_sm`
-  ☐ If a docs site is brought back, include the hf CLI credits (now only in .github/README.md, which is also the PyPI page)
   ☐ Run the full sample workflow against a real AWS account before merging @me
-  ☐ Unpublish the 1.x GitHub Pages site (repo Settings → Pages) once docs.yml is gone from main @me
+  ☐ After merging v2: check https://prteek.github.io/easy_sm/ shows the README page (pages.yml replaces the 1.x site)
 
 Release:
   ☐ Review Dependabot PR #11: 8 major action bumps (checkout 4→7, setup-python 5→7, upload-artifact 4→7, download-artifact 4→8, ...); check upload/download-artifact compatibility before merging

@@ -59,7 +59,7 @@ pyproject.toml         # packaging (hatchling), dev dependency group, pytest/myp
 ```
 
 ### Documentation files
-- `.github/README.md`: user guide and PyPI page. Minimal: two example workflows (train/deploy, run a script), command table, hf credits
+- `.github/README.md`: user guide, PyPI page and (via `pages.yml`) the GitHub Pages site. Minimal: two example workflows (train/deploy, run a script), command table, hf credits
 - `easy_sm/skill.md`: guide for coding agents, written by `easy_sm skill`. A test fails if a command is missing from it
 - `diagrams/`: flows and call maps. When a command or check changes, update `make_diagrams.py` and run `python3 diagrams/make_diagrams.py diagrams`
 - `summary.md`, `decisions.md`, `todolist.txt`: project docs (see `/project-docs`)
@@ -90,6 +90,7 @@ pyproject.toml         # packaging (hatchling), dev dependency group, pytest/myp
 ## CI and release
 
 - **test.yml**: on push/PR to main: `pip install -e . --group dev`, then pytest, mypy, `ruff check easy_sm/ tests/`
+- **pages.yml**: on push to main touching `.github/README.md`, `scripts/build_pages.py` or itself: renders the README to one `index.html` (`markdown==3.9`) and deploys it to https://prteek.github.io/easy_sm/ (build job `contents: read`; deploy job `pages: write`, `id-token: write`)
 - **publish.yml**: on `v*` tags only: `python -m build` → PyPI via **Trusted Publishing** (environment `pypi`, bound to `prteek/easy_sm` + `publish.yml`; renaming either breaks publishing) → GitHub release. Least-privilege job permissions, default `permissions: {}`
 - **Actions are pinned to commit SHAs** with a `# vX.Y.Z` comment; Dependabot bumps them weekly. Pin new actions the same way (`git ls-remote https://github.com/OWNER/REPO refs/tags/vX.Y.Z^{}`)
 - **Release**: bump `easy_sm/__init__.py`, commit to main, wait for CI green, then `git tag vX.Y.Z && git push origin vX.Y.Z`. A PyPI version can't be re-uploaded, so tag only after CI passes
