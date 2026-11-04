@@ -1,0 +1,31 @@
+# easy_sm settings for this project.
+# Command-line flags override anything here, and the environment variables
+# AWS_REGION and SAGEMAKER_ROLE override the [aws] values.
+# AWS credentials are not set here: they come from your environment exactly as for
+# the AWS CLI (AWS_PROFILE, access keys, CI OIDC, ...). Check with `easy_sm env`.
+app_name = "__APP_NAME__"
+
+[aws]
+# region = "eu-west-2"
+# role = "arn:aws:iam::123456789012:role/sagemaker"
+
+[train]
+instance = "ml.m5.large"
+# count = 1
+# input = "s3://my-bucket/__APP_NAME__/data"      # default: s3://sagemaker-<region>-<account>/__APP_NAME__/data
+# output = "s3://my-bucket/__APP_NAME__/models"   # default: s3://sagemaker-<region>-<account>/__APP_NAME__/models
+# timeout = "24h"
+
+[run]
+instance = "ml.t3.medium"
+# timeout = "24h"
+# env = { LOG_LEVEL = "info" }
+# input = "s3://my-bucket/__APP_NAME__/data"      # copied to /opt/ml/processing/input
+# output = "s3://my-bucket/__APP_NAME__/output"   # /opt/ml/processing/output is uploaded here
+
+[endpoint]
+# name = "__APP_NAME__"
+instance = "ml.m5.large"
+# serverless = true
+# memory = 2048
+# concurrency = 5

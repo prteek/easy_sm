@@ -22,18 +22,18 @@ jobs:
       uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('base-requirements.txt', 'setup.py') }}
+        key: ${{ runner.os }}-pip-${{ hashFiles('pyproject.toml') }}
         restore-keys: |
           ${{ runner.os }}-pip-
 
     - name: Install package and test dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -e . -r base-requirements.txt
+        pip install -e . --group dev
 
     - name: Run pytest
       run: |
-        pytest --cov=easy_sm --cov-report=term-missing
+        pytest
 
     - name: Run type checking with mypy
       run: |
@@ -41,4 +41,4 @@ jobs:
 
     - name: Run linting with ruff
       run: |
-        ruff check easy_sm/
+        ruff check easy_sm/ tests/

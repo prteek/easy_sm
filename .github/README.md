@@ -1,416 +1,140 @@
 # easy_sm
 
-[![Publish](https://github.com/prteek/easy_sm/actions/workflows/publish.yml/badge.svg)](https://github.com/prteek/easy_sm/actions/workflows/publish.yml)
-[![Documentation](https://github.com/prteek/easy_sm/actions/workflows/docs.yml/badge.svg)](https://github.com/prteek/easy_sm/actions/workflows/docs.yml)
-[![Release Version](https://img.shields.io/github/v/release/prteek/easy_sm?logo=github)](https://github.com/prteek/easy_sm/releases)
-[![PyPI version](https://img.shields.io/pypi/v/easy-sm?logo=python&logoColor=white)](https://pypi.org/project/easy-sm/)
-[![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+Train, run and deploy on AWS SageMaker. Every command works locally in Docker first (`--local`), then the same command runs in the cloud.
 
-A Python CLI tool that simplifies AWS SageMaker workflows by enabling rapid local prototyping with Docker before deploying to the cloud.
-
-**Credits**: This project borrows heavily from [Sagify](https://github.com/Kenza-AI/sagify). Check it out especially if you want to work with LLMs on SageMaker.
-
-> **Note**: This is an experimental package. APIs may evolve between releases.
-
-## Features
-
-- **Local Development**: Train, process, and deploy models locally in Docker containers that mimic SageMaker
-- **Cloud Deployment**: Deploy trained models to AWS SageMaker with minimal configuration changes
-- **Docker Integration**: Automatically build and manage Docker images
-- **Endpoint Management**: Deploy and manage SageMaker endpoints (provisioned and serverless)
-- **Job Monitoring**: List and filter training jobs
-- **Environment Variables**: Pass environment variables to processing jobs (both local and cloud)
-- **Run Any Command**: Run `make`, `dbt` or any CLI tool as a SageMaker processing job (or locally)
-
-## Requirements
-
-- Python >=3.13
-- Docker (for local development)
-- AWS CLI configured with credentials
-
-## Installation
+You need Docker, [uv](https://docs.astral.sh/uv/), AWS credentials (as for the AWS CLI) and a SageMaker execution role:
 
 ```bash
-pip install easy-sm
+uv tool install easy_sm
+export SAGEMAKER_ROLE=arn:aws:iam::123456789012:role/my-sagemaker-role
 ```
 
-**From source:**
+Version 2 is a rewrite and does not read 1.x projects. Inside a project, `uv run easy_sm ...` uses the version locked in its `uv.lock`; upgrade it with `uv lock --upgrade-package easy_sm`.
+
+## AWS setup
+
+**The SageMaker execution role** (`SAGEMAKER_ROLE`, or `[aws] role` in `easy_sm.toml`) is the identity your jobs and endpoints run as. It needs:
+
+- a trust policy that lets `sagemaker.amazonaws.com` assume it (easy_sm never assumes it itself, so it doesn't need to trust your user)
+- ECR: pull the project image (`ecr:GetAuthorizationToken`, `ecr:BatchGetImage`, `ecr:GetDownloadUrlForLayer`)
+- S3: read training and `run` inputs, write models and `run` outputs, read `model.tar.gz` for endpoints (`s3:GetObject`, `s3:PutObject`, `s3:ListBucket`)
+- CloudWatch Logs: write job and endpoint logs (`logs:CreateLogGroup`, `logs:CreateLogStream`, `logs:PutLogEvents`)
+- anything your own code calls (other buckets, secrets, databases)
+
+A minimal role for easy_sm's defaults: replace `REGION`, `ACCOUNT` and `APP` (your `app_name`).
+
+Trust policy:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    { "Effect": "Allow", "Principal": { "Service": "sagemaker.amazonaws.com" }, "Action": "sts:AssumeRole" }
+  ]
+}
+```
+
+Permissions policy:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    { "Sid": "EcrLogin", "Effect": "Allow", "Action": "ecr:GetAuthorizationToken", "Resource": "*" },
+    {
+      "Sid": "PullProjectImage", "Effect": "Allow",
+      "Action": ["ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer", "ecr:BatchCheckLayerAvailability"],
+      "Resource": "arn:aws:ecr:REGION:ACCOUNT:repository/APP"
+    },
+    { "Sid": "ListBucket", "Effect": "Allow", "Action": "s3:ListBucket", "Resource": "arn:aws:s3:::sagemaker-REGION-ACCOUNT" },
+    {
+      "Sid": "ReadWriteProjectData", "Effect": "Allow", "Action": ["s3:GetObject", "s3:PutObject"],
+      "Resource": "arn:aws:s3:::sagemaker-REGION-ACCOUNT/APP/*"
+    },
+    {
+      "Sid": "Logs", "Effect": "Allow",
+      "Action": ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents", "logs:DescribeLogStreams"],
+      "Resource": "arn:aws:logs:REGION:ACCOUNT:log-group:/aws/sagemaker/*"
+    },
+    { "Sid": "Metrics", "Effect": "Allow", "Action": "cloudwatch:PutMetricData", "Resource": "*" }
+  ]
+}
+```
+
+If `train.input`, `train.output`, `run.input` or `run.output` point at other buckets, add them to the two S3 statements; KMS-encrypted buckets also need `kms:Decrypt` and `kms:GenerateDataKey` on their key. The managed policy `AmazonSageMakerFullAccess` is a broader alternative that also covers buckets with `sagemaker` in their name.
+
+**You (or CI) running easy_sm** need:
+
+- `sts:GetCallerIdentity`
+- `iam:PassRole` on the execution role, to hand it to SageMaker
+- ECR: `ecr:GetAuthorizationToken`, `DescribeRepositories`, `CreateRepository`, `DescribeImages` and push (`BatchCheckLayerAvailability`, `InitiateLayerUpload`, `UploadLayerPart`, `CompleteLayerUpload`, `PutImage`)
+- S3: `s3:ListBucket`, `s3:PutObject`, and `s3:CreateBucket` if the default bucket doesn't exist yet
+- SageMaker: create, describe, list and stop training and processing jobs; create and describe models and endpoint configs; create, update, describe, list, invoke and delete endpoints; delete endpoint configs (only with `--delete-config`)
+- CloudWatch Logs: `logs:DescribeLogStreams`, `logs:GetLogEvents` (to show job logs)
+
+**Good to know:**
+
+- Credentials come from your environment exactly as for the AWS CLI; they never go in `easy_sm.toml`. Run `easy_sm env` to see which account and credential source are in use before cloud work.
+- The role, the ECR repository, the S3 data and the jobs must be in the same region (`AWS_REGION`, `[aws] region`, or your AWS CLI default).
+- easy_sm creates two things on first use: an ECR repository named after the app (tags are immutable), and the bucket `sagemaker-<region>-<account>` when no S3 paths are configured.
+- New accounts often have a quota of 0 for some instance types; a job then fails with `ResourceLimitExceeded` until a quota increase is approved.
+- Endpoints cost money for every hour they are `InService`, used or not; serverless endpoints only when called. easy_sm never deletes models, endpoint configs, images or S3 data; clean up with `endpoints delete` and the AWS console.
+- Images are built for `linux/amd64`, the machines SageMaker runs. On an Apple Silicon Mac that works through emulation, so the first build is slower.
+
+## Example 1: train and deploy a model
+
 ```bash
-git clone <repository-url>
-cd easy_sm
-pip install -e .
+easy_sm init churn && cd churn       # creates src/train.py, src/predict.py, data/train.csv
+easy_sm train --local                # train in Docker on data/
+easy_sm data upload                  # copy data/ to S3
+easy_sm train                        # train on SageMaker; prints the job name
+easy_sm endpoints deploy --latest    # serve that job's model; prints the endpoint name
+easy_sm endpoints invoke -d '{"inputs": [[1.0], [2.0]]}'
+easy_sm endpoints delete churn       # stop paying for the endpoint
 ```
 
-## Quick Start
+Your code is two functions:
 
-### 1. Initialize Project
+```python
+# src/train.py
+def train(input_dir: str, model_dir: str) -> None:
+    ...  # read data from input_dir, save the model into model_dir
+
+# src/predict.py
+class Handler:
+    def __init__(self, model_dir: str): ...   # load the model once
+    def __call__(self, data): ...             # one request in, JSON-able result out
+```
+
+## Example 2: run a script
 
 ```bash
-easy_sm init
+# put your script in src/process.py
+easy_sm run --local process.py --date 2026-11-01   # in Docker
+easy_sm run process.py --date 2026-11-01           # as a SageMaker processing job
 ```
 
-Follow the prompts to configure:
-- App name
-- AWS profile and region
-- Python version
-- Requirements file location
-
-### 2. Add Your Code
-
-Copy your code to the appropriate folder:
-- **Training**: `app-name/easy_sm_base/training/training.py`
-- **Processing**: `app-name/easy_sm_base/processing/`
-- **Serving**: `app-name/easy_sm_base/prediction/serve`
-
-### 3. Build and Test Locally
-
-```bash
-# App name auto-detected from *.json file
-easy_sm build
-easy_sm local train
-```
-
-### 4. Deploy to SageMaker
-
-```bash
-# Set role once (or add to ~/.bashrc)
-export SAGEMAKER_ROLE=arn:aws:iam::123456789012:role/SageMakerRole
-
-# Push and train
-easy_sm push
-easy_sm train -n job-name -e ml.m5.large \
-  -i s3://bucket/input -o s3://bucket/output
-```
+Arguments after the script name go to the script. Any command works, e.g. `easy_sm run make features`.
 
 ## Commands
 
-Cloud commands are at the top level for simplicity. Local operations are under `local` sub-command.
-
-```text
-Commands:
-  init                  Initialize SageMaker template
-  build                 Build Docker image
-  push                  Push Docker image to AWS ECR
-  update-scripts        Update shell scripts with latest secure versions
-
-  # Cloud Operations (default)
-  upload-data           Upload data to S3
-  train                 Train models on SageMaker
-  deploy                Deploy to provisioned endpoint
-  deploy-serverless     Deploy to serverless endpoint
-  batch-transform       Run batch predictions
-  process               Run processing jobs
-  run                   Run any CLI command as a processing job
-  list-endpoints        List all endpoints
-  list-training-jobs    List recent training jobs
-  get-model-artifacts   Get S3 path from training job
-  delete-endpoint       Delete an endpoint
-
-  # Local Operations
-  local                 Local operations (train, deploy, process, run, stop)
-```
-
-### Context Auto-Detection
-
-The CLI auto-detects context to minimize repetitive flags:
-
-- **App name**: Auto-detected from `*.json` config file in current directory
-- **IAM role**: Read from `SAGEMAKER_ROLE` environment variable
-- **AWS profile/region**: From config file (uses boto3 defaults)
-
-You can always override with `-a/--app-name` and `-r/--iam-role-arn` flags.
-
-### Setup Environment
-
-```bash
-# Set IAM role once (add to ~/.bashrc for persistence)
-export SAGEMAKER_ROLE=arn:aws:iam::123456789012:role/SageMakerRole
-
-# Navigate to project directory (config auto-detected)
-cd my-app/
-```
-
-### Local Commands
-
-```bash
-# Train locally
-easy_sm local train
-
-# Run processing job
-easy_sm local process -f script.py
-
-# Run processing job with environment variables
-easy_sm local process -f script.py --env DEBUG=true --env LOG_LEVEL=info
-
-# Run any CLI command (everything after -- is the command)
-easy_sm local run -a my-app -- make features
-
-# Deploy locally (starts server on port 8080)
-easy_sm local deploy
-
-# Stop local deployment
-easy_sm local stop
-```
-
-### Cloud Commands
-
-```bash
-# Upload data to S3
-easy_sm upload-data -i ./data -t s3://bucket/data
-
-# Train on SageMaker
-easy_sm train -n job-name -e ml.m5.large \
-  -i s3://bucket/input -o s3://bucket/output
-
-# Deploy to provisioned endpoint
-easy_sm deploy -n endpoint-name -e ml.m5.large \
-  -m s3://bucket/model.tar.gz
-
-# Deploy to serverless endpoint
-easy_sm deploy-serverless -n endpoint-name -s 2048 \
-  -m s3://bucket/model.tar.gz
-
-# Run batch transform
-easy_sm batch-transform -e ml.m5.large --num-instances 1 \
-  -m s3://bucket/model.tar.gz -i s3://bucket/input -o s3://bucket/output
-
-# Run processing job
-easy_sm process -f script.py -e ml.m5.large -n job-name
-
-# Run processing job with environment variables
-easy_sm process -f script.py -e ml.m5.large -n job-name \
-  --env DEBUG=true --env LOG_LEVEL=info
-
-# Run any CLI command, e.g. a make target (runs from easy_sm_base/processing)
-easy_sm run -e ml.m5.large -n job-name -- make features
-
-# List endpoints
-easy_sm list-endpoints
-
-# List training jobs (pipe-friendly with -n flag)
-easy_sm list-training-jobs -m 10
-easy_sm list-training-jobs -n -m 1  # Just names, one per line
-
-# Get model artifacts from training job
-easy_sm get-model-artifacts -j training-job-name
-
-# Delete endpoint
-easy_sm delete-endpoint -n endpoint-name [--delete-config]
-```
-
-### Update Scripts
-
-If you have an existing project, update shell scripts with security fixes:
-
-```bash
-# Auto-detects app from *.json file
-easy_sm update-scripts
-
-# Or specify explicitly
-easy_sm update-scripts -a app-name
-```
-
-## AWS Setup
-
-### 1. AWS Profile
-
-Configure in `~/.aws/config`:
-```ini
-[profile dev]
-region = eu-west-1
-output = json
-```
-
-With credentials in `~/.aws/credentials`:
-```ini
-[dev]
-aws_access_key_id = YOUR_KEY
-aws_secret_access_key = YOUR_SECRET
-```
-
-### 2. SageMaker Execution Role
-
-Create an IAM role (e.g., `arn:aws:iam::123456789012:role/SageMakerExecutionRole`) with:
-- SageMaker permissions
-- S3 access for your buckets
-- ECR access
-
-Add trust relationship for your user:
-```json
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Principal": {
-                "AWS": "arn:aws:iam::123456789012:user/your-user",
-                "Service": "sagemaker.amazonaws.com"
-            },
-            "Action": "sts:AssumeRole"
-        }
-    ]
-}
-```
-
-## Training Example
-
-### 1. Training Code
-
-Create `app-name/easy_sm_base/training/training.py`:
-
-```python
-import pandas as pd
-import joblib
-import os
-
-def train(input_data_path, model_save_path, hyperparams_path=None):
-    # Load data
-    data = pd.read_csv(os.path.join(input_data_path, 'data.csv'))
-
-    # Train model
-    model = train_your_model(data)
-
-    # Save model
-    joblib.dump(model, os.path.join(model_save_path, 'model.mdl'))
-```
-
-### 2. Test Data
-
-Place sample data at:
-`app-name/easy_sm_base/local_test/test_dir/input/data/training/`
-
-### 3. Train
-
-```bash
-# Build container
-easy_sm build
-
-# Test locally
-easy_sm local train
-
-# Push and train on SageMaker
-export SAGEMAKER_ROLE=arn:aws:iam::123456789012:role/SageMakerRole
-easy_sm push
-easy_sm train -n my-training-job -e ml.m5.large \
-  -i s3://bucket/input -o s3://bucket/output
-```
-
-## Deployment Example
-
-### 1. Serving Code
-
-Create `app-name/easy_sm_base/prediction/serve` with:
-
-```python
-import joblib
-import os
-
-def model_fn(model_dir):
-    return joblib.load(os.path.join(model_dir, 'model.mdl'))
-
-def predict_fn(input_data, model):
-    return model.predict(input_data)
-```
-
-### 2. Deploy
-
-```bash
-# Local testing
-easy_sm build
-easy_sm local train
-easy_sm local deploy
-
-# Test endpoint
-curl -X POST http://localhost:8080/invocations \
-  -H 'Content-Type: text/csv' \
-  -d '1.0,2.0,3.0'
-
-# Cloud deployment
-export SAGEMAKER_ROLE=arn:aws:iam::123456789012:role/SageMakerRole
-easy_sm push
-easy_sm deploy -n my-endpoint -e ml.m5.large \
-  -m s3://bucket/model.tar.gz
-
-# Or serverless
-easy_sm deploy-serverless -n my-endpoint -s 2048 \
-  -m s3://bucket/model.tar.gz
-```
-
-## Configuration
-
-Projects use a JSON config file (`app-name.json`):
-
-```json
-{
-    "image_name": "my-app",
-    "aws_profile": "dev",
-    "aws_region": "eu-west-1",
-    "python_version": "3.13",
-    "easy_sm_module_dir": "my-app",
-    "requirements_dir": "requirements.txt",
-    "docker_tag": "latest"
-}
-```
-
-## Project Structure
-
-```
-my-project/
-├── app-name.json                    # Configuration
-├── requirements.txt                 # Dependencies
-└── app-name/
-    └── easy_sm_base/
-        ├── Dockerfile               # Customize if needed
-        ├── training/
-        │   ├── train                # Entry point
-        │   └── training.py          # Your training code
-        ├── prediction/
-        │   └── serve                # Your serving code
-        ├── processing/              # Processing scripts
-        └── local_test/
-            └── test_dir/            # Local test data
-```
-
-## Tips
-
-### Piped Workflows
-
-The CLI is designed for Unix-style composition:
-
-```bash
-# Get latest training job, extract model, and deploy
-JOB=$(easy_sm list-training-jobs -n -m 1)
-MODEL=$(easy_sm get-model-artifacts -j $JOB)
-easy_sm deploy -n my-endpoint -e ml.m5.large -m $MODEL
-```
-
-**One-liner deployment**:
-```bash
-easy_sm deploy -n my-endpoint -e ml.m5.large \
-  -m $(easy_sm get-model-artifacts -j $(easy_sm list-training-jobs -n -m 1))
-```
-
-**Filter and process training jobs**:
-```bash
-# Get all training jobs and filter completed ones
-easy_sm list-training-jobs -m 20 | grep Completed
-
-# Get model from specific job
-easy_sm list-training-jobs -n -m 10 | grep "prod-" | head -1 | xargs -I {} easy_sm get-model-artifacts -j {}
-```
-
-### Other Tips
-
-- **Save training output**: `easy_sm train ... | tee train_output.txt`
-- **Custom Docker**: Modify `app-name/easy_sm_base/Dockerfile`
-- **Docker tags**: Configure in `app-name.json` with `"docker_tag": "v1.0"` (default: `latest`)
-- **Override auto-detection**: Use `-a app-name` or `-r $ROLE` flags when needed
-
-## License
-
-MIT License
-
-## Author
-
-Created by Prateek (prteek@icloud.com)
+| Command | What it does |
+|---|---|
+| `easy_sm init NAME` | Create a project |
+| `easy_sm env` | Show settings, the image tag and the AWS account in use |
+| `easy_sm train [--local]` | Train with `src/train.py` |
+| `easy_sm run [--local] COMMAND` | Run a script or command from `src/` |
+| `easy_sm data upload` | Upload `data/` to S3 |
+| `easy_sm endpoints deploy --latest` | Deploy the newest trained model |
+| `easy_sm endpoints invoke -d DATA` | Send one prediction request |
+| `easy_sm endpoints serve --local` | Serve the local model on 127.0.0.1 |
+| `easy_sm endpoints ls` / `describe` / `delete NAME` | List, show, delete endpoints |
+| `easy_sm jobs ls` / `inspect` / `logs` / `cancel` / `artifacts` | List and manage jobs |
+| `easy_sm build` / `push` | Build the image / push it to ECR (other commands do this when needed) |
+| `easy_sm skill` | Write a guide for coding agents to `.claude/skills/easy_sm/SKILL.md` |
+
+Add `--dry-run` to `train`, `run`, `push` or `endpoints deploy` to see what would be sent without changing anything, and `--format json` to `env`, `jobs` and `endpoints` listings for scripts. Settings such as instance types live in `easy_sm.toml`; a flag overrides them for one run. AWS credentials never go in that file.
+
+## Credits
+
+The design of easy_sm 2 borrows heavily from the [Hugging Face Hub CLI (`hf`)](https://huggingface.co/docs/huggingface_hub/guides/cli): commands grouped by resource then action, the main object as a positional argument, `run` taking the command directly like `hf jobs run`, user inference code as a small handler class like Inference Endpoints' `handler.py`, deploying from a training job the way `hf` deploys from a repo, and a skill file for coding agents like `hf skills add`. Thanks to the Hugging Face team for a CLI worth learning from.

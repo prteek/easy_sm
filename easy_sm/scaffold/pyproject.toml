@@ -1,0 +1,11 @@
+[project]
+name = "__APP_NAME__"
+version = "0.1.0"
+requires-python = ">=3.13"
+# Add packages with `uv add pandas scikit-learn`. They are installed in the image.
+dependencies = []
+
+[dependency-groups]
+# Only on your machine, never in the image. easy_sm is pinned here so everyone on the
+# project uses the same version: run it with `uv run easy_sm ...`.
+dev = ["pytest", "easy_sm>=2.0.0"]

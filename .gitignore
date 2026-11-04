@@ -25,3 +25,6 @@ htmlcov/
 
 # Distribution
 dist/
+
+# Sample data shipped with `easy_sm init`
+!easy_sm/scaffold/data/*.csv

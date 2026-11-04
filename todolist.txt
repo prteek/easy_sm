@@ -1,3 +1,9 @@
+v2 rewrite (branch v2, see decisions.md *Build order for the rewrite*):
+  ☐ Step 8: README, CLAUDE.md, release 2.0.0
+  ☐ Scaffold pyproject: add easy_sm to the dev group; README explains `uv run easy_sm` and upgrading via `uv lock --upgrade-package easy_sm`
+  ☐ Run the full sample workflow against a real AWS account before merging @me
+  ☐ After merging v2: check https://prteek.github.io/easy_sm/ shows the README page (pages.yml replaces the 1.x site)
+
 Release:
   ☐ Review Dependabot PR #11: 8 major action bumps (checkout 4→7, setup-python 5→7, upload-artifact 4→7, download-artifact 4→8, ...); check upload/download-artifact compatibility before merging
 
@@ -24,6 +30,16 @@ Housekeeping:
   ☐ Delete local branch feat/run-command (already merged into main)
 
 Archive:
+  ✔ Diagrams for endpoints, jobs, data, --dry-run and local credentials; README, summary.md and CLAUDE.md updated for v2 (22 diagrams, be06ebd) @done(26-11-04)
+  ✔ v2: local containers get the current AWS credentials as `-e NAME` only; no ~/.aws mount (127 tests; STS call from container returned the personal account, 2894fc6) @done(26-11-04 14:04)
+  ✔ v2 step 7b: --dry-run, --format json, easy_sm skill, retired-key hints (122 tests; real dry runs started nothing, 4d62c94) @done(26-11-04 13:43)
+  ✔ v2 step 7a: jobs ls/inspect/logs/cancel/artifacts, data upload (114 tests; real ls, inspect, logs, artifacts refused for failed job, upload, cancel → Stopping, 78df86f) @done(26-11-04 13:29)
+  ✔ v2 step 6: endpoints deploy (from job or S3), invoke, ls, describe, delete; serverless (102 tests; real deploy 2m18s, update path kept old config, serverless invoked, both deleted, 37077b3) @done(26-11-04 12:49)
+  ✔ v2 step 5: push to ECR, cloud train/run with log streaming, AWS-CLI credential behaviour (86 tests; real jobs: completed, failed with reason, exit 3, --no-wait, Ctrl-C detach, f18b95d) @done(26-11-04 12:19)
+  ✔ v2 step 4: local loop: train/run --local, endpoints serve/invoke --local (68 tests; Docker checks: exit codes, env injection, Ctrl-C cleanup, 73b0d90) @done(26-11-04 11:31)
+  ✔ v2 step 3: content-hash image tags, generated uv Dockerfile, `easy_sm build` (57 tests; real build 19 s, repeat 0.14 s, 176 MB; train/run/serve checked in the container, 80f642c) @done(26-11-04 10:37)
+  ✔ v2 step 2: runtime (train with failure file, stdlib WSGI serve under gunicorn, run via execvp) (43 tests, 8b9250d) @done(26-11-04 10:14)
+  ✔ v2 steps 0–1: removed 1.x code/tests/docs, pyproject.toml packaging, easy_sm.toml config with lookup order, `init`, `env` (28 tests, a58db18) @done(26-11-03 23:58)
   ✔ Revoked the old PyPI API token and deleted the PYPI_TOKEN repo secret (repo and `pypi` environment now have no secrets); old-branch workflows can no longer publish @done(26-10-13)
   ✔ Released 1.3.1 through Trusted Publishing: build / publish / release jobs passed; PyPI has attestations for both files (provenance HTTP 200) @done(26-10-13 15:21)
   ✔ Merged PR #10 (Trusted Publishing, least-privilege jobs, SHA-pinned actions); Test, Docs and Dependabot runs green on main @done(26-10-13 13:31)
