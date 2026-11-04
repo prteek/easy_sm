@@ -43,6 +43,7 @@ easy_sm endpoints delete <name>               # ask the user first
 | `init [PATH] [--name]` | Create a project; never overwrites | created files |
 | `env [--format json]` | Settings, sources, image tag, AWS account | table or JSON |
 | `build` | Build the image if the code changed | image tag |
+| `dockerfile [--write]` | The Dockerfile easy_sm generates; `--write` saves it as `./Dockerfile` to customise (e.g. `apt-get install make`), never overwrites | Dockerfile text or path |
 | `push [--dry-run]` | Build and push to ECR if missing | ECR image URI |
 | `train [--local] [--input] [--output] [--instance] [--count] [--timeout] [--no-wait] [-q] [--dry-run]` | Calls `train(input_dir, model_dir)` in `src/train.py` | job name (cloud) or model folder (local) |
 | `run [options] COMMAND...` | Any command from `src/`; `x.py` runs with python. Options go before the command | job name (cloud) |
@@ -66,4 +67,5 @@ easy_sm endpoints delete <name>               # ask the user first
 
 - `src/train.py`: `train(input_dir: str, model_dir: str) -> None`. Read data from `input_dir`, save everything needed for prediction into `model_dir`. An exception fails the job and becomes its failure reason.
 - `src/predict.py`: `class Handler`, created once as `Handler(model_dir)`, called as `handler(data)` per request. JSON requests arrive parsed; CSV arrives as a list of rows of strings. Return something JSON-serialisable (e.g. `.tolist()`, not a numpy array).
-- Dependencies: `uv add <package>`; the image installs them from `uv.lock`.
+- Dependencies: `uv add <package>`; the image installs them from `uv.lock`. Python CLI tools (e.g. dbt) installed this way work with `easy_sm run`.
+- System tools (make, git, …): `easy_sm dockerfile --write`, add an `apt-get install` line after `FROM`, keep the rest. Only `pyproject.toml`, `uv.lock`, `src/` and `runtime/` can be copied into the image.
