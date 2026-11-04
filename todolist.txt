@@ -1,5 +1,4 @@
 v2 rewrite (branch v2, see decisions.md *Build order for the rewrite*):
-  ☐ Pass AWS credentials to local containers without mounting ~/.aws writable (needed for run --local scripts that use S3)
   ☐ Add endpoint and jobs diagrams (deploy, invoke, delete, jobs ls/inspect/logs/cancel, data upload) to diagrams/make_diagrams.py and regenerate
   ☐ Step 8: README, CLAUDE.md, release 2.0.0
   ☐ Scaffold pyproject: add easy_sm to the dev group; README explains `uv run easy_sm` and upgrading via `uv lock --upgrade-package easy_sm`
@@ -33,6 +32,7 @@ Housekeeping:
   ☐ Delete local branch feat/run-command (already merged into main)
 
 Archive:
+  ✔ v2: local containers get the current AWS credentials as `-e NAME` only; no ~/.aws mount (127 tests; STS call from container returned the personal account, 2894fc6) @done(26-11-04 14:04)
   ✔ v2 step 7b: --dry-run, --format json, easy_sm skill, retired-key hints (122 tests; real dry runs started nothing, 4d62c94) @done(26-11-04 13:43)
   ✔ v2 step 7a: jobs ls/inspect/logs/cancel/artifacts, data upload (114 tests; real ls, inspect, logs, artifacts refused for failed job, upload, cancel → Stopping, 78df86f) @done(26-11-04 13:29)
   ✔ v2 step 6: endpoints deploy (from job or S3), invoke, ls, describe, delete; serverless (102 tests; real deploy 2m18s, update path kept old config, serverless invoked, both deleted, 37077b3) @done(26-11-04 12:49)
