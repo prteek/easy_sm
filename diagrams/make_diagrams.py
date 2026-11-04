@@ -208,16 +208,16 @@ DIAGRAMS["02-workflow"] = dict(
     caption="The cloud half reuses the image built locally: ECR receives it once per tag, SageMaker pulls it for every job.")
 
 DIAGRAMS["03-calls-setup"] = dict(
-    title="Call map: init, env, build", rankdir="TB", subtitle="every function these commands reach, grouped by file",
+    title="Call map: init, env, build, dockerfile", rankdir="TB", subtitle="every function these commands reach, grouped by file",
     nodes=[N("cb", "main\n--config → ctx.obj"), N("lc", "load_config"), N("fl", "fail\nstderr + exit", "fail"),
-           N("ci", "init"), N("ce", "env"), N("cbu", "build"), N("bi", "build_image"),
+           N("ci", "init"), N("ce", "env"), N("cbu", "build"), N("cdf", "dockerfile\nheader + text → stdout"), N("bi", "build_image"),
            N("ld", "load"), N("fla", "_flatten"), N("cap", "check_app_name"), N("rs", "Config.resolve"), N("gt", "Config.get"),
            N("cp", "create_project"), N("af", "app_name_from_folder"), N("sf", "scaffold_files\n(walk)"),
            N("b", "build"), N("imf", "image_files"), N("fo", "_folder"), N("pv", "python_version"), N("rd", "_read"),
            N("dfi", "dockerfile"), N("ih", "image_hash"), N("it", "image_tag"), N("wc", "write_context"),
            N("bc", "build_command"), N("rn", "_run\nuv lock, docker buildx"), N("sc", "_succeeds\ndocker image inspect"),
            N("se", "session", "aws"), N("sk", "session_kwargs", "aws"), N("ai", "account_id", "aws")],
-    clusters={"m": ("__main__.py", ["cb", "lc", "fl", "ci", "ce", "cbu", "bi"]),
+    clusters={"m": ("__main__.py", ["cb", "lc", "fl", "ci", "ce", "cbu", "cdf", "bi"]),
               "c": ("config.py", ["ld", "fla", "cap", "rs", "gt"]),
               "i": ("init.py", ["cp", "af", "sf"]),
               "g": ("image.py", ["b", "imf", "fo", "pv", "rd", "dfi", "ih", "it", "wc", "bc", "rn", "sc"]),
@@ -228,8 +228,9 @@ DIAGRAMS["03-calls-setup"] = dict(
            E("it", "imf"), E("it", "ih"), E("se", "sk"), E("se", "gt"), E("gt", "rs"),
            E("cbu", "lc"), E("cbu", "bi"), E("bi", "b"), E("bi", "fl", "ImageError", True),
            E("b", "rn", "no uv.lock / build"), E("b", "imf"), E("b", "ih"), E("b", "sc", "tag exists?"),
-           E("b", "wc"), E("b", "bc"), E("imf", "fo"), E("imf", "pv"), E("pv", "rd"), E("imf", "dfi")],
-    caption="image_tag and build share image_files and image_hash, so `easy_sm env` shows exactly the tag the next build produces.\nLibrary errors become a stderr message and exit 1 in one place: fail.")
+           E("b", "wc"), E("b", "bc"), E("imf", "fo"), E("imf", "pv"), E("pv", "rd"), E("imf", "dfi", "no own Dockerfile"),
+           E("cdf", "lc"), E("cdf", "pv"), E("cdf", "dfi"), E("cdf", "fl", "ImageError", True)],
+    caption="image_tag and build share image_files and image_hash, so `easy_sm env` shows exactly the tag the next build produces.\n`easy_sm dockerfile` prints the same dockerfile() text the build would generate; saved as ./Dockerfile it replaces it.\nLibrary errors become a stderr message and exit 1 in one place: fail.")
 
 DIAGRAMS["04-calls-local"] = dict(
     title="Call map: local commands", rankdir="TB",

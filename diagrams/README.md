@@ -1,6 +1,6 @@
 # easy_sm v2 diagrams
 
-Open the `.excalidraw` files at [excalidraw.com](https://excalidraw.com) (File → Open) or with the Excalidraw VS Code extension. They describe the code on the `v2` branch: steps 0–7b and AWS credentials for local containers.
+Open the `.excalidraw` files at [excalidraw.com](https://excalidraw.com) (File → Open) or with the Excalidraw VS Code extension. They describe easy_sm 2.0.1 on `main`.
 
 Colours: green = function, amber diamond = check, red = stops with an error, light green = success, purple = inside the container, blue = AWS, dashed white = your code.
 
@@ -8,7 +8,7 @@ Colours: green = function, amber diamond = check, red = stops with an error, lig
 |---|---|
 | `01-overview` | Where the code runs: your machine, the image, AWS |
 | `02-workflow` | One project from `init` to a cloud job, in order |
-| `03-calls-setup` | Call map for `init`, `env`, `build` |
+| `03-calls-setup` | Call map for `init`, `env`, `build`, `dockerfile` |
 | `04-calls-local` | Call map for `train/run --local`, `endpoints serve/invoke --local` |
 | `05-calls-cloud` | Call map for `push`, cloud `train` and `run`, `cloud.py` grouped by concern |
 | `06-calls-runtime` | Call map inside the image (`python -m runtime ...`) |
