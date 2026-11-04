@@ -1,5 +1,6 @@
 """The easy_sm command line."""
 
+import sys
 from collections.abc import Callable
 from pathlib import Path
 from typing import Annotated, Any, NoReturn
@@ -19,6 +20,10 @@ app = typer.Typer(
 )
 endpoints = typer.Typer(help="Serve, call and manage endpoints.", no_args_is_help=True)
 app.add_typer(endpoints, name="endpoints")
+jobs = typer.Typer(help="List, inspect, follow and cancel training and processing jobs.", no_args_is_help=True)
+app.add_typer(jobs, name="jobs")
+data = typer.Typer(help="Move data to S3.", no_args_is_help=True)
+app.add_typer(data, name="data")
 
 LocalFlag = Annotated[bool, typer.Option("--local", help="Run in local Docker instead of SageMaker")]
 PortOption = Annotated[int, typer.Option("--port", help="Local port of the endpoint")]
@@ -160,7 +165,7 @@ def run_cloud_job(
     except KeyboardInterrupt:
         fail(
             f"Stopped following {name}; the job is still running.\n"
-            f"Stop it with: aws sagemaker stop-{kind}-job --{kind}-job-name {name}",
+            f"Follow it again: easy_sm jobs logs {name} -f\nStop it: easy_sm jobs cancel {name}",
             130,
         )
     if job["status"] != "Completed":
@@ -430,6 +435,120 @@ def delete(
         fail(str(e))
     for item in deleted:
         typer.echo(f"deleted {item}")
+
+
+JobArgument = Annotated[str, typer.Argument(help="Job name, e.g. from 'easy_sm jobs ls -q'")]
+
+
+def session_or_exit(cfg: Config) -> Any:
+    try:
+        return cloud.session(cfg)
+    except AWS_ERRORS as e:
+        fail(str(e))
+
+
+@jobs.command("ls")
+def list_jobs(
+    ctx: typer.Context,
+    limit: Annotated[int, typer.Option("-n", help="How many jobs to show")] = 10,
+    quiet: Annotated[bool, typer.Option("--quiet", "-q", help="Print job names only")] = False,
+) -> None:
+    """This app's training and processing jobs, newest first: name, kind, status, created, duration."""
+    cfg = load_config(ctx)
+    try:
+        rows = cloud.list_jobs(session_or_exit(cfg), cfg.get("app_name"), limit)
+    except AWS_ERRORS as e:
+        fail(str(e))
+    for row in rows:
+        if quiet:
+            typer.echo(row["name"])
+        else:
+            typer.echo(f"{row['name']:<42} {row['kind']:<6} {row['status']:<11} "
+                       f"{row['created']:%Y-%m-%d %H:%M}  {row['duration']}")  # fmt: skip
+
+
+@jobs.command()
+def inspect(ctx: typer.Context, name: JobArgument) -> None:
+    """Show a job's status, instance, image, data locations, duration and failure reason."""
+    try:
+        kind, job = cloud.find_job(session_or_exit(load_config(ctx)), name)
+    except AWS_ERRORS as e:
+        fail(str(e))
+    for label, value in cloud.inspect_lines(kind, job, cloud.now()):
+        typer.echo(f"{label:<10} {value}")
+
+
+@jobs.command()
+def logs(
+    ctx: typer.Context,
+    name: JobArgument,
+    follow: Annotated[bool, typer.Option("--follow", "-f", help="Keep printing new lines until the job ends")] = False,
+) -> None:
+    """Print a job's log lines (stdout), as [host] message."""
+    s = session_or_exit(load_config(ctx))
+    try:
+        kind, _ = cloud.find_job(s, name)
+        if follow:
+            cloud.follow(s, kind, name, show_logs=True, log_out=sys.stdout)
+        else:
+            for line in cloud.new_log_lines(s, kind, name, {}):
+                typer.echo(line)
+    except KeyboardInterrupt:
+        raise typer.Exit(130)
+    except AWS_ERRORS as e:
+        fail(str(e))
+
+
+@jobs.command()
+def cancel(ctx: typer.Context, name: JobArgument) -> None:
+    """Stop a running job. Prints the job name."""
+    s = session_or_exit(load_config(ctx))
+    try:
+        kind, job = cloud.find_job(s, name)
+        status = job["TrainingJobStatus" if kind == "training" else "ProcessingJobStatus"]
+        if status != "InProgress":
+            fail(f"{name} is {status}; only InProgress jobs can be stopped")
+        cloud.stop_job(s, kind, name)
+    except AWS_ERRORS as e:
+        fail(str(e))
+    typer.echo(name)
+
+
+@jobs.command()
+def artifacts(ctx: typer.Context, name: JobArgument) -> None:
+    """Print the S3 path of a training job's model.tar.gz."""
+    try:
+        kind, job = cloud.find_job(session_or_exit(load_config(ctx)), name)
+    except AWS_ERRORS as e:
+        fail(str(e))
+    # SageMaker records a model path even for failed jobs, so the status decides, as for deploy.
+    if kind != "training" or job["TrainingJobStatus"] != "Completed":
+        fail(f"{name} has no usable model: only completed training jobs do")
+    typer.echo(job["ModelArtifacts"]["S3ModelArtifacts"])
+
+
+@data.command("upload")
+def upload_data(
+    ctx: typer.Context,
+    local_dir: Annotated[Path, typer.Argument(help="Folder to upload")] = Path("data"),
+    s3_path: Annotated[
+        str | None, typer.Argument(help="S3 folder (default: train.input, then the default bucket)")
+    ] = None,
+) -> None:
+    """Upload a folder to S3 (hidden files skipped). Prints the S3 folder."""
+    cfg = load_config(ctx)
+    folder = local_dir if local_dir.is_absolute() else cfg.path.parent / local_dir
+    if not folder.is_dir():
+        fail(f"{folder} not found")
+    try:
+        target = s3_path or cfg.get("train.input") or s3_default(cfg, "data")
+        plan = cloud.upload_plan(folder, target)
+        if not plan:
+            fail(f"{folder} has no files to upload")
+        cloud.upload(session_or_exit(cfg), plan)
+    except AWS_ERRORS as e:
+        fail(str(e))
+    typer.echo(target)
 
 
 def cli() -> None:

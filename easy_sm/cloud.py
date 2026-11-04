@@ -11,7 +11,8 @@ import sys
 import time
 from collections.abc import Iterator
 from datetime import UTC, datetime
-from typing import Any
+from pathlib import Path
+from typing import Any, TextIO
 
 import boto3
 from botocore.exceptions import ClientError
@@ -261,8 +262,10 @@ def new_log_lines(s: boto3.Session, kind: str, name: str, tokens: dict[str, str]
             tokens[stream_name] = page["nextForwardToken"]
 
 
-def follow(s: boto3.Session, kind: str, name: str, show_logs: bool, poll: float = 5.0) -> dict[str, Any]:
-    """Wait for a job to finish, printing status changes and (optionally) its logs to stderr."""
+def follow(
+    s: boto3.Session, kind: str, name: str, show_logs: bool, poll: float = 5.0, log_out: TextIO = sys.stderr
+) -> dict[str, Any]:
+    """Wait for a job to finish, printing status changes to stderr and (optionally) its logs to log_out."""
     tokens: dict[str, str] = {}
     last = ""
     while True:
@@ -273,11 +276,11 @@ def follow(s: boto3.Session, kind: str, name: str, show_logs: bool, poll: float 
                 print(f"[status] {label}", file=sys.stderr)
                 last = label
             for line in new_log_lines(s, kind, name, tokens):
-                print(line, file=sys.stderr)
+                print(line, file=log_out, flush=True)
         if job["status"] in TERMINAL:
             if show_logs:  # lines written just before the end
                 for line in new_log_lines(s, kind, name, tokens):
-                    print(line, file=sys.stderr)
+                    print(line, file=log_out, flush=True)
             return job
         time.sleep(poll)
 
@@ -306,11 +309,15 @@ def check_endpoint_name(name: str) -> None:
         raise CloudError(f"Invalid endpoint name '{name}': letters, digits and hyphens, at most 63 characters")
 
 
+def is_own(name: str, app: str) -> bool:
+    """True for names easy_sm created for this app: <app>-YYYYMMDD-HHMMSS-<hash>. Other apps whose
+    names merely start the same way (churn vs churn-v2) don't match."""
+    return re.fullmatch(rf"{re.escape(app)}-\d{{8}}-\d{{6}}-[0-9a-f]{{12}}", name) is not None
+
+
 def pick_latest(job_names: list[str], app: str) -> str | None:
-    """First (newest) name that easy_sm created for this app: <app>-YYYYMMDD-HHMMSS-<hash>.
-    Filters out other apps whose names merely start the same way (churn vs churn-v2)."""
-    own = re.compile(rf"{re.escape(app)}-\d{{8}}-\d{{6}}-[0-9a-f]{{12}}")
-    return next((name for name in job_names if own.fullmatch(name)), None)
+    """First (newest) of the names that belong to this app."""
+    return next((name for name in job_names if is_own(name, app)), None)
 
 
 def resource_name(endpoint: str, image_hash: str, now: datetime) -> str:
@@ -481,3 +488,123 @@ def delete_endpoint(s: boto3.Session, endpoint: str, delete_config: bool) -> lis
         sm.delete_endpoint_config(EndpointConfigName=config)
         deleted.append(f"endpoint config {config}")
     return deleted
+
+
+# --- jobs: listing and inspecting (pure parts first) ---
+
+
+def fmt_duration(seconds: float | None) -> str:
+    """372 → '6m 12s', 3780 → '1h 03m'."""
+    if seconds is None:
+        return "-"
+    seconds = int(seconds)
+    if seconds >= 3600:
+        return f"{seconds // 3600}h {seconds % 3600 // 60:02d}m"
+    return f"{seconds // 60}m {seconds % 60:02d}s"
+
+
+def job_rows(
+    training: list[dict[str, Any]], processing: list[dict[str, Any]], app: str, limit: int, now_: datetime
+) -> list[dict[str, Any]]:
+    """Merge SageMaker's two job lists into one, newest first, keeping only this app's jobs."""
+    rows = []
+    for kind, summaries, prefix in (("train", training, "Training"), ("run", processing, "Processing")):
+        for job in summaries:
+            name = job[f"{prefix}JobName"]
+            if not is_own(name, app):
+                continue
+            end = job.get(f"{prefix}EndTime") or now_
+            rows.append({"name": name, "kind": kind, "status": job[f"{prefix}JobStatus"],
+                         "created": job["CreationTime"],
+                         "duration": fmt_duration((end - job["CreationTime"]).total_seconds())})  # fmt: skip
+    rows.sort(key=lambda row: row["created"], reverse=True)
+    return rows[:limit]
+
+
+def inspect_lines(kind: str, job: dict[str, Any], now_: datetime) -> list[tuple[str, str]]:
+    """The label/value pairs `jobs inspect` prints, from a describe_*_job response."""
+    if kind == "training":
+        resources = job["ResourceConfig"]
+        end = job.get("TrainingEndTime") or now_
+        lines = [
+            ("name", job["TrainingJobName"]), ("kind", "train"),
+            ("status", job["TrainingJobStatus"] + (f" ({job['SecondaryStatus']})"
+                       if job.get("SecondaryStatus") not in (None, job["TrainingJobStatus"]) else "")),
+            ("instance", f"{resources['InstanceType']} × {resources['InstanceCount']}"),
+            ("image", job["AlgorithmSpecification"]["TrainingImage"]),
+            ("input", job["InputDataConfig"][0]["DataSource"]["S3DataSource"]["S3Uri"]),
+            ("model", job.get("ModelArtifacts", {}).get("S3ModelArtifacts", "-")),
+        ]  # fmt: skip
+    else:
+        cluster = job["ProcessingResources"]["ClusterConfig"]
+        end = job.get("ProcessingEndTime") or now_
+        inputs = job.get("ProcessingInputs") or [{}]
+        outputs = job.get("ProcessingOutputConfig", {}).get("Outputs") or [{}]
+        lines = [
+            ("name", job["ProcessingJobName"]), ("kind", "run"), ("status", job["ProcessingJobStatus"]),
+            ("instance", f"{cluster['InstanceType']} × {cluster['InstanceCount']}"),
+            ("image", job["AppSpecification"]["ImageUri"]),
+            ("command", " ".join(job["AppSpecification"].get("ContainerArguments", [])[1:])),
+            ("env", ", ".join(sorted(job.get("Environment", {}))) or "-"),
+            ("input", inputs[0].get("S3Input", {}).get("S3Uri", "-")),
+            ("output", outputs[0].get("S3Output", {}).get("S3Uri", "-")),
+        ]  # fmt: skip
+    lines += [
+        ("created", f"{job['CreationTime']:%Y-%m-%d %H:%M:%S}"),
+        ("duration", fmt_duration((end - job["CreationTime"]).total_seconds())),
+    ]
+    if job.get("FailureReason"):
+        lines.append(("failure", job["FailureReason"]))
+    return lines
+
+
+def upload_plan(local_dir: Path, s3_uri: str) -> list[tuple[Path, str, str]]:
+    """(file, bucket, key) for every file under local_dir, skipping hidden files like the image does."""
+    bucket, prefix = split_s3(s3_uri)
+    prefix = prefix.rstrip("/")
+    return [
+        (path, bucket, f"{prefix}/{path.relative_to(local_dir).as_posix()}" if prefix
+         else path.relative_to(local_dir).as_posix())
+        for path in sorted(local_dir.rglob("*"))
+        if path.is_file() and not any(part.startswith(".") for part in path.relative_to(local_dir).parts)
+    ]  # fmt: skip
+
+
+# --- jobs: AWS calls ---
+
+
+def list_jobs(s: boto3.Session, app: str, limit: int) -> list[dict[str, Any]]:
+    sm = s.client("sagemaker")
+    common = {"NameContains": f"{app}-", "SortBy": "CreationTime", "SortOrder": "Descending", "MaxResults": 100}
+    training = sm.list_training_jobs(**common)["TrainingJobSummaries"]
+    processing = sm.list_processing_jobs(**common)["ProcessingJobSummaries"]
+    return job_rows(training, processing, app, limit, now())
+
+
+def find_job(s: boto3.Session, name: str) -> tuple[str, dict[str, Any]]:
+    """('training' | 'processing', description). Both kinds share easy_sm's naming, so ask for
+    a training job first and fall back to a processing job."""
+    sm = s.client("sagemaker")
+    try:
+        return "training", sm.describe_training_job(TrainingJobName=name)
+    except ClientError:
+        pass
+    try:
+        return "processing", sm.describe_processing_job(ProcessingJobName=name)
+    except ClientError as e:
+        raise CloudError(f"No training or processing job named {name}") from e
+
+
+def stop_job(s: boto3.Session, kind: str, name: str) -> None:
+    sm = s.client("sagemaker")
+    if kind == "training":
+        sm.stop_training_job(TrainingJobName=name)
+    else:
+        sm.stop_processing_job(ProcessingJobName=name)
+
+
+def upload(s: boto3.Session, plan: list[tuple[Path, str, str]]) -> None:
+    s3 = s.client("s3")
+    for path, bucket, key in plan:
+        print(f"upload {path} → s3://{bucket}/{key}", file=sys.stderr)
+        s3.upload_file(str(path), bucket, key)
