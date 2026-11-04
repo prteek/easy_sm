@@ -44,3 +44,27 @@ def test_env_works_without_any_aws_credentials(tmp_path, monkeypatch):
     result = runner.invoke(app, ["env"], env=NO_AWS)
     assert result.exit_code == 0
     assert "no AWS credentials found" in result.stdout
+
+
+# --- easy_sm dockerfile ---
+
+
+def test_dockerfile_prints_the_rules_then_what_easy_sm_generates(tmp_path, monkeypatch):
+    from easy_sm.image import dockerfile
+
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--name", "churn"])
+    result = runner.invoke(app, ["dockerfile"])
+    assert result.exit_code == 0
+    assert result.stdout.startswith("# Made by `easy_sm dockerfile`")
+    assert result.stdout.endswith(dockerfile("3.13"))  # requires-python >=3.13 in the scaffold
+
+
+def test_saved_dockerfile_is_used_by_the_build(tmp_path, monkeypatch):
+    from easy_sm.image import image_files
+
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--name", "churn"])
+    (tmp_path / "uv.lock").write_text("version = 1\n")
+    (tmp_path / "Dockerfile").write_text(runner.invoke(app, ["dockerfile"]).stdout)  # easy_sm dockerfile > Dockerfile
+    assert image_files(tmp_path)["Dockerfile"] == (tmp_path / "Dockerfile").read_bytes()

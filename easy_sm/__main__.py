@@ -677,6 +677,29 @@ def upload_data(
     typer.echo(target)
 
 
+DOCKERFILE_HEADER = """\
+# Made by `easy_sm dockerfile`. Saved as ./Dockerfile, easy_sm uses it instead of generating one
+# (and includes it in the image tag). Keep WORKDIR /opt/app, COPY runtime/ and src/, the gunicorn
+# install and the ENTRYPOINT, or train, serve and run break. Only pyproject.toml, uv.lock, src/ and
+# runtime/ can be COPYed. Upgrades no longer reach a saved copy: `easy_sm dockerfile | diff - Dockerfile`.
+"""
+
+
+@app.command("dockerfile")
+def dockerfile_command(ctx: typer.Context) -> None:
+    """Print the Dockerfile easy_sm generates for this project.
+
+    Customise it with: easy_sm dockerfile > Dockerfile (then edit; delete the file to go back).
+    After an upgrade, compare: easy_sm dockerfile | diff - Dockerfile
+    """
+    cfg = load_config(ctx)
+    try:
+        text = image.dockerfile(image.python_version(cfg.path.parent))
+    except ImageError as e:
+        fail(str(e))
+    typer.echo(DOCKERFILE_HEADER + text, nl=False)
+
+
 SKILL_PATH = Path(".claude/skills/easy_sm/SKILL.md")
 
 
