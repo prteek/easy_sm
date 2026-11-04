@@ -1,10 +1,10 @@
 Next:
   ☐ Run the README's two examples yourself against your AWS account (Claude ran every command; your own run is still open) @me
-  ☐ Review Dependabot PR #13 (setup-python and pypi-publish action bumps)
   ☐ Run `pip-audit` on runtime and dev dependencies (now typer, boto3; dev: pytest, mypy, ruff)
-  ☐ Delete merged local branches: v2, docs/project-docs, feat/run-command; remote v2 and docs/project-docs @me
+  ☐ Delete merged branches (new ones are deleted on merge): local v2, docs/cli-redesign, docs/project-docs, docs/post-release-2.0.0, feat/run-command, chore/secure-release; remote v2, docs/project-docs, docs/post-release-2.0.0, chore/secure-release @me
 
 Archive:
+  ✔ Merged PR #15 (post-release docs, dockerfile in diagrams) and Dependabot PR #13 (setup-python, pypi-publish bumps) @done(26-11-04 16:35)
   ✔ Released 2.0.1: `easy_sm dockerfile` prints the generated Dockerfile with a header of rules; `> Dockerfile` customises it (a `--write` flag was added and dropped the same day). CI green on 2aa3f84, tag v2.0.1 published to PyPI (wheel + sdist) and GitHub release @done(26-11-04)
   ✔ Released 2.0.0: PR #14 merged (CI green after fixing `env` with no AWS credentials), tag v2.0.0 published to PyPI by Trusted Publishing (wheel + sdist), GitHub release created; fresh `uvx easy_sm==2.0.0` project ran init, uv lock (resolves the easy_sm>=2.0.0 dev pin) and train --local @done(26-11-04)
   ✔ GitHub Pages now renders the README (pages.yml); first deploy replaced the 1.x MkDocs site, HTTP 200 @done(26-11-04)

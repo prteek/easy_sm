@@ -28,3 +28,6 @@ dist/
 
 # Sample data shipped with `easy_sm init`
 !easy_sm/scaffold/data/*.csv
+
+# personal Claude Code settings (teaching questions)
+CLAUDE.local.md
