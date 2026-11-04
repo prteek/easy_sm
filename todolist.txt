@@ -1,5 +1,4 @@
 v2 rewrite (branch v2, see decisions.md *Build order for the rewrite*):
-  ☐ Step 2: runtime module: train entry, stdlib WSGI app under gunicorn, run
   ☐ Step 3: image: content hash, generated uv Dockerfile, `build`
   ☐ Step 4: local loop: train/run --local, endpoints serve/invoke --local
   ☐ Step 5: cloud jobs: push via boto3, train/run with log streaming
@@ -35,6 +34,7 @@ Housekeeping:
   ☐ Delete local branch feat/run-command (already merged into main)
 
 Archive:
+  ✔ v2 step 2: runtime (train with failure file, stdlib WSGI serve under gunicorn, run via execvp) (43 tests, 8b9250d) @done(26-11-04 10:14)
   ✔ v2 steps 0–1: removed 1.x code/tests/docs, pyproject.toml packaging, easy_sm.toml config with lookup order, `init`, `env` (28 tests, a58db18) @done(26-11-03 23:58)
   ✔ Revoked the old PyPI API token and deleted the PYPI_TOKEN repo secret (repo and `pypi` environment now have no secrets); old-branch workflows can no longer publish @done(26-10-13)
   ✔ Released 1.3.1 through Trusted Publishing: build / publish / release jobs passed; PyPI has attestations for both files (provenance HTTP 200) @done(26-10-13 15:21)
