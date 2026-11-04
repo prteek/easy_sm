@@ -50,7 +50,7 @@ PAGE = """<!doctype html>
 
 
 def render(readme: str) -> str:
-    body = markdown.markdown(readme, extensions=["tables", "fenced_code"])
+    body = markdown.markdown(readme, extensions=["tables", "fenced_code", "md_in_html", "toc"])
     first_line = readme.strip().splitlines()[0].lstrip("# ").strip()
     description = next((line for line in readme.splitlines()[1:] if line.strip()), "")
     return PAGE.format(title=html.escape(first_line), description=html.escape(description), body=body)
