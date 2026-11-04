@@ -63,7 +63,7 @@ pyproject.toml         # packaging (hatchling), dev dependency group, pytest/myp
 - `.github/README.md`: user guide, PyPI page and (via `pages.yml`) the GitHub Pages site. Minimal: two example workflows (train/deploy, run a script), command table, hf credits
 - `easy_sm/skill.md`: guide for coding agents, written by `easy_sm skill`. A test fails if a command is missing from it
 - `diagrams/`: flows and call maps. When a command or check changes, update `make_diagrams.py` and run `python3 diagrams/make_diagrams.py diagrams`
-- `summary.md`, `decisions.md`, `todolist.txt`: project docs (see `/project-docs`)
+- `summary.md`, `decisions.md`, `todolist.txt`: project docs (see `/dev:project-docs` under Skills)
 - When adding a command: update `skill.md`, the README command table and the diagrams
 - `easy_sm dockerfile` prints a header of rules plus `image.dockerfile(...)`; users save it with `> Dockerfile` (no `--write`: piping does it). A project `Dockerfile` replaces the generated one in `image_files()`
 
@@ -105,21 +105,14 @@ pyproject.toml         # packaging (hatchling), dev dependency group, pytest/myp
 
 ## Skills
 
-- **`/project-docs`** (`.claude/skills/project-docs/SKILL.md`): maintains `summary.md` (state no tool shows), `decisions.md` (choices, why, evidence) and `todolist.txt` (Todo+ work queue) at the repo root
-- **`/refresh`** (`.claude/skills/refresh/SKILL.md`): audits and updates this file
+- **`/dev:project-docs`** (`dev` plugin): maintains `summary.md`, `decisions.md` and `todolist.txt` at the repo root. Skip its `README.md`: the repo map is this file's "What exists" section and the user guide is `.github/README.md`, so new files are listed here
+- **`/dev:teaching-questions`** (`dev` plugin): 3 questions before a commit, on when `CLAUDE.local.md` (git-ignored) has `Teaching questions: on`
 
 ## BEFORE WRITING CODE
 
 Explain what you're about to do and why
 Break it down into steps I can follow
 Wait for my OK before proceeding
-
-## AFTER WRITING CODE
-
-Explain what each part does
-Ask me 3 questions to verify I understood
-If I answer wrong, explain again until I get it
-Do NOT let me commit until I pass your questions
 
 ## GENERAL RULES
 
