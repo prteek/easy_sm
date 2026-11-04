@@ -24,14 +24,15 @@ uv venv -p 3.13 && uv pip install -e . --group dev   # dev setup
 .venv/bin/easy_sm --help
 ```
 
-## What exists (v2, step 2)
+## What exists (v2, step 3)
 
 ```
 easy_sm/
 ├── __init__.py        # __version__ (single source; pyproject reads it)
-├── __main__.py        # Typer app: global --config option, `init`, `env`
+├── __main__.py        # Typer app: global --config option, `init`, `env`, `build`
 ├── config.py          # easy_sm.toml loading/validation, SETTINGS table, Config.resolve()
 ├── init.py            # create_project(): copies scaffold/, never overwrites
+├── image.py           # image_files() → hash tag + build folder; generated uv Dockerfile; build()
 ├── runtime/           # runs INSIDE the image as top-level `runtime`: stdlib only, relative imports
 │   ├── __init__.py    # /opt/ml paths, load_from() to import user code from src/
 │   ├── __main__.py    # python -m runtime train | serve | run COMMAND...

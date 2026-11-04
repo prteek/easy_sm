@@ -5,8 +5,9 @@ from typing import Annotated
 
 import typer
 
-from easy_sm import config
+from easy_sm import config, image
 from easy_sm.config import CONFIG_FILE, SETTINGS, Config, ConfigError
+from easy_sm.image import ImageError
 from easy_sm.init import create_project
 
 app = typer.Typer(
@@ -55,10 +56,27 @@ def init(
 def env(ctx: typer.Context) -> None:
     """Show every setting, its value and where the value came from."""
     cfg = load_config(ctx)
+    try:
+        tag, source = image.image_tag(cfg.path.parent, cfg.get("app_name")), "computed"
+    except ImageError:
+        tag, source = "-", "run 'easy_sm build'"
+    typer.echo(f"{'image':<22} {tag:<45} {source}")
     for key in SETTINGS:
         value, source = cfg.resolve(key)
         shown = "-" if value is None else str(value)
         typer.echo(f"{key:<22} {shown:<45} {source}")
+
+
+@app.command()
+def build(ctx: typer.Context) -> None:
+    """Build the project's Docker image (skipped if this exact image already exists) and print its tag."""
+    cfg = load_config(ctx)
+    try:
+        tag = image.build(cfg.path.parent, cfg.get("app_name"))
+    except ImageError as e:
+        typer.echo(str(e), err=True)
+        raise typer.Exit(1)
+    typer.echo(tag)
 
 
 def cli() -> None:
