@@ -30,3 +30,17 @@ def test_config_option_picks_another_file(tmp_path, monkeypatch):
     (tmp_path / "prod.toml").write_text('app_name = "churn-prod"\n')
     result = runner.invoke(app, ["--config", "prod.toml", "env"])
     assert "churn-prod" in result.stdout
+
+
+# No AWS at all, as on a CI runner: env must still work and say so.
+NO_AWS = {"AWS_PROFILE": None, "AWS_ACCESS_KEY_ID": None, "AWS_SECRET_ACCESS_KEY": None, "AWS_SESSION_TOKEN": None,
+          "AWS_CONFIG_FILE": "/dev/null", "AWS_SHARED_CREDENTIALS_FILE": "/dev/null",
+          "AWS_EC2_METADATA_DISABLED": "true", "AWS_REGION": "eu-west-1"}  # fmt: skip
+
+
+def test_env_works_without_any_aws_credentials(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--name", "churn"])
+    result = runner.invoke(app, ["env"], env=NO_AWS)
+    assert result.exit_code == 0
+    assert "no AWS credentials found" in result.stdout

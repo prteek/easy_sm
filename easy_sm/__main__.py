@@ -133,9 +133,13 @@ def env(ctx: typer.Context, fmt: FormatOption = Format.table) -> None:
         rows.append(("image", None, "run 'easy_sm build'"))
     try:
         s = cloud.session(cfg)
-        method = s.get_credentials().method
-        via = f"{method}, profile {s.profile_name}" if method == "shared-credentials-file" else method
-        rows.append(("aws.account", cloud.account_id(s), f"{s.region_name}, credentials: {via}"))
+        found = s.get_credentials()
+        if found is None:
+            rows.append(("aws.account", None, "no AWS credentials found"))
+        else:
+            method = found.method
+            via = f"{method}, profile {s.profile_name}" if method == "shared-credentials-file" else method
+            rows.append(("aws.account", cloud.account_id(s), f"{s.region_name}, credentials: {via}"))
     except AWS_ERRORS as e:
         rows.append(("aws.account", None, f"not available ({type(e).__name__})"))
     rows += [(key, *cfg.resolve(key)) for key in SETTINGS]
