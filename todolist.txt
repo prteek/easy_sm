@@ -1,5 +1,4 @@
 v2 rewrite (branch v2, see decisions.md *Build order for the rewrite*):
-  ☐ Add endpoint and jobs diagrams (deploy, invoke, delete, jobs ls/inspect/logs/cancel, data upload) to diagrams/make_diagrams.py and regenerate
   ☐ Step 8: README, CLAUDE.md, release 2.0.0
   ☐ Scaffold pyproject: add easy_sm to the dev group; README explains `uv run easy_sm` and upgrading via `uv lock --upgrade-package easy_sm`
   ☐ If a docs site is brought back, include the hf CLI credits (now only in .github/README.md, which is also the PyPI page)
@@ -32,6 +31,7 @@ Housekeeping:
   ☐ Delete local branch feat/run-command (already merged into main)
 
 Archive:
+  ✔ Diagrams for endpoints, jobs, data, --dry-run and local credentials; README, summary.md and CLAUDE.md updated for v2 (22 diagrams, be06ebd) @done(26-11-04)
   ✔ v2: local containers get the current AWS credentials as `-e NAME` only; no ~/.aws mount (127 tests; STS call from container returned the personal account, 2894fc6) @done(26-11-04 14:04)
   ✔ v2 step 7b: --dry-run, --format json, easy_sm skill, retired-key hints (122 tests; real dry runs started nothing, 4d62c94) @done(26-11-04 13:43)
   ✔ v2 step 7a: jobs ls/inspect/logs/cancel/artifacts, data upload (114 tests; real ls, inspect, logs, artifacts refused for failed job, upload, cancel → Stopping, 78df86f) @done(26-11-04 13:29)
