@@ -1,6 +1,7 @@
 v2 rewrite (branch v2, see decisions.md *Build order for the rewrite*):
   ☐ Pass AWS credentials to local containers without mounting ~/.aws writable (needed for run --local scripts that use S3)
   ☐ Step 6: endpoints: deploy from job, invoke, ls, describe, delete
+  ☐ Add endpoint diagrams (deploy, invoke, delete) to diagrams/make_diagrams.py and regenerate
   ☐ Step 7: jobs group, data upload; agent support: --dry-run, --format json, `easy_sm skill`
   ☐ Retired easy_sm.toml keys give a targeted hint (start with aws.profile → use AWS_PROFILE)
   ☐ Step 8: README, CLAUDE.md, release 2.0.0

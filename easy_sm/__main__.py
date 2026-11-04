@@ -55,10 +55,6 @@ def load_config(ctx: typer.Context) -> Config:
         fail(str(e))
 
 
-def cloud_not_ready() -> NoReturn:
-    fail("Only --local is available so far; SageMaker support comes in a later version of v2.", 2)
-
-
 def build_image(cfg: Config) -> str:
     """Build the image if the code changed; return its tag."""
     try:
@@ -297,8 +293,69 @@ def serve(ctx: typer.Context, is_local: LocalFlag = False, port: PortOption = 80
         pass  # Ctrl-C also reaches docker, which stops the container
 
 
+def endpoint_name(cfg: Config, name: str | None) -> str:
+    """NAME argument → [endpoint] name → app_name."""
+    chosen = name or cfg.get("endpoint.name") or cfg.get("app_name")
+    try:
+        cloud.check_endpoint_name(chosen)
+    except CloudError as e:
+        fail(str(e))
+    return chosen
+
+
+@endpoints.command()
+def deploy(
+    ctx: typer.Context,
+    name: Annotated[str | None, typer.Argument(help="Endpoint name (default: [endpoint] name, then app_name)")] = None,
+    latest: Annotated[bool, typer.Option("--latest", help="Deploy the newest completed training job")] = False,
+    job: Annotated[str | None, typer.Option("--job", help="Deploy this training job's model and image")] = None,
+    model: Annotated[
+        str | None, typer.Option("--model", help="Deploy this model.tar.gz with the CURRENT code (builds and pushes)")
+    ] = None,
+    instance: InstanceOption = None,
+) -> None:
+    """Deploy a model to a SageMaker endpoint, or update the endpoint if it exists.
+
+    Prints the endpoint name once it is in service on the new model; exits 1 if it fails or rolls back.
+    """
+    if sum([latest, job is not None, model is not None]) != 1:
+        fail("Choose exactly one of --latest, --job JOB or --model s3://.../model.tar.gz", 2)
+    cfg = load_config(ctx)
+    endpoint = endpoint_name(cfg, name)
+    role = cfg.get("aws.role")
+    if not role:
+        fail("No IAM role: set [aws] role in easy_sm.toml or SAGEMAKER_ROLE")
+    try:
+        s = cloud.session(cfg)
+        if model:
+            cloud.check_s3_has_data(s, model)
+            image_uri = cloud.push(s, cloud.account_id(s), build_image(cfg))
+            model_s3 = model
+        else:
+            source_job = job or cloud.latest_job(s, cfg.get("app_name"))
+            model_s3, image_uri = cloud.job_source(s, source_job)
+            typer.echo(f"Deploying {source_job}", err=True)
+        resource = cloud.resource_name(endpoint, cloud.image_hash_of(image_uri), cloud.now())
+        config = cloud.endpoint_config_request(
+            resource, resource, cfg.get("endpoint.instance", instance), cfg.get("endpoint.serverless"),
+            cfg.get("endpoint.memory"), cfg.get("endpoint.concurrency"),
+        )  # fmt: skip
+        cloud.deploy(s, endpoint, cloud.model_request(resource, image_uri, model_s3, role), config)
+        desc = cloud.wait_for_endpoint(s, endpoint)
+    except KeyboardInterrupt:
+        fail(f"Stopped waiting; {endpoint} keeps deploying. Check it with: easy_sm endpoints describe {endpoint}", 130)
+    except AWS_ERRORS as e:
+        fail(str(e))
+    problem = cloud.deploy_outcome(desc, resource)
+    if problem:
+        fail(f"{endpoint} {problem}")
+    typer.echo(endpoint)
+
+
 @endpoints.command()
 def invoke(
+    ctx: typer.Context,
+    name: Annotated[str | None, typer.Argument(help="Endpoint name (default: [endpoint] name, then app_name)")] = None,
     is_local: LocalFlag = False,
     data: Annotated[
         str, typer.Option("--data", "-d", help="Request body, or @file to send a file")
@@ -309,15 +366,70 @@ def invoke(
     port: PortOption = 8080,
 ) -> None:
     """Send one prediction request and print the response."""
-    if not is_local:
-        cloud_not_ready()
     try:
-        status, body = local.invoke(port, local.request_body(data), content_type)
-    except (ImageError, OSError) as e:
+        body = local.request_body(data)
+    except OSError as e:
         fail(str(e))
-    if status != 200:
-        fail(f"HTTP {status}: {body.decode()}")
-    typer.echo(body.decode())
+    if is_local:
+        try:
+            status, response = local.invoke(port, body, content_type)
+        except ImageError as e:
+            fail(str(e))
+        if status != 200:
+            fail(f"HTTP {status}: {response.decode()}")
+        typer.echo(response.decode())
+        return
+    cfg = load_config(ctx)
+    try:
+        typer.echo(cloud.invoke_endpoint(cloud.session(cfg), endpoint_name(cfg, name), body, content_type).decode())
+    except AWS_ERRORS as e:
+        fail(str(e))
+
+
+@endpoints.command("ls")
+def list_endpoints(ctx: typer.Context) -> None:
+    """List endpoints in this account and region, newest first: name, status, created."""
+    cfg = load_config(ctx)
+    try:
+        rows = cloud.list_endpoints(cloud.session(cfg))
+    except AWS_ERRORS as e:
+        fail(str(e))
+    for row in rows:
+        typer.echo(f"{row['EndpointName']:<40} {row['EndpointStatus']:<14} {row['CreationTime']:%Y-%m-%d %H:%M}")
+
+
+@endpoints.command()
+def describe(
+    ctx: typer.Context,
+    name: Annotated[str | None, typer.Argument(help="Endpoint name (default: [endpoint] name, then app_name)")] = None,
+) -> None:
+    """Show an endpoint's status, size, model data and image."""
+    cfg = load_config(ctx)
+    try:
+        details = cloud.endpoint_details(cloud.session(cfg), endpoint_name(cfg, name))
+    except AWS_ERRORS as e:
+        fail(str(e))
+    for label, value in cloud.describe_lines(details):
+        typer.echo(f"{label:<12} {value}")
+
+
+@endpoints.command()
+def delete(
+    ctx: typer.Context,
+    name: Annotated[str, typer.Argument(help="Endpoint to delete (always named explicitly)")],
+    delete_config: Annotated[
+        bool, typer.Option("--delete-config", help="Also delete the endpoint's current config")
+    ] = False,
+) -> None:
+    """Delete an endpoint. Models and older configs are kept; nothing else is removed."""
+    cfg = load_config(ctx)
+    try:
+        cloud.check_endpoint_name(name)
+        deleted = cloud.delete_endpoint(cloud.session(cfg), name, delete_config)
+    except AWS_ERRORS as e:
+        fail(str(e))
+    for item in deleted:
+        typer.echo(f"deleted {item}")
 
 
 def cli() -> None:

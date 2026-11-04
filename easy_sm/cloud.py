@@ -292,3 +292,192 @@ def start(s: boto3.Session, kind: str, request: dict[str, Any]) -> None:
 
 def now() -> datetime:
     return datetime.now(UTC)
+
+
+# --- endpoints: names and requests (pure) ---
+
+NAME_PATTERN = re.compile(r"[a-zA-Z0-9](-*[a-zA-Z0-9]){0,62}")  # SageMaker endpoint, model and config names
+SERVERLESS_MEMORY = (1024, 2048, 3072, 4096, 5120, 6144)
+ENDPOINT_DONE = {"InService", "Failed", "OutOfService", "UpdateRollbackFailed"}
+
+
+def check_endpoint_name(name: str) -> None:
+    if not NAME_PATTERN.fullmatch(name):
+        raise CloudError(f"Invalid endpoint name '{name}': letters, digits and hyphens, at most 63 characters")
+
+
+def pick_latest(job_names: list[str], app: str) -> str | None:
+    """First (newest) name that easy_sm created for this app: <app>-YYYYMMDD-HHMMSS-<hash>.
+    Filters out other apps whose names merely start the same way (churn vs churn-v2)."""
+    own = re.compile(rf"{re.escape(app)}-\d{{8}}-\d{{6}}-[0-9a-f]{{12}}")
+    return next((name for name in job_names if own.fullmatch(name)), None)
+
+
+def resource_name(endpoint: str, image_hash: str, now: datetime) -> str:
+    """Unique per deploy, used for both the model and the endpoint config, so a redeploy never
+    collides with the config the endpoint is still using."""
+    suffix = f"-{now:%Y%m%d-%H%M%S}-{image_hash}"
+    return endpoint[: JOB_NAME_MAX - len(suffix)] + suffix
+
+
+def model_request(name: str, image: str, model_s3: str, role: str) -> dict[str, Any]:
+    return {
+        "ModelName": name,
+        "ExecutionRoleArn": role,
+        # SageMaker unpacks model.tar.gz into /opt/ml/model, where Handler(model_dir) reads it
+        "PrimaryContainer": {"Image": image, "ModelDataUrl": model_s3},
+    }
+
+
+def endpoint_config_request(
+    name: str, model: str, instance: str, serverless: bool, memory: int, concurrency: int
+) -> dict[str, Any]:
+    variant: dict[str, Any] = {"VariantName": "AllTraffic", "ModelName": model}
+    if serverless:
+        if memory not in SERVERLESS_MEMORY:
+            raise ValueError(f"endpoint.memory must be one of {', '.join(map(str, SERVERLESS_MEMORY))}")
+        if not 1 <= concurrency <= 200:
+            raise ValueError("endpoint.concurrency must be between 1 and 200")
+        variant["ServerlessConfig"] = {"MemorySizeInMB": memory, "MaxConcurrency": concurrency}
+    else:
+        variant.update({"InstanceType": instance, "InitialInstanceCount": 1})
+    return {"EndpointConfigName": name, "ProductionVariants": [variant]}
+
+
+def deploy_outcome(endpoint: dict[str, Any], new_config: str) -> str | None:
+    """None if the endpoint is serving the new config, else what went wrong. A failed update
+    rolls back and ends InService on the OLD config, so InService alone proves nothing."""
+    status = endpoint["EndpointStatus"]
+    if status == "InService" and endpoint["EndpointConfigName"] == new_config:
+        return None
+    if status == "InService":
+        return (f"update rolled back: still serving {endpoint['EndpointConfigName']}. "
+                f"{endpoint.get('FailureReason', '')}").strip()
+    return f"{status}: {endpoint.get('FailureReason', 'no reason given')}"
+
+
+def image_hash_of(image_uri: str) -> str:
+    """'…/churn:a1b2c3d4e5f6' → 'a1b2c3d4e5f6'."""
+    return image_uri.rsplit(":", 1)[1]
+
+
+# --- endpoints: AWS calls ---
+
+
+def latest_job(s: boto3.Session, app: str) -> str:
+    jobs = s.client("sagemaker").list_training_jobs(
+        NameContains=f"{app}-", StatusEquals="Completed", SortBy="CreationTime", SortOrder="Descending",
+        MaxResults=50,
+    )["TrainingJobSummaries"]
+    name = pick_latest([j["TrainingJobName"] for j in jobs], app)
+    if not name:
+        raise CloudError(f"No completed training job for '{app}'. Run 'easy_sm train' first.")
+    return name
+
+
+def job_source(s: boto3.Session, job: str) -> tuple[str, str]:
+    """(model.tar.gz S3 path, image URI) of a completed training job: the model and the exact
+    code it was trained with."""
+    desc = s.client("sagemaker").describe_training_job(TrainingJobName=job)
+    if desc["TrainingJobStatus"] != "Completed":
+        raise CloudError(f"{job} is {desc['TrainingJobStatus']}, not Completed")
+    return desc["ModelArtifacts"]["S3ModelArtifacts"], desc["AlgorithmSpecification"]["TrainingImage"]
+
+
+def find_endpoint(s: boto3.Session, name: str) -> dict[str, Any] | None:
+    try:
+        return s.client("sagemaker").describe_endpoint(EndpointName=name)
+    except ClientError as e:
+        if "Could not find endpoint" in str(e):
+            return None
+        raise
+
+
+def deploy(s: boto3.Session, endpoint: str, model: dict[str, Any], config: dict[str, Any]) -> None:
+    """Create the model and config, then create the endpoint or point it at the new config.
+    Old models and configs are never deleted: SageMaker may need them to roll back."""
+    sm = s.client("sagemaker")
+    existing = find_endpoint(s, endpoint)
+    if existing:
+        try:
+            sm.describe_endpoint_config(EndpointConfigName=existing["EndpointConfigName"])
+        except ClientError as e:
+            raise CloudError(
+                f"{endpoint} uses config {existing['EndpointConfigName']}, which no longer exists, so "
+                f"SageMaker can't update it. Delete the endpoint and deploy again."
+            ) from e
+    sm.create_model(**model)
+    sm.create_endpoint_config(**config)
+    if existing:
+        sm.update_endpoint(EndpointName=endpoint, EndpointConfigName=config["EndpointConfigName"])
+    else:
+        sm.create_endpoint(EndpointName=endpoint, EndpointConfigName=config["EndpointConfigName"])
+
+
+def wait_for_endpoint(s: boto3.Session, endpoint: str, poll: float = 15.0) -> dict[str, Any]:
+    """Wait until the endpoint stops changing, printing status changes to stderr."""
+    sm = s.client("sagemaker")
+    last = ""
+    while True:
+        desc = sm.describe_endpoint(EndpointName=endpoint)
+        if desc["EndpointStatus"] != last:
+            last = desc["EndpointStatus"]
+            print(f"[status] {last}", file=sys.stderr)
+        if last in ENDPOINT_DONE:
+            return desc
+        time.sleep(poll)
+
+
+def invoke_endpoint(s: boto3.Session, endpoint: str, body: bytes, content_type: str) -> bytes:
+    response = s.client("sagemaker-runtime").invoke_endpoint(
+        EndpointName=endpoint, ContentType=content_type, Body=body
+    )
+    return response["Body"].read()
+
+
+def list_endpoints(s: boto3.Session) -> list[dict[str, Any]]:
+    return s.client("sagemaker").list_endpoints(SortBy="CreationTime", SortOrder="Descending", MaxResults=100)[
+        "Endpoints"
+    ]
+
+
+def endpoint_details(s: boto3.Session, endpoint: str) -> dict[str, Any]:
+    """The endpoint, its current config and that config's model, for `endpoints describe`."""
+    sm = s.client("sagemaker")
+    desc = sm.describe_endpoint(EndpointName=endpoint)
+    config = sm.describe_endpoint_config(EndpointConfigName=desc["EndpointConfigName"])
+    variant = config["ProductionVariants"][0]
+    model = sm.describe_model(ModelName=variant["ModelName"])
+    return {"endpoint": desc, "variant": variant, "model": model}
+
+
+def describe_lines(details: dict[str, Any]) -> list[tuple[str, str]]:
+    """Pure: the label/value pairs `endpoints describe` prints."""
+    desc, variant, model = details["endpoint"], details["variant"], details["model"]
+    serverless = variant.get("ServerlessConfig")
+    size = (f"serverless, {serverless['MemorySizeInMB']} MB, max concurrency {serverless['MaxConcurrency']}"
+            if serverless else f"{variant['InstanceType']} × {variant['InitialInstanceCount']}")
+    lines = [
+        ("name", desc["EndpointName"]),
+        ("status", desc["EndpointStatus"]),
+        ("config", desc["EndpointConfigName"]),
+        ("size", size),
+        ("model data", model["PrimaryContainer"].get("ModelDataUrl", "-")),
+        ("image", model["PrimaryContainer"]["Image"]),
+        ("updated", f"{desc['LastModifiedTime']:%Y-%m-%d %H:%M:%S}"),
+    ]
+    if desc.get("FailureReason"):
+        lines.append(("failure", desc["FailureReason"]))
+    return lines
+
+
+def delete_endpoint(s: boto3.Session, endpoint: str, delete_config: bool) -> list[str]:
+    """Delete the endpoint (and, if asked, its current config). Return what was deleted."""
+    sm = s.client("sagemaker")
+    config = sm.describe_endpoint(EndpointName=endpoint)["EndpointConfigName"]
+    sm.delete_endpoint(EndpointName=endpoint)
+    deleted = [f"endpoint {endpoint}"]
+    if delete_config:
+        sm.delete_endpoint_config(EndpointConfigName=config)
+        deleted.append(f"endpoint config {config}")
+    return deleted

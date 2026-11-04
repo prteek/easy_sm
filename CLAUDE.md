@@ -24,17 +24,18 @@ uv venv -p 3.13 && uv pip install -e . --group dev   # dev setup
 .venv/bin/easy_sm --help
 ```
 
-## What exists (v2, step 5)
+## What exists (v2, step 6)
 
 ```
 easy_sm/
 ├── __init__.py        # __version__ (single source; pyproject reads it)
-├── __main__.py        # Typer app: --config, init, env, build, push, train/run (cloud or --local), endpoints serve/invoke --local
+├── __main__.py        # Typer app: --config, init, env, build, push, train/run (cloud or --local), endpoints deploy/invoke/ls/describe/delete, serve --local
 ├── config.py          # easy_sm.toml loading/validation, SETTINGS table, Config.resolve()
 ├── init.py            # create_project(): copies scaffold/, never overwrites
 ├── image.py           # image_files() → hash tag + build folder; generated uv Dockerfile; build()
 ├── local.py           # docker run argv builders (train/run/serve), parse_env, invoke(); .easy_sm/ folder
-├── cloud.py           # boto3: session (default credential chain), ECR push, job names, Create*Job requests, follow() logs
+├── cloud.py           # boto3: session (default credential chain), ECR push, Create*Job requests, follow() logs,
+│                      #   endpoints: model/config requests, deploy + wait + deploy_outcome, invoke, ls, describe, delete
 ├── runtime/           # runs INSIDE the image as top-level `runtime`: stdlib only, relative imports
 │   ├── __init__.py    # /opt/ml paths, load_from() to import user code from src/
 │   ├── __main__.py    # python -m runtime train | serve | run COMMAND...
