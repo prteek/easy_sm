@@ -64,7 +64,7 @@ pyproject.toml         # packaging (hatchling), dev dependency group, pytest/myp
 - `diagrams/`: flows and call maps. When a command or check changes, update `make_diagrams.py` and run `python3 diagrams/make_diagrams.py diagrams`
 - `summary.md`, `decisions.md`, `todolist.txt`: project docs (see `/project-docs`)
 - When adding a command: update `skill.md`, the README command table and the diagrams
-- `easy_sm dockerfile` prints `image.dockerfile(...)`; `--write` saves it with a header of rules as `./Dockerfile` (never overwrites). A project `Dockerfile` replaces the generated one in `image_files()`
+- `easy_sm dockerfile` prints a header of rules plus `image.dockerfile(...)`; users save it with `> Dockerfile` (no `--write`: piping does it). A project `Dockerfile` replaces the generated one in `image_files()`
 
 ### Config (`easy_sm/config.py`)
 - Every known setting is listed in `SETTINGS` as `"section.name": Setting(type, env=..., default=...)`. Adding a setting = one line there (and a commented line in `scaffold/easy_sm.toml`)

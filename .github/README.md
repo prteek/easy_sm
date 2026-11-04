@@ -114,7 +114,7 @@ easy_sm run --local process.py --date 2026-11-01   # in Docker
 easy_sm run process.py --date 2026-11-01           # as a SageMaker processing job
 ```
 
-Arguments after the script name go to the script. Any command works: Python tools added with `uv add` (e.g. dbt) are in the image already. For system tools like `make` or `git`, run `easy_sm dockerfile --write` and add an `apt-get install` line after `FROM` in the new `Dockerfile`; easy_sm then builds with it.
+Arguments after the script name go to the script. Any command works: Python tools added with `uv add` (e.g. dbt) are in the image already. For system tools like `make` or `git`, run `easy_sm dockerfile > Dockerfile` and add an `apt-get install` line after `FROM`; easy_sm then builds with it.
 
 ## Commands
 
@@ -131,7 +131,7 @@ Arguments after the script name go to the script. Any command works: Python tool
 | `easy_sm endpoints ls` / `describe` / `delete NAME` | List, show, delete endpoints |
 | `easy_sm jobs ls` / `inspect` / `logs` / `cancel` / `artifacts` | List and manage jobs |
 | `easy_sm build` / `push` | Build the image / push it to ECR (other commands do this when needed) |
-| `easy_sm dockerfile [--write]` | Show the generated Dockerfile, or save it as `./Dockerfile` to customise |
+| `easy_sm dockerfile` | Print the generated Dockerfile (`> Dockerfile` to customise it) |
 | `easy_sm skill` | Write a guide for coding agents to `.claude/skills/easy_sm/SKILL.md` |
 
 Add `--dry-run` to `train`, `run`, `push` or `endpoints deploy` to see what would be sent without changing anything, and `--format json` to `env`, `jobs` and `endpoints` listings for scripts. Settings such as instance types live in `easy_sm.toml`; a flag overrides them for one run. AWS credentials never go in that file.

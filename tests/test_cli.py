@@ -49,33 +49,22 @@ def test_env_works_without_any_aws_credentials(tmp_path, monkeypatch):
 # --- easy_sm dockerfile ---
 
 
-def test_dockerfile_prints_exactly_what_easy_sm_generates(tmp_path, monkeypatch):
+def test_dockerfile_prints_the_rules_then_what_easy_sm_generates(tmp_path, monkeypatch):
     from easy_sm.image import dockerfile
 
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["init", "--name", "churn"])
     result = runner.invoke(app, ["dockerfile"])
     assert result.exit_code == 0
-    assert result.stdout == dockerfile("3.13")  # requires-python >=3.13 in the scaffold
+    assert result.stdout.startswith("# Made by `easy_sm dockerfile`")
+    assert result.stdout.endswith(dockerfile("3.13"))  # requires-python >=3.13 in the scaffold
 
 
-def test_dockerfile_write_creates_a_custom_dockerfile_that_easy_sm_then_uses(tmp_path, monkeypatch):
+def test_saved_dockerfile_is_used_by_the_build(tmp_path, monkeypatch):
     from easy_sm.image import image_files
 
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["init", "--name", "churn"])
     (tmp_path / "uv.lock").write_text("version = 1\n")
-    result = runner.invoke(app, ["dockerfile", "--write"])
-    written = (tmp_path / "Dockerfile").read_text()
-    assert result.exit_code == 0
-    assert written.startswith("# Custom Dockerfile") and "ENTRYPOINT" in written
-    assert image_files(tmp_path)["Dockerfile"] == written.encode()  # the build now uses it
-
-
-def test_dockerfile_write_never_overwrites(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
-    runner.invoke(app, ["init", "--name", "churn"])
-    (tmp_path / "Dockerfile").write_text("FROM mine\n")
-    result = runner.invoke(app, ["dockerfile", "--write"])
-    assert result.exit_code == 1 and "diff" in result.stderr
-    assert (tmp_path / "Dockerfile").read_text() == "FROM mine\n"
+    (tmp_path / "Dockerfile").write_text(runner.invoke(app, ["dockerfile"]).stdout)  # easy_sm dockerfile > Dockerfile
+    assert image_files(tmp_path)["Dockerfile"] == (tmp_path / "Dockerfile").read_bytes()

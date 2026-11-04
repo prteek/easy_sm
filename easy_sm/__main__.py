@@ -678,38 +678,26 @@ def upload_data(
 
 
 DOCKERFILE_HEADER = """\
-# Custom Dockerfile: easy_sm uses this file instead of generating one, and includes it in the image tag.
-# Keep WORKDIR /opt/app, COPY runtime/ and src/, the gunicorn install and the ENTRYPOINT, or train,
-# serve and run break. Only pyproject.toml, uv.lock, src/ and runtime/ can be COPYed. easy_sm upgrades
-# no longer reach this file: compare with `easy_sm dockerfile | diff - Dockerfile`. Delete it to go back.
+# Made by `easy_sm dockerfile`. Saved as ./Dockerfile, easy_sm uses it instead of generating one
+# (and includes it in the image tag). Keep WORKDIR /opt/app, COPY runtime/ and src/, the gunicorn
+# install and the ENTRYPOINT, or train, serve and run break. Only pyproject.toml, uv.lock, src/ and
+# runtime/ can be COPYed. Upgrades no longer reach a saved copy: `easy_sm dockerfile | diff - Dockerfile`.
 """
 
 
 @app.command("dockerfile")
-def dockerfile_command(
-    ctx: typer.Context,
-    write: Annotated[
-        bool, typer.Option("--write", help="Write it to ./Dockerfile to customise (never overwrites)")
-    ] = False,
-) -> None:
-    """Print the Dockerfile easy_sm generates for this project, or write it as a starting point for your own.
+def dockerfile_command(ctx: typer.Context) -> None:
+    """Print the Dockerfile easy_sm generates for this project.
 
-    Compare a custom Dockerfile with the current generated one: easy_sm dockerfile | diff - Dockerfile
+    Customise it with: easy_sm dockerfile > Dockerfile (then edit; delete the file to go back).
+    After an upgrade, compare: easy_sm dockerfile | diff - Dockerfile
     """
     cfg = load_config(ctx)
-    project = cfg.path.parent
     try:
-        text = image.dockerfile(image.python_version(project))
+        text = image.dockerfile(image.python_version(cfg.path.parent))
     except ImageError as e:
         fail(str(e))
-    if not write:
-        typer.echo(text, nl=False)
-        return
-    target = project / "Dockerfile"
-    if target.exists():
-        fail(f"Not overwriting {target}. Compare it with: easy_sm dockerfile | diff - Dockerfile")
-    target.write_text(DOCKERFILE_HEADER + text)
-    typer.echo(target)
+    typer.echo(DOCKERFILE_HEADER + text, nl=False)
 
 
 SKILL_PATH = Path(".claude/skills/easy_sm/SKILL.md")
