@@ -1,6 +1,6 @@
 v2 rewrite (branch v2, see decisions.md *Build order for the rewrite*):
-  ☐ Step 4: local loop: train/run --local, endpoints serve/invoke --local
   ☐ Step 5: cloud jobs: push via boto3, train/run with log streaming
+  ☐ Pass AWS credentials to local containers without mounting ~/.aws writable (needed for run --local scripts that use S3)
   ☐ Step 6: endpoints: deploy from job, invoke, ls, describe, delete
   ☐ Step 7: jobs group, data upload
   ☐ Step 8: README, CLAUDE.md, release 2.0.0
@@ -33,6 +33,7 @@ Housekeeping:
   ☐ Delete local branch feat/run-command (already merged into main)
 
 Archive:
+  ✔ v2 step 4: local loop: train/run --local, endpoints serve/invoke --local (68 tests; Docker checks: exit codes, env injection, Ctrl-C cleanup, 73b0d90) @done(26-11-04 11:31)
   ✔ v2 step 3: content-hash image tags, generated uv Dockerfile, `easy_sm build` (57 tests; real build 19 s, repeat 0.14 s, 176 MB; train/run/serve checked in the container, 80f642c) @done(26-11-04 10:37)
   ✔ v2 step 2: runtime (train with failure file, stdlib WSGI serve under gunicorn, run via execvp) (43 tests, 8b9250d) @done(26-11-04 10:14)
   ✔ v2 steps 0–1: removed 1.x code/tests/docs, pyproject.toml packaging, easy_sm.toml config with lookup order, `init`, `env` (28 tests, a58db18) @done(26-11-03 23:58)
