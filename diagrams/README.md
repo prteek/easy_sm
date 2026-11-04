@@ -1,6 +1,6 @@
 # easy_sm v2 diagrams
 
-Open the `.excalidraw` files at [excalidraw.com](https://excalidraw.com) (File → Open) or with the Excalidraw VS Code extension. They describe the code on the `v2` branch up to step 5.
+Open the `.excalidraw` files at [excalidraw.com](https://excalidraw.com) (File → Open) or with the Excalidraw VS Code extension. They describe the code on the `v2` branch: steps 0–7b and AWS credentials for local containers.
 
 Colours: green = function, amber diamond = check, red = stops with an error, light green = success, purple = inside the container, blue = AWS, dashed white = your code.
 
@@ -23,6 +23,11 @@ Colours: green = function, amber diamond = check, red = stops with an error, lig
 | `15-push` | Pushing the image to ECR |
 | `16-cloud-jobs` | Cloud `train` and `run`, from S3 check to exit code |
 | `17-job-states` | SageMaker job states as easy_sm reports them |
+| `18-endpoints-deploy` | `endpoints deploy` from source to `InService` on the new config |
+| `19-calls-endpoints-jobs` | Call map for `endpoints`, `jobs`, `data upload`, `skill` |
+| `20-jobs-data` | The checks in `jobs inspect/logs/cancel/artifacts` and `data upload` |
+| `21-dry-run` | What `--dry-run` reads and what it never does |
+| `22-credentials` | How AWS credentials reach a local container (names in argv, values in the environment) |
 
 ## Which command uses which function
 
@@ -46,6 +51,28 @@ Colours: green = function, amber diamond = check, red = stops with an error, lig
 | runtime `run_training` | | | | | ● | | | | ● | |
 | runtime `run_command` | | | | | | ● | | | | ● |
 | runtime `create`, `make_app` | | | | | | | ● | answers it | | |
+| `cloud.container_credentials` | | | | | ● | ● | ● | | | |
+
+### Endpoints, jobs and data
+
+| Function | deploy | invoke | ls | describe | delete | jobs ls | inspect | logs | cancel | artifacts | data upload |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| `latest_job`, `pick_latest` | `--latest` | | | | | | | | | | |
+| `is_own` | `--latest` | | | | | ● | | | | | |
+| `job_source` | `--latest`, `--job` | | | | | | | | | | |
+| `resource_name`, `model_request`, `endpoint_config_request` | ● | | | | | | | | | | |
+| `deploy`, `wait_for_endpoint`, `deploy_outcome` | ● | | | | | | | | | | |
+| `find_endpoint` | ● | | | | | | | | | | |
+| `invoke_endpoint` | | cloud | | | | | | | | | |
+| `list_endpoints` | | | ● | | | | | | | | |
+| `endpoint_details`, `describe_lines` | | | | ● | | | | | | | |
+| `delete_endpoint` | | | | | ● | | | | | | |
+| `list_jobs`, `job_rows`, `fmt_duration` | | | | | | ● | | | | | |
+| `find_job` | | | | | | | ● | ● | ● | ● | |
+| `inspect_lines` | | | | | | | ● | | | | |
+| `new_log_lines`, `follow` | | | | | | | | ● | | | |
+| `stop_job` | | | | | | | | | ● | | |
+| `upload_plan`, `upload` | | | | | | | | | | | ● |
 
 ## Where files are, in each place
 
@@ -67,9 +94,9 @@ Pure functions take inputs and return a value; they are what `tests/` checks, wi
 |---|---|---|
 | `config.py` | `_flatten`, `check_app_name`, `Config.resolve`, `Config.get` | `load` (reads the file) |
 | `init.py` | `app_name_from_folder` | `scaffold_files`, `create_project` (read and write files) |
-| `image.py` | `python_version`, `dockerfile`, `image_hash`, `build_command` | `image_files`, `_folder`, `write_context` (files); `build`, `_run`, `_succeeds` (uv, docker) |
-| `local.py` | `docker_run`, `train_command`, `run_command`, `serve_command`, `parse_env`, `request_body` | `local_dirs`, `empty`, `check_script` (files); `docker`, `invoke` (docker, HTTP) |
-| `cloud.py` | `session_kwargs`, `default_bucket`, `ecr_uri`, `job_name`, `parse_timeout`, `split_s3`, `training_job_request`, `processing_job_request`, `host_of` | `session`, `account_id`, `push`, `_docker`, `check_s3_has_data`, `ensure_bucket`, `describe`, `new_log_lines`, `follow`, `start` (AWS, docker) |
+| `image.py` | `dockerfile`, `image_hash`, `build_command` | `python_version`, `image_files`, `_folder`, `write_context` (files); `build`, `exists_locally`, `_run`, `_succeeds` (uv, docker) |
+| `local.py` | `docker_run`, `train_command`, `run_command`, `serve_command`, `parse_env`, `local_paths` | `local_dirs`, `empty`, `check_script`, `request_body` (files); `docker`, `invoke` (docker, HTTP) |
+| `cloud.py` | `session_kwargs`, `default_bucket`, `ecr_uri`, `job_name`, `parse_timeout`, `split_s3`, `training_job_request`, `processing_job_request`, `host_of`, `check_endpoint_name`, `is_own`, `pick_latest`, `resource_name`, `model_request`, `endpoint_config_request`, `deploy_outcome`, `image_hash_of`, `describe_lines`, `fmt_duration`, `job_rows`, `inspect_lines`, `upload_plan`, `credential_env` | `session`, `account_id`, `push`, `in_ecr`, `_docker`, `check_s3_has_data`, `ensure_bucket`, `describe`, `new_log_lines`, `follow`, `start`, `latest_job`, `job_source`, `find_endpoint`, `deploy`, `wait_for_endpoint`, `invoke_endpoint`, `list_endpoints`, `endpoint_details`, `delete_endpoint`, `list_jobs`, `find_job`, `stop_job`, `upload`, `container_credentials` (AWS, docker) |
 | `runtime/` | `build_command`, `make_app`, `decode`, `respond`, `gunicorn_command` | `load_from`, `run_training`, `create`, `serve`, `run_command`, `main` (imports, files, exec) |
 
 ## Exit codes
