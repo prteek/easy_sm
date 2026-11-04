@@ -1,6 +1,5 @@
 v2 rewrite (branch v2, see decisions.md *Build order for the rewrite*):
   ☐ Pass AWS credentials to local containers without mounting ~/.aws writable (needed for run --local scripts that use S3)
-  ☐ Step 6: endpoints: deploy from job, invoke, ls, describe, delete
   ☐ Add endpoint diagrams (deploy, invoke, delete) to diagrams/make_diagrams.py and regenerate
   ☐ Step 7: jobs group, data upload; agent support: --dry-run, --format json, `easy_sm skill`
   ☐ Retired easy_sm.toml keys give a targeted hint (start with aws.profile → use AWS_PROFILE)
@@ -36,6 +35,7 @@ Housekeeping:
   ☐ Delete local branch feat/run-command (already merged into main)
 
 Archive:
+  ✔ v2 step 6: endpoints deploy (from job or S3), invoke, ls, describe, delete; serverless (102 tests; real deploy 2m18s, update path kept old config, serverless invoked, both deleted, 37077b3) @done(26-11-04 12:49)
   ✔ v2 step 5: push to ECR, cloud train/run with log streaming, AWS-CLI credential behaviour (86 tests; real jobs: completed, failed with reason, exit 3, --no-wait, Ctrl-C detach, f18b95d) @done(26-11-04 12:19)
   ✔ v2 step 4: local loop: train/run --local, endpoints serve/invoke --local (68 tests; Docker checks: exit codes, env injection, Ctrl-C cleanup, 73b0d90) @done(26-11-04 11:31)
   ✔ v2 step 3: content-hash image tags, generated uv Dockerfile, `easy_sm build` (57 tests; real build 19 s, repeat 0.14 s, 176 MB; train/run/serve checked in the container, 80f642c) @done(26-11-04 10:37)
