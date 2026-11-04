@@ -30,7 +30,7 @@ uv venv -p 3.13 && uv pip install -e . --group dev   # dev setup
 easy_sm/
 ├── __init__.py        # __version__ (single source; pyproject reads it)
 ├── __main__.py        # Typer app: --config, init, env, build, push, train/run (cloud or --local), endpoints deploy/invoke/ls/describe/delete, serve --local,
-│                      #   jobs ls/inspect/logs/cancel/artifacts, data upload, skill;
+│                      #   jobs ls/inspect/logs/cancel/artifacts, data upload, dockerfile, skill;
 │                      #   --dry-run (train, run, push, deploy), --format json (env, jobs ls/inspect, endpoints ls/describe)
 ├── config.py          # easy_sm.toml loading/validation, SETTINGS table, Config.resolve()
 ├── init.py            # create_project(): copies scaffold/, never overwrites
