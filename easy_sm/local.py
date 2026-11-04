@@ -15,6 +15,12 @@ from easy_sm.image import PLATFORM, ImageError
 LOCAL_DIR = ".easy_sm"  # model and outputs of local runs, inside the project
 
 
+def local_paths(project_dir: Path) -> tuple[Path, Path]:
+    """(model dir, output dir) inside .easy_sm/, without creating anything."""
+    base = (project_dir / LOCAL_DIR).resolve()
+    return base / "model", base / "output"
+
+
 def local_dirs(project_dir: Path) -> tuple[Path, Path]:
     """Create .easy_sm/ (ignored by git) and return (model dir, output dir)."""
     base = (project_dir / LOCAL_DIR).resolve()

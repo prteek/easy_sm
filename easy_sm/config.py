@@ -46,6 +46,12 @@ SETTINGS: dict[str, Setting] = {
 }
 SECTIONS = {key.split(".")[0] for key in SETTINGS if "." in key}
 
+# Settings that existed once: a typo-style "unknown setting" error would confuse, so say what changed.
+RETIRED = {
+    "aws.profile": "was removed in 2.0: credentials come from your environment like the AWS CLI "
+    "(AWS_PROFILE, access keys, OIDC). Delete this line and set AWS_PROFILE instead.",
+}
+
 # app_name becomes the Docker image name, the ECR repository and the start of SageMaker
 # job and endpoint names. SageMaker allows only letters, digits and hyphens there, Docker
 # only lowercase, and job names max 63 characters, leaving room for a timestamp and hash.
@@ -99,6 +105,8 @@ def load(path: Path) -> Config:
 
     values = _flatten(data)
     for key, value in values.items():
+        if key in RETIRED:
+            raise ConfigError(f"{path}: '{key}' {RETIRED[key]}")
         setting = SETTINGS.get(key)
         if setting is None:
             raise ConfigError(f"{path}: unknown setting '{key}'")

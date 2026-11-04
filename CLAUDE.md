@@ -24,15 +24,17 @@ uv venv -p 3.13 && uv pip install -e . --group dev   # dev setup
 .venv/bin/easy_sm --help
 ```
 
-## What exists (v2, step 7a)
+## What exists (v2, step 7b)
 
 ```
 easy_sm/
 ├── __init__.py        # __version__ (single source; pyproject reads it)
 ├── __main__.py        # Typer app: --config, init, env, build, push, train/run (cloud or --local), endpoints deploy/invoke/ls/describe/delete, serve --local,
-│                      #   jobs ls/inspect/logs/cancel/artifacts, data upload
+│                      #   jobs ls/inspect/logs/cancel/artifacts, data upload, skill;
+│                      #   --dry-run (train, run, push, deploy), --format json (env, jobs ls/inspect, endpoints ls/describe)
 ├── config.py          # easy_sm.toml loading/validation, SETTINGS table, Config.resolve()
 ├── init.py            # create_project(): copies scaffold/, never overwrites
+├── skill.md           # agent guide written by `easy_sm skill`; tests/test_agents.py fails if a command is missing from it
 ├── image.py           # image_files() → hash tag + build folder; generated uv Dockerfile; build()
 ├── local.py           # docker run argv builders (train/run/serve), parse_env, invoke(); .easy_sm/ folder
 ├── cloud.py           # boto3: session (default credential chain), ECR push, Create*Job requests, follow() logs,
@@ -56,7 +58,7 @@ pyproject.toml         # packaging (hatchling), dev dependency group, pytest/myp
 
 ### Config (`easy_sm/config.py`)
 - Every known setting is listed in `SETTINGS` as `"section.name": Setting(type, env=..., default=...)`. Adding a setting = one line there (and a commented line in `scaffold/easy_sm.toml`)
-- `load(path)` rejects unknown keys, wrong types, missing/invalid `app_name`, non-string `run.env` values. Raises `ConfigError`
+- `load(path)` rejects retired keys with a hint (`RETIRED`, e.g. `aws.profile`), unknown keys, wrong types, missing/invalid `app_name`, non-string `run.env` values. Raises `ConfigError`
 - `Config.resolve(key, flag)` returns `(value, source)`; `Config.get(key, flag)` returns the value. `env` is a parameter so tests pass a dict instead of patching `os.environ`
 - `app_name`: lowercase letters, digits, single hyphens, max 32 chars (it becomes the Docker image, ECR repo and SageMaker job/endpoint name prefix)
 - Env overrides: `AWS_REGION`, `SAGEMAKER_ROLE`. With no region set, boto3's own (`AWS_DEFAULT_REGION`, `~/.aws`) is used

@@ -1,7 +1,10 @@
 """The easy_sm command line."""
 
+import json
 import sys
 from collections.abc import Callable
+from enum import Enum
+from importlib.resources import files
 from pathlib import Path
 from typing import Annotated, Any, NoReturn
 
@@ -31,6 +34,19 @@ InstanceOption = Annotated[str | None, typer.Option("--instance", help="SageMake
 TimeoutOption = Annotated[str | None, typer.Option("--timeout", help="Stop the job after this long, e.g. 90m, 2h")]
 NoWaitFlag = Annotated[bool, typer.Option("--no-wait", help="Print the job name and return without waiting")]
 QuietFlag = Annotated[bool, typer.Option("--quiet", "-q", help="Wait without printing logs")]
+DryRunFlag = Annotated[
+    bool, typer.Option("--dry-run", help="Print what would be sent, as JSON, and change nothing")
+]
+
+
+class Format(str, Enum):
+    table = "table"
+    json = "json"
+
+
+FormatOption = Annotated[Format, typer.Option("--format", help="table for people, json for scripts and agents")]
+# Set by commands run with --format json, so errors come out as JSON too.
+_json_errors = False
 
 # Errors from AWS or our own checks that should end the command with a message, not a traceback.
 AWS_ERRORS = (CloudError, ValueError, ClientError, BotoCoreError)
@@ -47,9 +63,20 @@ def main(
 
 
 def fail(message: str, code: int = 1) -> NoReturn:
-    """Print the message on stderr and exit."""
-    typer.echo(message, err=True)
+    """Print the message on stderr (as JSON in --format json mode) and exit."""
+    typer.echo(json.dumps({"error": message, "code": code}) if _json_errors else message, err=True)
     raise typer.Exit(code)
+
+
+def use_format(fmt: Format) -> bool:
+    """Remember the output format for errors; return True for JSON."""
+    global _json_errors
+    _json_errors = fmt is Format.json
+    return _json_errors
+
+
+def emit_json(data: Any) -> None:
+    typer.echo(json.dumps(data, indent=2, default=lambda o: o.isoformat() if hasattr(o, "isoformat") else str(o)))
 
 
 def load_config(ctx: typer.Context) -> Config:
@@ -95,26 +122,28 @@ def init(
 
 
 @app.command()
-def env(ctx: typer.Context) -> None:
+def env(ctx: typer.Context, fmt: FormatOption = Format.table) -> None:
     """Show every setting, its value and where the value came from."""
+    as_json = use_format(fmt)
     cfg = load_config(ctx)
+    rows: list[tuple[str, Any, str]] = []
     try:
-        tag, source = image.image_tag(cfg.path.parent, cfg.get("app_name")), "computed"
+        rows.append(("image", image.image_tag(cfg.path.parent, cfg.get("app_name")), "computed"))
     except ImageError:
-        tag, source = "-", "run 'easy_sm build'"
-    typer.echo(f"{'image':<22} {tag:<45} {source}")
+        rows.append(("image", None, "run 'easy_sm build'"))
     try:
         s = cloud.session(cfg)
         method = s.get_credentials().method
         via = f"{method}, profile {s.profile_name}" if method == "shared-credentials-file" else method
-        account, source = cloud.account_id(s), f"{s.region_name}, credentials: {via}"
+        rows.append(("aws.account", cloud.account_id(s), f"{s.region_name}, credentials: {via}"))
     except AWS_ERRORS as e:
-        account, source = "-", f"not available ({type(e).__name__})"
-    typer.echo(f"{'aws.account':<22} {account:<45} {source}")
-    for key in SETTINGS:
-        value, source = cfg.resolve(key)
-        shown = "-" if value is None else str(value)
-        typer.echo(f"{key:<22} {shown:<45} {source}")
+        rows.append(("aws.account", None, f"not available ({type(e).__name__})"))
+    rows += [(key, *cfg.resolve(key)) for key in SETTINGS]
+    if as_json:
+        emit_json({key: {"value": value, "source": source} for key, value, source in rows})
+        return
+    for key, value, source in rows:
+        typer.echo(f"{key:<22} {'-' if value is None else str(value):<45} {source}")
 
 
 @app.command()
@@ -123,10 +152,32 @@ def build(ctx: typer.Context) -> None:
     typer.echo(build_image(load_config(ctx)))
 
 
+def image_plan(cfg: Config, s: Any = None, account: str | None = None) -> dict[str, Any]:
+    """For --dry-run: the image tag the code would get, and whether build/push would happen.
+    Read-only: never runs uv lock, docker build or docker push."""
+    try:
+        tag = image.image_tag(cfg.path.parent, cfg.get("app_name"))
+    except ImageError as e:
+        fail(f"{e} (--dry-run never runs uv lock; run 'uv lock' or 'easy_sm build' first)")
+    exists = image.exists_locally(tag)
+    plan: dict[str, Any] = {"tag": tag, "build": None if exists is None else not exists}
+    if s is not None and account:
+        plan["uri"] = cloud.ecr_uri(account, s.region_name, tag)
+        plan["push"] = not cloud.in_ecr(s, tag)
+    return plan
+
+
 @app.command()
-def push(ctx: typer.Context) -> None:
+def push(ctx: typer.Context, dry_run: DryRunFlag = False) -> None:
     """Build the image if needed, push it to ECR (skipped if already there) and print its URI."""
     cfg = load_config(ctx)
+    if dry_run:
+        try:
+            s = cloud.session(cfg)
+            emit_json({"command": "push", "dry_run": True, "image": image_plan(cfg, s, cloud.account_id(s))})
+        except AWS_ERRORS as e:
+            fail(str(e))
+        return
     tag = build_image(cfg)
     try:
         s = cloud.session(cfg)
@@ -143,9 +194,27 @@ def reject_cloud_options(**options: object) -> None:
 
 
 def run_cloud_job(
-    cfg: Config, kind: str, make_request: Callable[[str, str, str], dict[str, Any]], no_wait: bool, quiet: bool
+    cfg: Config,
+    kind: str,
+    make_request: Callable[[str, str, str], dict[str, Any]],
+    no_wait: bool,
+    quiet: bool,
+    dry_run: bool = False,
 ) -> None:
     """Build and push the image, start the job, print its name, then follow it to the end."""
+    if dry_run:
+        try:
+            s = cloud.session(cfg)
+            role = cfg.get("aws.role")
+            if not role:
+                fail("No IAM role: set [aws] role in easy_sm.toml or SAGEMAKER_ROLE")
+            plan = image_plan(cfg, s, cloud.account_id(s))
+            request = make_request(cloud.job_name(plan["tag"], cloud.now()), plan["uri"], role)
+        except AWS_ERRORS as e:
+            fail(str(e))
+        emit_json({"command": "train" if kind == "training" else "run", "dry_run": True,
+                   "image": plan, "request": request})  # fmt: skip
+        return
     tag = build_image(cfg)
     try:
         s = cloud.session(cfg)
@@ -172,11 +241,12 @@ def run_cloud_job(
         fail(f"{name} {job['status']}: {job['reason']}")
 
 
-def s3_default(cfg: Config, folder: str) -> str:
-    """s3://sagemaker-<region>-<account>/<app>/<folder>, creating the bucket if needed."""
+def s3_default(cfg: Config, folder: str, create: bool = True) -> str:
+    """s3://sagemaker-<region>-<account>/<app>/<folder>, creating the bucket if needed (not for --dry-run)."""
     s = cloud.session(cfg)
     bucket = cloud.default_bucket(cloud.account_id(s), s.region_name)
-    cloud.ensure_bucket(s, bucket)
+    if create:
+        cloud.ensure_bucket(s, bucket)
     return f"s3://{bucket}/{cfg.get('app_name')}/{folder}"
 
 
@@ -194,6 +264,7 @@ def train(
     timeout: TimeoutOption = None,
     no_wait: NoWaitFlag = False,
     quiet: QuietFlag = False,
+    dry_run: DryRunFlag = False,
 ) -> None:
     """Train a model: calls train() in src/train.py.
 
@@ -209,6 +280,12 @@ def train(
         data_dir = data_dir if data_dir.is_absolute() else project / data_dir
         if not data_dir.is_dir():
             fail(f"{data_dir} not found")
+        if dry_run:
+            plan = image_plan(cfg)
+            model_dir, output_dir = local.local_paths(project)
+            emit_json({"command": "train --local", "dry_run": True, "image": plan,
+                       "docker": local.train_command(plan["tag"], data_dir, model_dir, output_dir)})  # fmt: skip
+            return
         tag = build_image(cfg)
         model_dir, output_dir = local.local_dirs(project)
         local.empty(model_dir)
@@ -217,8 +294,8 @@ def train(
         return
 
     try:
-        input_s3 = cfg.get("train.input", input_path) or s3_default(cfg, "data")
-        output_s3 = cfg.get("train.output", output) or s3_default(cfg, "models")
+        input_s3 = cfg.get("train.input", input_path) or s3_default(cfg, "data", create=not dry_run)
+        output_s3 = cfg.get("train.output", output) or s3_default(cfg, "models", create=not dry_run)
         cloud.check_s3_has_data(cloud.session(cfg), input_s3)
         seconds = cloud.parse_timeout(cfg.get("train.timeout", timeout))
     except AWS_ERRORS as e:
@@ -230,7 +307,7 @@ def train(
             input_s3, output_s3, seconds,
         )  # fmt: skip
 
-    run_cloud_job(cfg, "training", request, no_wait, quiet)
+    run_cloud_job(cfg, "training", request, no_wait, quiet, dry_run)
 
 
 @app.command(context_settings={"allow_interspersed_args": False})
@@ -247,6 +324,7 @@ def run(
     timeout: TimeoutOption = None,
     no_wait: NoWaitFlag = False,
     quiet: QuietFlag = False,
+    dry_run: DryRunFlag = False,
 ) -> None:
     """Run any command from src/ in the project's image. A .py file runs with python.
 
@@ -262,6 +340,12 @@ def run(
 
     if is_local:
         reject_cloud_options(instance=instance, timeout=timeout, no_wait=no_wait, quiet=quiet)
+        if dry_run:
+            plan = image_plan(cfg)
+            _, output_dir = local.local_paths(project)
+            emit_json({"command": "run --local", "dry_run": True, "image": plan,
+                       "docker": local.run_command(plan["tag"], project / "data", output_dir, env_vars, command)})  # fmt: skip
+            return
         tag = build_image(cfg)
         _, output_dir = local.local_dirs(project)
         docker_or_exit(local.run_command(tag, project / "data", output_dir, env_vars, command))
@@ -278,7 +362,7 @@ def run(
             cfg.get("run.input"), cfg.get("run.output"), seconds,
         )  # fmt: skip
 
-    run_cloud_job(cfg, "processing", request, no_wait, quiet)
+    run_cloud_job(cfg, "processing", request, no_wait, quiet, dry_run)
 
 
 @endpoints.command()
@@ -318,6 +402,7 @@ def deploy(
         str | None, typer.Option("--model", help="Deploy this model.tar.gz with the CURRENT code (builds and pushes)")
     ] = None,
     instance: InstanceOption = None,
+    dry_run: DryRunFlag = False,
 ) -> None:
     """Deploy a model to a SageMaker endpoint, or update the endpoint if it exists.
 
@@ -332,20 +417,32 @@ def deploy(
         fail("No IAM role: set [aws] role in easy_sm.toml or SAGEMAKER_ROLE")
     try:
         s = cloud.session(cfg)
+        source: dict[str, Any]
         if model:
             cloud.check_s3_has_data(s, model)
-            image_uri = cloud.push(s, cloud.account_id(s), build_image(cfg))
+            if dry_run:
+                plan = image_plan(cfg, s, cloud.account_id(s))
+                image_uri, source = plan["uri"], {"model": model, "image": plan}
+            else:
+                image_uri = cloud.push(s, cloud.account_id(s), build_image(cfg))
             model_s3 = model
         else:
             source_job = job or cloud.latest_job(s, cfg.get("app_name"))
             model_s3, image_uri = cloud.job_source(s, source_job)
+            source = {"job": source_job}
             typer.echo(f"Deploying {source_job}", err=True)
         resource = cloud.resource_name(endpoint, cloud.image_hash_of(image_uri), cloud.now())
         config = cloud.endpoint_config_request(
             resource, resource, cfg.get("endpoint.instance", instance), cfg.get("endpoint.serverless"),
             cfg.get("endpoint.memory"), cfg.get("endpoint.concurrency"),
         )  # fmt: skip
-        cloud.deploy(s, endpoint, cloud.model_request(resource, image_uri, model_s3, role), config)
+        model_req = cloud.model_request(resource, image_uri, model_s3, role)
+        if dry_run:
+            action = "update" if cloud.find_endpoint(s, endpoint) else "create"
+            emit_json({"command": "endpoints deploy", "dry_run": True, "endpoint": endpoint, "action": action,
+                       "source": source, "model": model_req, "endpoint_config": config})  # fmt: skip
+            return
+        cloud.deploy(s, endpoint, model_req, config)
         desc = cloud.wait_for_endpoint(s, endpoint)
     except KeyboardInterrupt:
         fail(f"Stopped waiting; {endpoint} keeps deploying. Check it with: easy_sm endpoints describe {endpoint}", 130)
@@ -392,13 +489,18 @@ def invoke(
 
 
 @endpoints.command("ls")
-def list_endpoints(ctx: typer.Context) -> None:
+def list_endpoints(ctx: typer.Context, fmt: FormatOption = Format.table) -> None:
     """List endpoints in this account and region, newest first: name, status, created."""
+    as_json = use_format(fmt)
     cfg = load_config(ctx)
     try:
         rows = cloud.list_endpoints(cloud.session(cfg))
     except AWS_ERRORS as e:
         fail(str(e))
+    if as_json:
+        emit_json([{"name": r["EndpointName"], "status": r["EndpointStatus"], "created": r["CreationTime"]}
+                   for r in rows])  # fmt: skip
+        return
     for row in rows:
         typer.echo(f"{row['EndpointName']:<40} {row['EndpointStatus']:<14} {row['CreationTime']:%Y-%m-%d %H:%M}")
 
@@ -407,13 +509,18 @@ def list_endpoints(ctx: typer.Context) -> None:
 def describe(
     ctx: typer.Context,
     name: Annotated[str | None, typer.Argument(help="Endpoint name (default: [endpoint] name, then app_name)")] = None,
+    fmt: FormatOption = Format.table,
 ) -> None:
     """Show an endpoint's status, size, model data and image."""
+    as_json = use_format(fmt)
     cfg = load_config(ctx)
     try:
         details = cloud.endpoint_details(cloud.session(cfg), endpoint_name(cfg, name))
     except AWS_ERRORS as e:
         fail(str(e))
+    if as_json:
+        emit_json(dict(cloud.describe_lines(details)))
+        return
     for label, value in cloud.describe_lines(details):
         typer.echo(f"{label:<12} {value}")
 
@@ -452,13 +559,18 @@ def list_jobs(
     ctx: typer.Context,
     limit: Annotated[int, typer.Option("-n", help="How many jobs to show")] = 10,
     quiet: Annotated[bool, typer.Option("--quiet", "-q", help="Print job names only")] = False,
+    fmt: FormatOption = Format.table,
 ) -> None:
     """This app's training and processing jobs, newest first: name, kind, status, created, duration."""
+    as_json = use_format(fmt)
     cfg = load_config(ctx)
     try:
         rows = cloud.list_jobs(session_or_exit(cfg), cfg.get("app_name"), limit)
     except AWS_ERRORS as e:
         fail(str(e))
+    if as_json:
+        emit_json(rows)
+        return
     for row in rows:
         if quiet:
             typer.echo(row["name"])
@@ -468,12 +580,16 @@ def list_jobs(
 
 
 @jobs.command()
-def inspect(ctx: typer.Context, name: JobArgument) -> None:
+def inspect(ctx: typer.Context, name: JobArgument, fmt: FormatOption = Format.table) -> None:
     """Show a job's status, instance, image, data locations, duration and failure reason."""
+    as_json = use_format(fmt)
     try:
         kind, job = cloud.find_job(session_or_exit(load_config(ctx)), name)
     except AWS_ERRORS as e:
         fail(str(e))
+    if as_json:
+        emit_json(dict(cloud.inspect_lines(kind, job, cloud.now())))
+        return
     for label, value in cloud.inspect_lines(kind, job, cloud.now()):
         typer.echo(f"{label:<10} {value}")
 
@@ -549,6 +665,21 @@ def upload_data(
     except AWS_ERRORS as e:
         fail(str(e))
     typer.echo(target)
+
+
+SKILL_PATH = Path(".claude/skills/easy_sm/SKILL.md")
+
+
+@app.command()
+def skill(
+    path: Annotated[Path, typer.Argument(help="Where to write it (default: .claude/skills/easy_sm/SKILL.md)")] = SKILL_PATH,
+) -> None:
+    """Write a SKILL.md that teaches coding agents (e.g. Claude Code) how to use easy_sm. Never overwrites."""
+    if path.exists():
+        fail(f"Not overwriting {path}; delete it first to get this version's guide")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text((files("easy_sm") / "skill.md").read_text())
+    typer.echo(path)
 
 
 def cli() -> None:

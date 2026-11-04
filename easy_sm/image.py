@@ -103,6 +103,14 @@ def build(project_dir: Path, app_name: str) -> str:
     return tag
 
 
+def exists_locally(tag: str) -> bool | None:
+    """True if Docker already has this image; None if Docker isn't available to ask."""
+    try:
+        return _succeeds(["docker", "image", "inspect", tag])
+    except ImageError:
+        return None
+
+
 def _folder(folder: Path, prefix: str) -> dict[str, bytes]:
     """Files under folder, skipping caches and hidden files (.DS_Store, .env)."""
     if not folder.is_dir():

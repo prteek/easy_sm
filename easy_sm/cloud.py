@@ -166,18 +166,15 @@ def processing_job_request(
 def push(s: boto3.Session, account: str, tag: str) -> str:
     """Push a local image to ECR unless that tag is already there. Return its ECR URI."""
     ecr = s.client("ecr")
-    repository, image_tag = tag.split(":")
+    repository = tag.split(":")[0]
     uri = ecr_uri(account, s.region_name, tag)
+    if in_ecr(s, tag):
+        return uri  # already pushed
     try:
         ecr.describe_repositories(repositoryNames=[repository])
     except ecr.exceptions.RepositoryNotFoundException:
         # Tags are content hashes, so one can never be reused for different code.
         ecr.create_repository(repositoryName=repository, imageTagMutability="IMMUTABLE")
-    try:
-        ecr.describe_images(repositoryName=repository, imageIds=[{"imageTag": image_tag}])
-        return uri  # already pushed
-    except ecr.exceptions.ImageNotFoundException:
-        pass
 
     auth = ecr.get_authorization_token()["authorizationData"][0]
     password = base64.b64decode(auth["authorizationToken"]).decode().split(":", 1)[1]
@@ -186,6 +183,17 @@ def push(s: boto3.Session, account: str, tag: str) -> str:
     _docker(["docker", "tag", tag, uri])
     _docker(["docker", "push", uri])
     return uri
+
+
+def in_ecr(s: boto3.Session, tag: str) -> bool:
+    """Read-only: is this exact tag already in ECR?"""
+    ecr = s.client("ecr")
+    repository, image_tag = tag.split(":")
+    try:
+        ecr.describe_images(repositoryName=repository, imageIds=[{"imageTag": image_tag}])
+        return True
+    except (ecr.exceptions.ImageNotFoundException, ecr.exceptions.RepositoryNotFoundException):
+        return False
 
 
 def _docker(command: list[str], stdin: str | None = None) -> None:
